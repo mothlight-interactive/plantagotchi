@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+.kotlin
+build/
+xcuserdata/
+*.xcworkspace/xcuserdata/
+iosApp/Configuration/Secrets.xcconfig
