@@ -1,15 +1,20 @@
 package dev.mothlight.plantagotchi
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.mothlight.plantagotchi.data.AppSettings
 import dev.mothlight.plantagotchi.data.repository.LocalGameStateRepository
+import dev.mothlight.plantagotchi.data.repository.SupabaseFriendsService
 import dev.mothlight.plantagotchi.data.repository.SupabaseGameStateRepository
 import dev.mothlight.plantagotchi.data.repository.SyncingGameStateRepository
 import dev.mothlight.plantagotchi.data.weather.OpenMeteoClient
 import dev.mothlight.plantagotchi.model.PlantagotchiViewModel
 import dev.mothlight.plantagotchi.platform.PlatformServices
+import dev.mothlight.plantagotchi.platform.Sfx
+import dev.mothlight.plantagotchi.resources.Res
 import dev.mothlight.plantagotchi.ui.GameScreen
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
@@ -23,6 +28,13 @@ import kotlinx.serialization.json.Json
 fun App(platform: PlatformServices) {
     val viewModel = viewModel { createViewModel(platform) }
 
+    LaunchedEffect(platform) {
+        val sounds = Sfx.entries.mapNotNull { sfx ->
+            runCatching { sfx to Res.readBytes("files/sfx/${sfx.file}.wav") }.getOrNull()
+        }.toMap()
+        runCatching { platform.sound.load(sounds) }
+    }
+
     LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onStop() }
 
@@ -33,19 +45,19 @@ private fun createViewModel(platform: PlatformServices): PlantagotchiViewModel {
     val http = HttpClient {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
     }
-    val remote = if (AppConfig.SUPABASE_URL.isNotBlank() && AppConfig.SUPABASE_PUBLISHABLE_KEY.isNotBlank()) {
-        SupabaseGameStateRepository(
-            createSupabaseClient(AppConfig.SUPABASE_URL, AppConfig.SUPABASE_PUBLISHABLE_KEY) {
-                install(Auth)
-                install(Postgrest)
-            }
-        )
+    val supabase = if (AppConfig.SUPABASE_URL.isNotBlank() && AppConfig.SUPABASE_PUBLISHABLE_KEY.isNotBlank()) {
+        createSupabaseClient(AppConfig.SUPABASE_URL, AppConfig.SUPABASE_PUBLISHABLE_KEY) {
+            install(Auth)
+            install(Postgrest)
+        }
     } else {
         null
     }
     return PlantagotchiViewModel(
         platform = platform,
-        repository = SyncingGameStateRepository(LocalGameStateRepository(), remote),
+        repository = SyncingGameStateRepository(LocalGameStateRepository(), supabase?.let(::SupabaseGameStateRepository)),
         weatherClient = OpenMeteoClient(http),
+        friendsService = supabase?.let(::SupabaseFriendsService),
+        appSettings = AppSettings(),
     )
 }

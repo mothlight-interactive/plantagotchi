@@ -1,13 +1,10 @@
 package dev.mothlight.plantagotchi.ui.particlesystem
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.unit.IntOffset
@@ -83,47 +80,47 @@ val rainParameters = PrecipitationsParameters(
 
 internal fun Int.toRadians(): Double = this * PI / 180.0
 
-/**
- * Draws a particle system. [frame] is read during drawing only, so animation does not recompose.
- */
-@Composable
-fun Particles(
-    frame: State<Long>,
-    parameters: PrecipitationsParameters,
-    modifier: Modifier = Modifier,
+/** Draws the particles of [system], advancing it to [frame] first. */
+internal fun DrawScope.drawParticles(
+    system: ParticleSystem,
+    frame: Long,
+    alpha: Float = 1f,
+    colorFilter: ColorFilter? = null,
 ) {
-    val system = remember(parameters) { ParticleSystem(parameters) }
-    Canvas(modifier = modifier) {
-        system.step(frame.value, size.width.toInt(), size.height.toInt())
-        system.particles.forEach { particle ->
-            when (val shape = parameters.shape) {
-                is PrecipitationShape.Circle -> drawCircle(
+    system.step(frame, size.width.toInt(), size.height.toInt())
+    val parameters = system.parameters
+    system.particles.forEach { particle ->
+        when (val shape = parameters.shape) {
+            is PrecipitationShape.Circle -> drawCircle(
+                color = shape.color,
+                radius = particle.width,
+                center = Offset(particle.x, particle.y),
+                alpha = alpha,
+            )
+
+            is PrecipitationShape.Line -> {
+                val angle = particle.angle.toRadians()
+                drawLine(
                     color = shape.color,
-                    radius = particle.width,
-                    center = Offset(particle.x, particle.y),
-                )
-
-                is PrecipitationShape.Line -> {
-                    val angle = particle.angle.toRadians()
-                    drawLine(
-                        color = shape.color,
-                        pathEffect = PathEffect.cornerPathEffect(20f),
-                        start = Offset(particle.x, particle.y),
-                        end = Offset(
-                            particle.x - particle.height * cos(angle).toFloat(),
-                            particle.y - particle.height * sin(angle).toFloat(),
-                        ),
-                        strokeWidth = particle.width,
-                    )
-                }
-
-                is PrecipitationShape.Image -> drawImage(
-                    image = shape.image,
-                    dstOffset = IntOffset(particle.x.toInt(), particle.y.toInt()),
-                    dstSize = IntSize(particle.width.toInt(), particle.height.toInt()),
-                    colorFilter = shape.colorFilter,
+                    pathEffect = PathEffect.cornerPathEffect(20f),
+                    start = Offset(particle.x, particle.y),
+                    end = Offset(
+                        particle.x - particle.height * cos(angle).toFloat(),
+                        particle.y - particle.height * sin(angle).toFloat(),
+                    ),
+                    strokeWidth = particle.width,
+                    alpha = alpha,
                 )
             }
+
+            is PrecipitationShape.Image -> drawImage(
+                image = shape.image,
+                dstOffset = IntOffset(particle.x.toInt(), particle.y.toInt()),
+                dstSize = IntSize(particle.width.toInt(), particle.height.toInt()),
+                alpha = alpha,
+                colorFilter = colorFilter ?: shape.colorFilter,
+                filterQuality = FilterQuality.None,
+            )
         }
     }
 }
@@ -137,7 +134,7 @@ class Particle(
     var angle: Int,
 )
 
-internal class ParticleSystem(private val parameters: PrecipitationsParameters) {
+internal class ParticleSystem(val parameters: PrecipitationsParameters) {
     private val _particles = mutableListOf<Particle>()
     val particles: List<Particle> get() = _particles
 

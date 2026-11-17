@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Plantagotchi</string>
+    <string name="widget_description">Shows how your plant is doing</string>
+    <string name="widget_water">Water</string>
+    <string name="widget_light">Light</string>
+    <string name="widget_love">Love</string>
+    <string name="widget_fertilizer">Fertilizer</string>
+    <string name="widget_withered">Withered, open the app</string>
+    <string name="widget_empty">Open the app to start</string>
 </resources>

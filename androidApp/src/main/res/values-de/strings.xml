@@ -1,0 +1,9 @@
+<resources>
+    <string name="widget_description">Zeigt, wie es deiner Pflanze geht</string>
+    <string name="widget_water">Wasser</string>
+    <string name="widget_light">Licht</string>
+    <string name="widget_love">Liebe</string>
+    <string name="widget_fertilizer">Dünger</string>
+    <string name="widget_withered">Verwelkt, öffne die App</string>
+    <string name="widget_empty">Öffne die App zum Starten</string>
+</resources>

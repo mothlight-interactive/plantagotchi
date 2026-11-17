@@ -21,16 +21,12 @@ import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.seconds
 
 fun iosPlatformServices() = PlatformServices(
-    lightSensor = IosLightSensor(),
+    lightSensor = IosCameraLightSensor(),
     locationProvider = IosLocationProvider(),
+    notifications = IosNotificationScheduler(),
+    sound = IosSoundPlayer(),
+    widget = IosWidgetBridge(),
 )
-
-/** iOS exposes no public ambient light sensor API; lux is estimated from the weather instead. */
-class IosLightSensor : LightSensor {
-    override val lux: StateFlow<Float?> = MutableStateFlow(null)
-    override fun start() = Unit
-    override fun stop() = Unit
-}
 
 @OptIn(ExperimentalForeignApi::class)
 class IosLocationProvider : LocationProvider {

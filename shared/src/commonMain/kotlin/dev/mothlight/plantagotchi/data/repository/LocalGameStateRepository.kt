@@ -2,19 +2,18 @@ package dev.mothlight.plantagotchi.data.repository
 
 import com.russhwolf.settings.Settings
 import dev.mothlight.plantagotchi.data.state.PlayerState
-import kotlinx.serialization.json.Json
+import dev.mothlight.plantagotchi.data.state.PlayerStateCodec
 
 /** Persists the game state on device (SharedPreferences / NSUserDefaults). */
 class LocalGameStateRepository(
     private val settings: Settings = Settings(),
-    private val json: Json = Json { ignoreUnknownKeys = true },
 ) : GameStateRepository {
 
     override suspend fun load(): PlayerState? =
-        settings.getStringOrNull(KEY)?.let { runCatching { json.decodeFromString<PlayerState>(it) }.getOrNull() }
+        settings.getStringOrNull(KEY)?.let { runCatching { PlayerStateCodec.decode(it) }.getOrNull() }
 
     override suspend fun save(state: PlayerState) {
-        settings.putString(KEY, json.encodeToString(state))
+        settings.putString(KEY, PlayerStateCodec.encode(state))
     }
 
     private companion object {

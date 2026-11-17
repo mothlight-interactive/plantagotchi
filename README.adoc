@@ -3,8 +3,8 @@
 A pixel-art Tamagotchi for a plant. Keep it alive by giving it light, water, fertilizer and love.
 The scene mirrors the real weather and time of day at your location; rain waters the plant automatically.
 
-Originally built as the ws6C Mobile Experience project (FHNW) by Joyce Hänggi and Florian Thiévent,
-now a Kotlin/Compose Multiplatform app for Android and iOS.
+A Mothlight Interactive game. Originally built as the ws6C Mobile Experience project (FHNW) by Joyce Hänggi
+and Florian Thiévent, now a Kotlin/Compose Multiplatform app for Android and iOS.
 
 == Project structure
 
@@ -41,7 +41,7 @@ Tests:
 
 Without configuration the game is stored on the device only. To sync it with Supabase:
 
-. Apply `supabase/migrations/*.sql` to your project.
+. Apply all `supabase/migrations/*.sql` to your project, in order.
 . Enable *Allow anonymous sign-ins* (Authentication > Sign In / Providers).
 . Add to `local.properties` (not committed):
 +
@@ -54,15 +54,74 @@ The state is always written locally and mirrored to Supabase; on start the most 
 
 == Game rules
 
-* *Light*: rises while the ambient light is above 1000 lux, otherwise empties in 1 day.
-  Android uses the light sensor; iOS has no public light sensor API, so light is estimated from daylight and weather.
-* *Water*: refilled by rain, light rain, heavy rain and thunderstorms, otherwise empties in 2 days.
-* *Love*: swipe over the plant to pet it, empties in 1 week.
-* *Fertilizer*: empties in 2 weeks.
-* Every gain earns a coin. Decay continues while the app is closed.
+* Up to 5 plants, all visible side by side; tap one to look after it (it moves to the front and grows bigger).
+  Plants that need something show a red marker. Species:
+** *Sprout*: easy going
+** *Cactus*: little water, loves sun, hates frost
+** *Fern*: likes shade, drinks a lot
+** *Sunflower*: needs lots of light, turns its head to the sun and lets it hang at night
+** *Tulip*: hardy in the cold, opens its bloom by day
+** *Monstera*: big holey leaves, likes shade, hates frost
+** *Bonsai*: slow, needs twice the love, little fertilizer
+** *Flytrap*: thirsty, catches its own food (little fertilizer), snaps when you tap it
+* *Light*: rises while the ambient light is above 1000 lux, otherwise empties in about a day.
+  Android uses the light sensor. iOS has no public light sensor API: light is estimated from daylight and
+  weather, or measured with the camera if enabled in the settings.
+* *Water*: refilled by rain, otherwise empties in about two days. Friends can send water once a day.
+* *Love*: swipe over the plant to pet it, empties in a week.
+* *Fertilizer*: empties in two weeks and speeds up growth.
+* *Temperature*: above 30 °C plants dry out faster, below 0 °C all needs drop faster (cacti suffer most).
+* *Growth*: healthy plants (average need ≥ 60 %) grow from seedling to young plant (6 h) to grown (48 h).
+* *Withering*: below 10 % health for 24 hours a plant withers. Revive it in the shop, replant it for free or compost it.
+* *Daily chest*: coins once a day, more for consecutive days (streak).
+* Every gain earns a coin. Decay, growth and withering continue while the app is closed.
+* Seasons follow the date and hemisphere: snow in winter, flowers and butterflies in spring and summer,
+  falling leaves in autumn.
+
+== Shop
+
+Tap the shop bag, the coin counter or the water/fertilizer bubble.
+
+* *Watering can* (15 coins): +35 water
+* *Fertilizer* (25 coins): +50 fertilizer
+* *Grow lamp* (60 coins): full light for 30 minutes, stacks
+* *Revival tonic* (120 coins): brings a withered plant back
+* *Seeds* (100 to 300 coins): a new plant
+* *Scenery* (150 to 300 coins): mountains, desert, beach (moving waves), forest, city (windows light up at night),
+  zen garden (cherry blossoms); drawn in the canvas
+* *Ground* (80 to 120 coins): grass, sand, stone, wood deck, snow
+* *Pots* (80 to 200 coins): 12 pots in 3 shapes and 4 colors
+
+== More
+
+* *Friends* (needs Supabase): share your 6 character friend code, see friends' plants and send them water.
+* *Reminders*: local notifications when a need will drop below 20 % and when the daily chest is ready.
+* *Widgets*: Android home screen widget (Glance). The iOS WidgetKit code is in `iosApp/PlantagotchiWidget`,
+  see its README to add the extension target.
+* *Sound*: 8-bit effects, synthesized and stored in `composeResources/files/sfx`.
+* *Languages*: English and German.
+* *Weather*: tap the weather chip for details.
+
+== Rendering
+
+The game scene is a single Compose `Canvas` (`shared/src/commonMain/.../ui/game`) redrawn every frame:
+
+* `GameCanvas`: frame loop, input and hit testing, draws plant, pot, HUD and need bubbles
+* `SkyRenderer`: sky, sun and moon, stars, fog, lightning, clouds and precipitation
+* `SceneState`: animation clock, effects (hearts, floating coins, water, dirt, sparkles, falling leaves) and tool animations
+* `PlantRenderer`: plants are drawn procedurally on a pixel grid, no images. Stem, leaves, cactus arms,
+  fern fronds and flowers come from a skeleton, so plants grow continuously (leaves unfold, arms grow out,
+  fronds unroll from fiddleheads, flowers open) and every part can move. Each plant's shape is seeded by its id.
+* `SceneryRenderer`: sceneries and grounds as pixel blocks, darkened at night
+* `PlantAnimator`: per plant; wind bend and leaf flutter, plus idle actions every few seconds (wiggle, stretch, turn to the sun,
+  shake off rain, dance when loved, nod at night) and reactions to petting, watering, growing and withering
+* `PixelSprite`: other pixel art defined in code (watering can, fertilizer bag, grow lamp, shop bag)
+* `MothlightLogo`: the pixel version of the Mothlight wordmark with a glowing lamp and a circling moth (splash and about screen)
+
+Neglected plants let their leaves hang, lose color and drop leaves; withered plants collapse. Low needs pulse and shake. Fireflies appear on calm nights.
 
 == Attribution
 
 * Weather particles based on https://github.com/fidloo/flux
 * Weather data by https://open-meteo.com[Open-Meteo] (CC BY 4.0)
-* Fonts: pixelmix, Play Me Games
+* Fonts: pixelmix (umlauts and accents added as pixel glyphs), Play Me Games
