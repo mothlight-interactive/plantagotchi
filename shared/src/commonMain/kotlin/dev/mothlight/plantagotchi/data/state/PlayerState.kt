@@ -3,7 +3,6 @@ package dev.mothlight.plantagotchi.data.state
 import dev.mothlight.plantagotchi.data.GeoPosition
 import dev.mothlight.plantagotchi.data.shop.PotId
 import kotlinx.serialization.Serializable
-import kotlin.random.Random
 
 @Serializable
 data class PlayerState(
@@ -22,9 +21,6 @@ data class PlayerState(
     /** Local epoch day of the last claimed daily reward, -1 if never. */
     val lastRewardDay: Long = -1L,
     val streak: Int = 0,
-    /** Short code other players use to send water, see [FriendCode]. */
-    val friendCode: String = FriendCode.generate(),
-    val friends: List<String> = emptyList(),
     /** Epoch millis of the last game tick that was persisted. */
     val updatedAt: Long = 0L,
 ) {
@@ -43,14 +39,4 @@ data class PlayerState(
     companion object {
         const val MAX_PLANTS = 5
     }
-}
-
-object FriendCode {
-    private const val ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
-
-    fun generate(random: Random = Random.Default): String =
-        (1..6).map { ALPHABET[random.nextInt(ALPHABET.length)] }.joinToString("")
-
-    fun normalize(input: String): String? =
-        input.trim().uppercase().filter { it in ALPHABET }.takeIf { it.length == 6 }
 }

@@ -1,4 +1,3 @@
-import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -7,40 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.multiplatform)
-}
-
-/**
- * Supabase credentials are read from local.properties (or env vars) and never committed.
- *   SUPABASE_URL=https://<project>.supabase.co
- *   SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
- * Without them the app runs in local-only mode.
- */
-val localProps = Properties().apply {
-    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
-}
-fun secret(name: String): String = localProps.getProperty(name) ?: System.getenv(name) ?: ""
-
-val generateAppConfig = tasks.register("generateAppConfig") {
-    val url = secret("SUPABASE_URL")
-    val key = secret("SUPABASE_PUBLISHABLE_KEY")
-    val outDir = layout.buildDirectory.dir("generated/appConfig/commonMain/kotlin")
-    inputs.property("url", url)
-    inputs.property("key", key)
-    outputs.dir(outDir)
-    doLast {
-        val file = outDir.get().file("dev/mothlight/plantagotchi/AppConfig.kt").asFile
-        file.parentFile.mkdirs()
-        file.writeText(
-            """
-            |package dev.mothlight.plantagotchi
-            |
-            |internal object AppConfig {
-            |    const val SUPABASE_URL: String = "$url"
-            |    const val SUPABASE_PUBLISHABLE_KEY: String = "$key"
-            |}
-            |""".trimMargin()
-        )
-    }
 }
 
 kotlin {
@@ -66,7 +31,6 @@ kotlin {
 
     sourceSets {
         commonMain {
-            kotlin.srcDir(generateAppConfig)
             dependencies {
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.foundation)
@@ -85,9 +49,6 @@ kotlin {
                 implementation(libs.ktor.client.content.negotiation)
                 implementation(libs.ktor.serialization.kotlinx.json)
 
-                implementation(project.dependencies.platform(libs.supabase.bom))
-                implementation(libs.supabase.auth)
-                implementation(libs.supabase.postgrest)
 
                 implementation(libs.multiplatform.settings)
                 implementation(libs.multiplatform.settings.noarg)
@@ -97,6 +58,7 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+            implementation(libs.multiplatform.settings.test)
         }
         androidMain.dependencies {
             implementation(libs.kotlinx.coroutines.android)

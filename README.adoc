@@ -15,7 +15,6 @@ and Florian Thiévent, now a Kotlin/Compose Multiplatform app for Android and iO
 |`shared/src/iosMain` |CoreLocation, `MainViewController` entry point
 |`androidApp/` |Android application (`dev.mothlight.plantagotchi`)
 |`iosApp/` |Xcode project, SwiftUI host for the Compose UI
-|`supabase/migrations/` |Database schema for cloud save
 |===
 
 == Build
@@ -37,33 +36,31 @@ Tests:
 ./gradlew :shared:testAndroidHostTest
 ----
 
+== Test mode
+
+Three build environments, as in leapjump: `dev` (every local build), `test` (TestFlight and Play internal,
+set by the workflows) and `prod` (store releases via `release.yml`). Android reads the Gradle property
+`-PappEnv=dev|test|prod`, iOS `PG_APP_ENV` in `iosApp/Configuration/Config.xcconfig` (via Info.plist `AppEnv`).
+
+In `dev` and `test` a badge at the top opens the test mode, where everything can be changed live: time speed
+(up to 3600x), freezing needs, skipping ahead, time of day, weather, temperature, wind, light, season,
+location, the active plant (species, growth, every need, withered), adding and removing plants, coins, streak,
+daily chest, grow lamp, unlocking everything, scenery and ground, all animations and sounds, a test reminder
+and resetting the game. Overrides are kept across restarts on the device. In `prod` the badge is gone and the
+view model ignores all overrides.
+
 == Releases (GitHub Actions)
 
 Same setup as the other Mothlight apps (leapjump, mikrodb):
 
 * `ci.yml`: on every PR and push to `master`: Android build, iOS compile, unit tests
-* `testflight.yml`: Actions → TestFlight, or a tag `ios-v*`: signed iOS build uploaded to TestFlight (macOS runner)
-* `play-store.yml`: Actions → Play Store, or a tag `android-v*`: signed AAB to the internal test track
+* `testflight.yml`: Actions → TestFlight, or a tag `ios-v*`: signed `test` build uploaded to TestFlight (macOS runner)
+* `play-store.yml`: Actions → Play Store, or a tag `android-v*`: signed `test` AAB to the internal test track
 * `release.yml`: a tag `v1.2.3` on `master` → tests → approval in the `production` environment →
-  App Store submission and a 20 % staged rollout on Google Play
+  App Store submission and a 20 % staged rollout on Google Play, both built as `prod` (no test mode)
 * `play-rollout.yml`: raise the Play rollout; `release-notes.yml`: fills GitHub release notes
 
 Setup and secrets: link:docs/release.md[release], link:docs/testflight.md[TestFlight], link:docs/play-store.md[Play Store].
-
-== Cloud save (Supabase, optional)
-
-Without configuration the game is stored on the device only. To sync it with Supabase:
-
-. Apply all `supabase/migrations/*.sql` to your project, in order.
-. Enable *Allow anonymous sign-ins* (Authentication > Sign In / Providers).
-. Add to `local.properties` (not committed):
-+
-----
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-----
-
-The state is always written locally and mirrored to Supabase; on start the most recent copy wins.
 
 == Game rules
 
@@ -80,7 +77,7 @@ The state is always written locally and mirrored to Supabase; on start the most 
 * *Light*: rises while the ambient light is above 1000 lux, otherwise empties in about a day.
   Android uses the light sensor. iOS has no public light sensor API: light is estimated from daylight and
   weather, or measured with the camera if enabled in the settings.
-* *Water*: refilled by rain, otherwise empties in about two days. Friends can send water once a day.
+* *Water*: refilled by rain, otherwise empties in about two days.
 * *Love*: swipe over the plant to pet it, empties in a week.
 * *Fertilizer*: empties in two weeks and speeds up growth.
 * *Temperature*: above 30 °C plants dry out faster, below 0 °C all needs drop faster (cacti suffer most).
@@ -107,7 +104,6 @@ Tap the shop bag, the coin counter or the water/fertilizer bubble.
 
 == More
 
-* *Friends* (needs Supabase): share your 6 character friend code, see friends' plants and send them water.
 * *Reminders*: local notifications when a need will drop below 20 % and when the daily chest is ready.
 * *Widgets*: Android home screen widget (Glance). The iOS WidgetKit code is in `iosApp/PlantagotchiWidget`,
   see its README to add the extension target.

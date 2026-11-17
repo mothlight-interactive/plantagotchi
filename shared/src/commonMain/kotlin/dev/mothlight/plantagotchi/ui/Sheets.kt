@@ -36,31 +36,12 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import dev.mothlight.plantagotchi.data.AppSettingsState
-import dev.mothlight.plantagotchi.data.repository.FriendInfo
-import dev.mothlight.plantagotchi.data.repository.SendWaterResult
 import dev.mothlight.plantagotchi.data.state.GameRules
 import dev.mothlight.plantagotchi.data.state.Season
 import dev.mothlight.plantagotchi.data.weather.CurrentWeather
 import dev.mothlight.plantagotchi.resources.Res
-import dev.mothlight.plantagotchi.resources.friends_add
-import dev.mothlight.plantagotchi.resources.friends_already
-import dev.mothlight.plantagotchi.resources.friends_code_hint
-import dev.mothlight.plantagotchi.resources.friends_empty
-import dev.mothlight.plantagotchi.resources.friends_health
-import dev.mothlight.plantagotchi.resources.friends_invalid
-import dev.mothlight.plantagotchi.resources.friends_offline
-import dev.mothlight.plantagotchi.resources.friends_own
-import dev.mothlight.plantagotchi.resources.friends_remove
-import dev.mothlight.plantagotchi.resources.friends_send_water
-import dev.mothlight.plantagotchi.resources.friends_sent
-import dev.mothlight.plantagotchi.resources.friends_title
-import dev.mothlight.plantagotchi.resources.friends_unknown
-import dev.mothlight.plantagotchi.resources.friends_unknown_plant
-import dev.mothlight.plantagotchi.resources.friends_your_code
 import dev.mothlight.plantagotchi.resources.menu_about
-import dev.mothlight.plantagotchi.resources.menu_friends
 import dev.mothlight.plantagotchi.resources.menu_settings
-import dev.mothlight.plantagotchi.resources.plant_withered
 import dev.mothlight.plantagotchi.resources.settings_ambience
 import dev.mothlight.plantagotchi.resources.settings_ambience_desc
 import dev.mothlight.plantagotchi.resources.settings_camera
@@ -85,7 +66,6 @@ import dev.mothlight.plantagotchi.resources.weather_title
 import dev.mothlight.plantagotchi.resources.weather_uv
 import dev.mothlight.plantagotchi.resources.weather_wind
 import dev.mothlight.plantagotchi.ui.game.CodeSprites
-import dev.mothlight.plantagotchi.ui.game.PlantPreview
 import dev.mothlight.plantagotchi.ui.theme.PlantagotchiColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -93,13 +73,12 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
-enum class MenuEntry { FRIENDS, SETTINGS, ABOUT }
+enum class MenuEntry { SETTINGS, ABOUT }
 
 @Composable
 fun MenuSheet(onSelect: (MenuEntry) -> Unit) {
     Column(Modifier.fillMaxWidth().background(Panel).navigationBarsPadding().padding(16.dp)) {
         listOf(
-            MenuEntry.FRIENDS to stringResource(Res.string.menu_friends),
             MenuEntry.SETTINGS to stringResource(Res.string.menu_settings),
             MenuEntry.ABOUT to stringResource(Res.string.menu_about),
         ).forEach { (entry, label) ->
@@ -164,112 +143,6 @@ fun WeatherSheet(weather: CurrentWeather, season: Season) {
                         Text(value, style = MaterialTheme.typography.titleSmall, color = PlantagotchiColors.OffWhite)
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun FriendsSheet(
-    available: Boolean,
-    ownCode: String,
-    friends: List<String>,
-    infos: List<FriendInfo>,
-    onAdd: (String) -> Boolean,
-    onRemove: (String) -> Unit,
-    onSendWater: suspend (String) -> SendWaterResult,
-    onRefresh: suspend () -> Unit,
-) {
-    var input by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) { onRefresh() }
-    LaunchedEffect(message) {
-        if (message != null) {
-            delay(2_500)
-            message = null
-        }
-    }
-
-    Column(Modifier.fillMaxWidth().background(Panel).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(16.dp)) {
-        SheetTitle(stringResource(Res.string.friends_title))
-        Spacer(Modifier.height(12.dp))
-        if (!available) {
-            Text(stringResource(Res.string.friends_offline), style = MaterialTheme.typography.bodyMedium, color = PlantagotchiColors.OffWhite)
-            return@Column
-        }
-        Column(Modifier.fillMaxWidth().pixelPanel().padding(12.dp)) {
-            Text(stringResource(Res.string.friends_your_code), style = MaterialTheme.typography.labelSmall, color = PlantagotchiColors.AmethystSmoke)
-            Text(ownCode, style = MaterialTheme.typography.headlineSmall, color = PlantagotchiColors.Sunshine)
-        }
-        Spacer(Modifier.height(12.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            BasicTextField(
-                value = input,
-                onValueChange = { input = it.uppercase().take(6) },
-                singleLine = true,
-                textStyle = MaterialTheme.typography.titleMedium.copy(color = PlantagotchiColors.OffWhite),
-                cursorBrush = SolidColor(PlantagotchiColors.Sunshine),
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
-                decorationBox = { inner ->
-                    if (input.isEmpty()) {
-                        Text(stringResource(Res.string.friends_code_hint), style = MaterialTheme.typography.titleMedium, color = Color(0xFF7A6E80))
-                    }
-                    inner()
-                },
-                modifier = Modifier.weight(1f).background(Color(0xFF1C1318)).border(2.dp, Outline).padding(12.dp),
-            )
-            Spacer(Modifier.width(8.dp))
-            PixelButton(stringResource(Res.string.friends_add)) {
-                scope.launch {
-                    if (onAdd(input)) input = "" else message = getString(Res.string.friends_invalid)
-                }
-            }
-        }
-        Text(message ?: " ", style = MaterialTheme.typography.bodySmall, color = Color(0xFFFF9E9E), modifier = Modifier.padding(vertical = 6.dp))
-
-        if (friends.isEmpty()) {
-            Text(stringResource(Res.string.friends_empty), style = MaterialTheme.typography.bodyMedium, color = PlantagotchiColors.AmethystSmoke)
-        }
-        friends.forEach { code ->
-            val info = infos.firstOrNull { it.code == code }
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = 8.dp).pixelPanel().padding(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                PlantPreview(
-                    species = info?.species ?: dev.mothlight.plantagotchi.data.state.Species.SPROUT,
-                    maturity = (info?.stage ?: 0) / 2f,
-                    seed = code.hashCode(),
-                    withered = info?.dead == true,
-                    modifier = Modifier.size(40.dp),
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(code, style = MaterialTheme.typography.titleSmall, color = PlantagotchiColors.OffWhite)
-                    val status = when {
-                        info == null -> stringResource(Res.string.friends_unknown_plant)
-                        info.dead -> stringResource(Res.string.plant_withered)
-                        else -> "${speciesName(info.species)}, ${stringResource(Res.string.friends_health, info.health.roundToInt())}"
-                    }
-                    Text(status, style = MaterialTheme.typography.bodySmall, color = PlantagotchiColors.AmethystSmoke)
-                }
-                PixelButton(stringResource(Res.string.friends_send_water), enabled = info != null && !info.dead) {
-                    scope.launch {
-                        message = getString(
-                            when (onSendWater(code)) {
-                                SendWaterResult.SENT -> Res.string.friends_sent
-                                SendWaterResult.ALREADY_SENT_TODAY -> Res.string.friends_already
-                                SendWaterResult.UNKNOWN_CODE -> Res.string.friends_unknown
-                                SendWaterResult.OWN_CODE -> Res.string.friends_own
-                                SendWaterResult.OFFLINE -> Res.string.friends_offline
-                            }
-                        )
-                        onRefresh()
-                    }
-                }
-                Spacer(Modifier.width(6.dp))
-                PixelButton(stringResource(Res.string.friends_remove), color = PlantagotchiColors.Love) { onRemove(code) }
             }
         }
     }

@@ -2,14 +2,12 @@ package dev.mothlight.plantagotchi
 
 import dev.mothlight.plantagotchi.data.shop.Need
 import dev.mothlight.plantagotchi.data.state.DailyReward
-import dev.mothlight.plantagotchi.data.state.FriendCode
 import dev.mothlight.plantagotchi.data.state.PlantState
 import dev.mothlight.plantagotchi.data.state.PlayerState
 import dev.mothlight.plantagotchi.data.state.PlayerStateCodec
 import dev.mothlight.plantagotchi.data.state.Species
 import dev.mothlight.plantagotchi.model.ReminderPlanner
 import kotlinx.datetime.TimeZone
-import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -51,17 +49,9 @@ class ProgressionTest {
         val state = PlayerState(
             plants = listOf(PlantState(species = Species.FERN, growth = 123.0), PlantState(species = Species.CACTUS, dead = true)),
             coins = 7,
-            friends = listOf("ABC234"),
             streak = 3,
         )
         assertEquals(state, PlayerStateCodec.decode(PlayerStateCodec.encode(state)))
-    }
-
-    @Test
-    fun friendCodesAreNormalized() {
-        assertEquals("ABC234", FriendCode.normalize(" abc234 "))
-        assertNull(FriendCode.normalize("ABC"))
-        assertEquals(6, FriendCode.generate(Random(1)).length)
     }
 
     @Test

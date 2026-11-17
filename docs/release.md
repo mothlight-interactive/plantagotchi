@@ -59,15 +59,11 @@ Secrets fehlen.
 2. **Secrets**: die aus [testflight.md](testflight.md) und [play-store.md](play-store.md) (der
    Release-Workflow reicht sie weiter). Weitere Secrets gibt es nicht: die App hat keine Werbung
    und keine echten Käufe (der Shop nutzt nur Spielmünzen).
-3. **Cloud-Speicher (Variablen, keine Secrets)**: Repo → Settings → Secrets and variables → Actions →
-   Tab *Variables* → `SUPABASE_URL` und `SUPABASE_PUBLISHABLE_KEY` (Werte in `local.properties`).
-   Der Publishable Key ist dafür gedacht, in Apps ausgeliefert zu werden. Ohne die Variablen
-   speichern Store-Builds nur lokal, Freunde sind dann ausgeschaltet.
-4. **App Store Connect, nur beim ersten Release**: Die App-Store-Seite braucht einmal ihre
+3. **App Store Connect, nur beim ersten Release**: Die App-Store-Seite braucht einmal ihre
    Metadaten (Name, Beschreibung, Keywords, Screenshots, App-Datenschutz, Altersfreigabe, Preis,
-   Kontakt für die Prüfung), Standort, Kamera (optional) und anonyme Anmeldung für den Cloud-Speicher im App-Datenschutz angeben. Der Workflow
+   Kontakt für die Prüfung), Standort und Kamera (optional) im App-Datenschutz angeben; die App speichert nur auf dem Gerät. Der Workflow
    aktualisiert nur *Neuerungen*.
-5. **Google Play, erster Produktions-Release**:
+4. **Google Play, erster Produktions-Release**:
    - Store-Eintrag, Einstufung, Datensicherheit und Zielgruppe müssen vollständig sein;
    - neue *private* Entwicklerkonten brauchen zuerst einen **geschlossenen Test mit mindestens
      12 Testern über 14 Tage**, bevor Google den Produktionszugang freigibt;
@@ -84,3 +80,9 @@ für iOS und Android. Bei einem `v*`-Tag gewinnt die Version aus dem Tag.
   Build-Nummer neu gestartet werden.
 - Abgelehnt von Apple: beheben, `v1.0.2` taggen, erneut releasen (`reject_if_possible` ersetzt eine
   Version, die noch auf die Prüfung wartet).
+
+## Testmodus
+
+Testbuilds (TestFlight, Play intern) sind Umgebung `test`: Badge oben in der Mitte, Tippen öffnet den
+Testmodus (Zeit, Wetter, Ort, Pflanzen, Münzen, Freischaltungen, Animationen, Sounds). Store-Releases über
+`release.yml` sind `prod` ohne Testmodus. **Nie einen Testbuild von Hand in die Produktion befördern.**

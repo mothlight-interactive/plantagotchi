@@ -38,6 +38,10 @@ on:
         description: "What's New text (Play allows 500 characters per language)"
         type: string
         default: ""
+      app_env:
+        description: "Build environment baked into the app: test (internal track) or prod (production, release.yml)"
+        type: string
+        default: test
 
 concurrency:
   group: play-store
@@ -59,11 +63,18 @@ jobs:
       # A staged rollout has to be "inProgress"; otherwise the chosen status (default completed).
       RELEASE_STATUS: ${{ inputs.user_fraction != '' && 'inProgress' || inputs.status || 'completed' }}
       versionName: ${{ inputs.version_name }}
-      # Cloud save (optional): repository variables, the publishable key is meant to ship in apps.
-      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      # Manual runs and android-v* tags have no inputs: internal-track builds are "test" (with test mode).
+      APP_ENV: ${{ inputs.app_env || 'test' }}
     steps:
       - uses: actions/checkout@v7
+
+      - name: Check build environment
+        run: |
+          case "$APP_ENV" in test|prod) ;; *) echo "::error::app_env must be test or prod, got '$APP_ENV'"; exit 1 ;; esac
+          if [ "$TRACK" = "production" ] && [ "$APP_ENV" != "prod" ]; then
+            echo "::error::The production track must be built with app_env=prod"
+            exit 1
+          fi
 
       - name: Compute versionCode
         env:
@@ -97,7 +108,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew :androidApp:bundleRelease --no-configuration-cache
+        run: ./gradlew :androidApp:bundleRelease --no-configuration-cache -PappEnv="$APP_ENV"
 
       - name: Keep AAB
         uses: actions/upload-artifact@v7
@@ -133,7 +144,7 @@ jobs:
           {
             echo "### Android release"
             echo "- versionCode: \`$versionCode\`"
-            echo "- Cloud save: ${SUPABASE_URL:+on}${SUPABASE_URL:-off (set the SUPABASE_URL variable)}"
+            echo "- Environment: \`$APP_ENV\`"
             if [ "$UPLOAD" = "true" ]; then
               echo "- Uploaded to the **$TRACK** track (status: \`$RELEASE_STATUS\`${USER_FRACTION:+, rollout $USER_FRACTION})"
             else

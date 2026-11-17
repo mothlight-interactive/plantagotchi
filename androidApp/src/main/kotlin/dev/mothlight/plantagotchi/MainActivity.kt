@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.remember
+import dev.mothlight.plantagotchi.dev.AppEnv
 import dev.mothlight.plantagotchi.platform.androidPlatformServices
 
 class MainActivity : ComponentActivity() {
@@ -27,7 +28,10 @@ class MainActivity : ComponentActivity() {
         locationPermission.launch(permissions.toTypedArray())
 
         setContent {
-            App(remember { androidPlatformServices(applicationContext, AndroidWidgetBridge(applicationContext)) })
+            App(
+                remember { androidPlatformServices(applicationContext, AndroidWidgetBridge(applicationContext)) },
+                AppEnv.parse(BuildConfig.APP_ENV),
+            )
         }
     }
 }

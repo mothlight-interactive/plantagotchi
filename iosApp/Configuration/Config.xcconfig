@@ -6,6 +6,10 @@ PRODUCT_BUNDLE_IDENTIFIER=dev.mothlight.plantagotchi
 MARKETING_VERSION=2.1.0
 CURRENT_PROJECT_VERSION=1
 
+// Build environment: dev (local Xcode builds), test (TestFlight workflow), prod (release.yml).
+// The TestFlight workflow rewrites this line before archiving; the test mode is off in prod.
+PG_APP_ENV = dev
+
 // Signing of the app target only. Local builds sign automatically; the TestFlight workflow
 // overrides these three on the xcodebuild command line.
 PG_CODE_SIGN_STYLE = Automatic
