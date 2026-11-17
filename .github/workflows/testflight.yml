@@ -1,0 +1,189 @@
+name: TestFlight
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["ios-v*"]
+  # Production releases (release.yml): same build + upload, then submitted to App Review.
+  workflow_call:
+    inputs:
+      version:
+        description: "Version, e.g. 1.0.1 (empty = MARKETING_VERSION from iosApp/Configuration/Config.xcconfig)"
+        type: string
+        default: ""
+      build_number:
+        description: "Build number (empty = time-based, see .github/scripts/build-number.sh)"
+        type: string
+        default: ""
+      submit_for_review:
+        description: "Create the App Store version and submit it for review after the upload"
+        type: boolean
+        default: false
+      release_notes:
+        description: "What's New text for the App Store version"
+        type: string
+        default: ""
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  testflight:
+    # macos-latest (macos-26) queued without a runner for 15+ minutes; macos-15 has Xcode 26 too.
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      BUNDLE_ID: dev.mothlight.plantagotchi
+      TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      # Cloud save (optional): read by the Gradle build phase that builds the Kotlin framework.
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # runner.temp isn't available in job-level env, so derive paths here
+      - name: Set paths and version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_BUILD: ${{ inputs.build_number }}
+        run: |
+          echo "ARCHIVE_PATH=$RUNNER_TEMP/Plantagotchi.xcarchive" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=${INPUT_BUILD:-$(.github/scripts/build-number.sh)}" >> "$GITHUB_ENV"
+          version="${INPUT_VERSION:-$(sed -nE 's/^[[:space:]]*MARKETING_VERSION[[:space:]]*=[[:space:]]*([0-9][0-9A-Za-z.-]*).*/\1/p' iosApp/Configuration/Config.xcconfig | head -n 1)}"
+          echo "MARKETING_VERSION=$version" >> "$GITHUB_ENV"
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      # The Xcode build phase runs Gradle to build the Kotlin framework.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Cache Kotlin/Native toolchain
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
+      - name: Install signing certificate and profile
+        env:
+          CERT_P12: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          if [ -z "$CERT_P12" ] || [ -z "$PROFILE" ]; then
+            echo "::error::Signing secrets are missing (see docs/testflight.md)"
+            exit 1
+          fi
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PW="$(openssl rand -hex 16)"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/dist.p12"
+          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/dist.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PW" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+
+          PROFILE_FILE="$RUNNER_TEMP/profile.mobileprovision"
+          echo "$PROFILE" | base64 --decode > "$PROFILE_FILE"
+          security cms -D -i "$PROFILE_FILE" > "$RUNNER_TEMP/profile.plist"
+          UUID=$(plutil -extract UUID raw "$RUNNER_TEMP/profile.plist")
+          NAME=$(plutil -extract Name raw "$RUNNER_TEMP/profile.plist")
+          for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+            mkdir -p "$dir"; cp "$PROFILE_FILE" "$dir/$UUID.mobileprovision"
+          done
+          echo "PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
+          echo "KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+
+      - name: Write App Store Connect API key
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          printf '%s' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/AuthKey.p8"
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
+
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PG_CODE_SIGN_STYLE=Manual \
+            PG_CODE_SIGN_IDENTITY="Apple Distribution" \
+            PG_PROVISIONING_PROFILE="$PROFILE_NAME" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+
+      - name: Export and upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict><key>$BUNDLE_ID</key><string>$PROFILE_NAME</string></dict>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo "### TestFlight: $MARKETING_VERSION ($BUILD_NUMBER) uploaded" >> "$GITHUB_STEP_SUMMARY"
+          echo "It shows up in App Store Connect > TestFlight after processing (~5-15 min)." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Submit for App Review
+        if: inputs.submit_for_review
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          # fastlane wants the API key as JSON
+          jq -n --arg id "$ASC_KEY_ID" --arg issuer "$ASC_ISSUER_ID" --rawfile key "$ASC_KEY_PATH" \
+            '{key_id: $id, issuer_id: $issuer, key: $key, in_house: false}' > "$RUNNER_TEMP/asc_api_key.json"
+          export ASC_API_KEY_JSON="$RUNNER_TEMP/asc_api_key.json"
+          export METADATA_PATH="$RUNNER_TEMP/metadata"
+          notes="${RELEASE_NOTES:-Verbesserungen und Fehlerbehebungen}"
+          for locale in de-DE en-US; do
+            mkdir -p "$METADATA_PATH/$locale"
+            printf '%s\n' "$notes" > "$METADATA_PATH/$locale/release_notes.txt"
+          done
+          command -v fastlane >/dev/null || sudo gem install fastlane --no-document
+          fastlane ios submit_for_review
+          echo "### App Store: $MARKETING_VERSION ($BUILD_NUMBER) submitted for review" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Clean up keychain
+        if: always()
+        run: |
+          [ -n "$KEYCHAIN" ] && security delete-keychain "$KEYCHAIN" || true
+          rm -f "$RUNNER_TEMP/dist.p12" "$RUNNER_TEMP/AuthKey.p8" "$RUNNER_TEMP/asc_api_key.json"

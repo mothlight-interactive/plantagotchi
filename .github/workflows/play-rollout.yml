@@ -1,0 +1,53 @@
+name: Play rollout
+
+# Raise (or halt) the staged rollout of a production release, e.g. from 20 % to 100 %.
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "versionCode of the release (shown in the Release workflow summary / Play Console)"
+        type: string
+        required: true
+      fraction:
+        description: "New rollout share: 0.5 = 50 %, 1 = everyone (completes the rollout)"
+        type: string
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate input
+        env:
+          FRACTION: ${{ inputs.fraction }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          [[ "$VERSION_CODE" =~ ^[0-9]+$ ]] || { echo "::error::version_code must be a number"; exit 1; }
+          awk -v f="$FRACTION" 'BEGIN { exit !(f > 0 && f <= 1) }' || { echo "::error::fraction must be in (0, 1]"; exit 1; }
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+
+      - name: Install fastlane
+        run: gem install fastlane --no-document
+
+      - name: Update rollout
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          FRACTION: ${{ inputs.fraction }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          fastlane run upload_to_play_store \
+            package_name:dev.mothlight.plantagotchi \
+            track:production \
+            version_code:"$VERSION_CODE" \
+            rollout:"$FRACTION" \
+            json_key_data:"$PLAY_JSON" \
+            skip_upload_aab:true skip_upload_apk:true skip_upload_metadata:true \
+            skip_upload_changelogs:true skip_upload_images:true skip_upload_screenshots:true
+          echo "### Rollout of $VERSION_CODE set to $FRACTION" >> "$GITHUB_STEP_SUMMARY"

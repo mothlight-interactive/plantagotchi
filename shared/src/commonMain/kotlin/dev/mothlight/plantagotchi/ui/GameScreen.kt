@@ -211,6 +211,7 @@ fun GameContent(
                         }
                         SceneTarget.NEED_LOVE -> scope.launch { hint = getString(Res.string.hint_love) }
                         SceneTarget.PLANT -> actions.tapPlant()
+                        SceneTarget.LAMP -> actions.playUi(Sfx.TAP)
                     }
                 },
             )

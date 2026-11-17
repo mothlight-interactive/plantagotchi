@@ -37,6 +37,19 @@ Tests:
 ./gradlew :shared:testAndroidHostTest
 ----
 
+== Releases (GitHub Actions)
+
+Same setup as the other Mothlight apps (leapjump, mikrodb):
+
+* `ci.yml`: on every PR and push to `master`: Android build, iOS compile, unit tests
+* `testflight.yml`: Actions → TestFlight, or a tag `ios-v*`: signed iOS build uploaded to TestFlight (macOS runner)
+* `play-store.yml`: Actions → Play Store, or a tag `android-v*`: signed AAB to the internal test track
+* `release.yml`: a tag `v1.2.3` on `master` → tests → approval in the `production` environment →
+  App Store submission and a 20 % staged rollout on Google Play
+* `play-rollout.yml`: raise the Play rollout; `release-notes.yml`: fills GitHub release notes
+
+Setup and secrets: link:docs/release.md[release], link:docs/testflight.md[TestFlight], link:docs/play-store.md[Play Store].
+
 == Cloud save (Supabase, optional)
 
 Without configuration the game is stored on the device only. To sync it with Supabase:

@@ -1,0 +1,28 @@
+# Used by .github/workflows/testflight.yml when it is called for a production release:
+# the build is already uploaded by xcodebuild; this creates the App Store version, attaches the
+# build (waiting until Apple has processed it), sets "What's New" and submits it for review.
+default_platform(:ios)
+
+platform :ios do
+  lane :submit_for_review do
+    upload_to_app_store(
+      api_key_path: ENV.fetch("ASC_API_KEY_JSON"),
+      app_identifier: ENV.fetch("BUNDLE_ID"),
+      app_version: ENV.fetch("MARKETING_VERSION"),
+      build_number: ENV.fetch("BUILD_NUMBER"),
+      metadata_path: ENV.fetch("METADATA_PATH"),
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: false,
+      force: true, # no HTML preview / confirmation in CI
+      submit_for_review: true,
+      automatic_release: true, # goes live as soon as Apple approves
+      reject_if_possible: true, # replace a version that is still waiting for review
+      run_precheck_before_submit: false,
+      precheck_include_in_app_purchases: false,
+      submission_information: {
+        export_compliance_uses_encryption: false,
+      }
+    )
+  end
+end

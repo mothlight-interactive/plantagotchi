@@ -3,6 +3,18 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+/** Gradle property (-Pname=...) or environment variable, used by the release workflows. */
+fun releaseProp(name: String): String? =
+    (findProperty(name) as String?)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(name)?.takeIf { it.isNotBlank() }
+
+// One version for both platforms: MARKETING_VERSION in iosApp/Configuration/Config.xcconfig.
+val marketingVersion: String = rootProject.file("iosApp/Configuration/Config.xcconfig").readLines()
+    .firstNotNullOfOrNull { Regex("""^\s*MARKETING_VERSION\s*=\s*(\S+)""").find(it)?.groupValues?.get(1) }
+    ?: "1.0"
+
+val releaseKeystore = releaseProp("ANDROID_KEYSTORE_FILE")?.let { file(it) }?.takeIf { it.exists() }
+
 android {
     namespace = "dev.mothlight.plantagotchi"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -11,12 +23,25 @@ android {
         applicationId = "dev.mothlight.plantagotchi"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 3
-        versionName = "2.1.0"
+        // CI passes a time based versionCode (.github/scripts/build-number.sh).
+        versionCode = releaseProp("versionCode")?.toInt() ?: 1
+        versionName = releaseProp("versionName") ?: marketingVersion
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = releaseProp("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = releaseProp("ANDROID_KEY_ALIAS")
+                keyPassword = releaseProp("ANDROID_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
