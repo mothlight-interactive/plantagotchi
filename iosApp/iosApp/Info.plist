@@ -4,6 +4,8 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Plantagotchi can use the camera as a light meter, so your plant knows how bright it is. No images are stored.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

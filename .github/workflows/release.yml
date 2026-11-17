@@ -1,0 +1,89 @@
+name: Release (production)
+
+# Push a tag like v1.0.1 on master -> tests -> approval in the "production" environment ->
+# App Store submission (iOS) and a 20 % staged rollout on Google Play (Android).
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      notes: ${{ steps.notes.outputs.notes }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Tag must point at a commit on master
+        run: |
+          git fetch --no-tags origin master
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on master. Tag a commit of master."
+            exit 1
+          fi
+
+      - name: Version and build number
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build_number=$(.github/scripts/build-number.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Store release notes
+        id: notes
+        run: |
+          notes="$(.github/scripts/store-notes.sh "$GITHUB_REF_NAME" 3800)"
+          {
+            echo "notes<<NOTES_EOF"
+            echo "$notes"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+          { echo "### What's New"; echo; echo "$notes"; } >> "$GITHUB_STEP_SUMMARY"
+
+  tests:
+    uses: ./.github/workflows/ci.yml
+
+  # Manual gate: the "production" environment must require a reviewer (docs/release.md).
+  approve:
+    name: approve production release
+    needs: [verify, tests]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Approved
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: echo "Releasing $VERSION to the App Store and Google Play"
+
+  ios:
+    needs: [verify, approve]
+    uses: ./.github/workflows/testflight.yml
+    with:
+      version: ${{ needs.verify.outputs.version }}
+      build_number: ${{ needs.verify.outputs.build_number }}
+      submit_for_review: true
+      release_notes: ${{ needs.verify.outputs.notes }}
+    secrets: inherit
+
+  android:
+    needs: [verify, approve]
+    uses: ./.github/workflows/play-store.yml
+    with:
+      track: production
+      user_fraction: "0.2"
+      version_name: ${{ needs.verify.outputs.version }}
+      version_code: ${{ needs.verify.outputs.build_number }}
+      release_notes: ${{ needs.verify.outputs.notes }}
+    secrets: inherit

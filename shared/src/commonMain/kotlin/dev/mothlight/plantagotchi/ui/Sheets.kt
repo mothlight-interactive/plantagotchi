@@ -61,7 +61,10 @@ import dev.mothlight.plantagotchi.resources.menu_about
 import dev.mothlight.plantagotchi.resources.menu_friends
 import dev.mothlight.plantagotchi.resources.menu_settings
 import dev.mothlight.plantagotchi.resources.plant_withered
+import dev.mothlight.plantagotchi.resources.settings_ambience
+import dev.mothlight.plantagotchi.resources.settings_ambience_desc
 import dev.mothlight.plantagotchi.resources.settings_camera
+import dev.mothlight.plantagotchi.resources.settings_music
 import dev.mothlight.plantagotchi.resources.settings_camera_desc
 import dev.mothlight.plantagotchi.resources.settings_notifications
 import dev.mothlight.plantagotchi.resources.settings_notifications_desc
@@ -278,6 +281,12 @@ fun SettingsSheet(settings: AppSettingsState, cameraSupported: Boolean, onChange
         SheetTitle(stringResource(Res.string.settings_title))
         Spacer(Modifier.height(12.dp))
         SettingRow(stringResource(Res.string.settings_sound), null, settings.sound) { v -> onChange { it.copy(sound = v) } }
+        SettingRow(stringResource(Res.string.settings_music), null, settings.music) { v -> onChange { it.copy(music = v) } }
+        SettingRow(
+            stringResource(Res.string.settings_ambience),
+            stringResource(Res.string.settings_ambience_desc),
+            settings.ambience,
+        ) { v -> onChange { it.copy(ambience = v) } }
         SettingRow(
             stringResource(Res.string.settings_notifications),
             stringResource(Res.string.settings_notifications_desc),

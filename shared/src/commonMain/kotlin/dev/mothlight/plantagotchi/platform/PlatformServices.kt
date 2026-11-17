@@ -28,16 +28,31 @@ interface NotificationScheduler {
     fun cancelAll()
 }
 
+/** One-shot sound effects, files in composeResources/files/sfx. */
 enum class Sfx(val file: String) {
     COIN("coin"), PET("pet"), WATER("water"), BUY("buy"), LEVEL_UP("levelup"),
     REWARD("reward"), TAP("tap"), WITHER("wither"),
+    FERTILIZER("fertilizer"), LAMP("lamp"), DECOR("decor"), SWITCH("switch"), SNAP("snap"),
+    ERROR("error"), OPEN("open"), CLOSE("close"), THUNDER("thunder");
+
+    val asset: String get() = "sfx/$file"
 }
 
+/**
+ * Plays sounds by asset name, e.g. "sfx/coin", "voice/cactus_happy", "music/day".
+ * One-shots via [play]; long sounds loop via [setLoop].
+ */
 interface SoundPlayer {
-    /** Called once with the decoded WAV bytes of every effect. */
-    suspend fun load(sounds: Map<Sfx, ByteArray>)
-    fun play(sfx: Sfx)
+    /** Called once with the WAV bytes of every asset. */
+    suspend fun load(sounds: Map<String, ByteArray>)
+    fun play(asset: String, volume: Float = 1f)
+    /** Loops [asset] at [volume]; 0 pauses it. */
+    fun setLoop(asset: String, volume: Float) = Unit
+    /** Pauses all loops (app in background). */
+    fun pauseAll() = Unit
 }
+
+fun SoundPlayer.play(sfx: Sfx, volume: Float = 1f) = play(sfx.asset, volume)
 
 /** What home screen widgets show. */
 @Serializable
@@ -71,8 +86,8 @@ object NoNotifications : NotificationScheduler {
 }
 
 object NoSound : SoundPlayer {
-    override suspend fun load(sounds: Map<Sfx, ByteArray>) = Unit
-    override fun play(sfx: Sfx) = Unit
+    override suspend fun load(sounds: Map<String, ByteArray>) = Unit
+    override fun play(asset: String, volume: Float) = Unit
 }
 
 object NoWidget : WidgetBridge {

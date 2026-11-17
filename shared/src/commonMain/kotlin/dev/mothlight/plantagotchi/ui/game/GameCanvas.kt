@@ -59,6 +59,9 @@ import kotlin.random.Random
 enum class SceneTarget {
     SHOP, MENU, CHEST, WEATHER, NEED_FERTILIZER, NEED_WATER, NEED_LIGHT, NEED_LOVE,
     PLANT, REPLANT, COMPOST,
+
+    /** The grow lamp was pushed and starts swinging. */
+    LAMP,
 }
 
 /** Localized texts the canvas draws. */
@@ -119,6 +122,11 @@ fun GameCanvas(
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures { offset ->
+                    val l = scene.layout
+                    if (currentState.lampActive && l != null && scene.lampHit(offset, l)) {
+                        if (scene.pushLamp()) currentOnTap(SceneTarget.LAMP)
+                        return@detectTapGestures
+                    }
                     val selected = scene.plantAt(offset, currentState)
                     if (selected != null) currentOnSelect(selected)
                     else scene.hitTest(offset, currentState)?.let { currentOnTap(it) }
@@ -196,6 +204,18 @@ private fun SceneState.hitTest(offset: Offset, state: GameUiState): SceneTarget?
         }
         else -> null
     }
+}
+
+/** Whether [offset] touches the (swinging) lamp shade. */
+private fun SceneState.lampHit(offset: Offset, l: SceneLayout): Boolean {
+    val lamp = SceneState.lampPosition(l)
+    val angle = lampSwing() / 180f * kotlin.math.PI.toFloat()
+    // Rotate the lamp position around the suspension point at the top of the screen.
+    val x = lamp.x - sin(angle) * lamp.y
+    val y = cos(angle) * lamp.y
+    val dx = offset.x - x
+    val dy = offset.y - y
+    return dx * dx + dy * dy < (36 * l.dp) * (36 * l.dp)
 }
 
 /** Index of a plant other than the active one at [offset], to select it. */
@@ -278,25 +298,30 @@ private fun DrawScope.drawLampLight(scene: SceneState, l: SceneLayout) {
     val lamp = SceneState.lampPosition(l)
     val pulse = 0.85f + 0.15f * sin(scene.time * 3f)
     val bottom = l.leaves.bottom
-    val cone = Path().apply {
-        moveTo(lamp.x - 20 * l.dp, lamp.y + 16 * l.dp)
-        lineTo(lamp.x + 20 * l.dp, lamp.y + 16 * l.dp)
-        lineTo(l.leaves.right + 20 * l.dp, bottom)
-        lineTo(l.leaves.left - 20 * l.dp, bottom)
-        close()
+    rotate(scene.lampSwing(), Offset(lamp.x, 0f)) {
+        // The shade (12 x 10 sprite pixels of 4 dp, centered on the lamp) ends 4 dp below its center:
+        // the light starts right at its rim.
+        val rim = lamp.y + 4 * l.dp
+        val cone = Path().apply {
+            moveTo(lamp.x - 22 * l.dp, rim)
+            lineTo(lamp.x + 22 * l.dp, rim)
+            lineTo(l.leaves.right + 20 * l.dp, bottom)
+            lineTo(l.leaves.left - 20 * l.dp, bottom)
+            close()
+        }
+        drawPath(
+            cone,
+            Brush.verticalGradient(listOf(Color(0x99FFF6B0), Color(0x00FFF6B0)), startY = rim, endY = bottom),
+            alpha = pulse,
+        )
     }
-    drawPath(
-        cone,
-        Brush.verticalGradient(listOf(Color(0x88FFF6B0), Color(0x00FFF6B0)), startY = lamp.y, endY = bottom),
-        alpha = pulse,
-    )
 }
 
 private fun DrawScope.drawLamp(scene: SceneState, l: SceneLayout) {
     val lamp = SceneState.lampPosition(l)
-    val swing = sin(scene.time * 1.3f) * 3f
-    drawLine(Color(0xFF222034), Offset(lamp.x, 0f), lamp, strokeWidth = 2 * l.dp)
-    rotate(swing, Offset(lamp.x, 0f)) {
+    rotate(scene.lampSwing(), Offset(lamp.x, 0f)) {
+        // Cord, glow and lamp all swing together.
+        drawLine(Color(0xFF222034), Offset(lamp.x, 0f), lamp, strokeWidth = 2 * l.dp)
         val sprite = CodeSprites.growLamp
         val pixel = 4 * l.dp
         val topLeft = Offset(lamp.x - sprite.width * pixel / 2, lamp.y - sprite.height * pixel / 2)

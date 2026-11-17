@@ -157,4 +157,7 @@
     <string name="ground_wood">Holzdeck</string>
     <string name="ground_snow">Schnee</string>
     <string name="hint_select_plant">Tippe eine Pflanze an, um sie zu pflegen.</string>
+    <string name="settings_music">Musik</string>
+    <string name="settings_ambience">Umgebungsgeräusche</string>
+    <string name="settings_ambience_desc">Regen, Wind, Wellen, Vögel und Grillen</string>
 </resources>

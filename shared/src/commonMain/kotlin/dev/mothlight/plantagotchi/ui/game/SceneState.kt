@@ -92,6 +92,25 @@ internal class SceneState {
     private var lastAmbientAt = 0f
     private var lastActiveIndex = -1
 
+    // Grow lamp pendulum: hangs still until tapped, then swings out with damping.
+    private var lampPushedAt = -100f
+
+    /** Current lamp angle in degrees. */
+    fun lampSwing(): Float {
+        val t = time - lampPushedAt
+        return LAMP_AMPLITUDE * kotlin.math.exp(-LAMP_DAMPING * t) * sin(t * 2 * PI.toFloat() / LAMP_PERIOD)
+    }
+
+    /** True while the lamp still visibly moves. */
+    val lampSwinging: Boolean get() = LAMP_AMPLITUDE * kotlin.math.exp(-LAMP_DAMPING * (time - lampPushedAt)) > LAMP_REST
+
+    /** Pushes the lamp if it is at rest. Taps while it swings add no energy. Returns true if pushed. */
+    fun pushLamp(): Boolean {
+        if (lampSwinging) return false
+        lampPushedAt = time
+        return true
+    }
+
     private val animators = HashMap<String, PlantAnimator>()
 
     /** Each plant moves on its own. */
@@ -141,7 +160,7 @@ internal class SceneState {
         }
         spawnSeasonal(state, l)
         updateTools(l)
-        updateEffects(dt, l.dp)
+        updateEffects(dt, l)
         return dt
     }
 
@@ -325,7 +344,12 @@ internal class SceneState {
 
     fun toolPose(tool: ToolAnimation, l: SceneLayout): ToolPose {
         val p = ((time - tool.start) / tool.duration).coerceIn(0f, 1f)
-        val target = Offset(l.leaves.right + 20 * l.dp, l.leaves.top - 40 * l.dp)
+        // Hold the tool so its spout is right above the soil, a bit right of the stem.
+        val spoutOffset = tool.sprite.width * 4 * l.dp * 0.55f
+        val target = Offset(
+            l.pot.center.x + l.pot.width * 0.15f + spoutOffset,
+            maxOf(l.pot.top - l.pot.width * 0.75f, 110 * l.dp),
+        )
         val offscreen = Offset(l.size.width + 80 * l.dp, target.y - 60 * l.dp)
         val tilt = if (tool.kind == FxKind.WATER) -35f else -110f
         val pixel = 4 * l.dp
@@ -353,8 +377,8 @@ internal class SceneState {
                     tool.kind,
                     x = spout.x + (Random.nextFloat() - 0.5f) * 8 * l.dp,
                     y = spout.y,
-                    vx = -(30 + Random.nextFloat() * 40) * l.dp,
-                    vy = (20 + Random.nextFloat() * 40) * l.dp,
+                    vx = -(5 + Random.nextFloat() * 15) * l.dp,
+                    vy = (20 + Random.nextFloat() * 30) * l.dp,
                     life = 1.1f,
                     size = (if (tool.kind == FxKind.WATER) 3f else 4f) * l.dp,
                     color = if (tool.kind == FxKind.WATER) Color(0xFF5FCDE4) else
@@ -364,7 +388,13 @@ internal class SceneState {
         }
     }
 
-    private fun updateEffects(dt: Float, dp: Float) {
+    private fun updateEffects(dt: Float, l: SceneLayout) {
+        val dp = l.dp
+        // Water and fertilizer soak into the soil of the active pot.
+        val soil = l.pot.top + l.pot.height * 0.12f
+        val potLeft = l.pot.left + l.pot.width * 0.1f
+        val potRight = l.pot.right - l.pot.width * 0.1f
+        val splashes = mutableListOf<Fx>()
         val iterator = effects.iterator()
         while (iterator.hasNext()) {
             val fx = iterator.next()
@@ -394,12 +424,30 @@ internal class SceneState {
             }
             fx.x += fx.vx * dt
             fx.y += fx.vy * dt
+            if ((fx.kind == FxKind.WATER || fx.kind == FxKind.DIRT) && fx.vy > 0) {
+                val inPot = fx.y >= soil && fx.x in potLeft..potRight
+                if (inPot && fx.kind == FxKind.WATER && fx.size > 2.5f * dp && Random.nextFloat() < 0.3f) {
+                    repeat(2) { i ->
+                        splashes += Fx(
+                            FxKind.WATER, fx.x, soil - dp, vx = (if (i == 0) -1 else 1) * (15 + Random.nextFloat() * 20) * dp,
+                            vy = -(40 + Random.nextFloat() * 30) * dp, life = 0.3f, size = 2f * dp, color = fx.color,
+                        )
+                    }
+                }
+                if (inPot || fx.y >= l.ground.top) iterator.remove()
+            }
         }
+        effects += splashes
         if (effects.size > MAX_EFFECTS) effects.subList(0, effects.size - MAX_EFFECTS).clear()
     }
 
     companion object {
         const val MAX_EFFECTS = 500
+        const val LAMP_AMPLITUDE = 16f
+        const val LAMP_PERIOD = 1.7f
+        const val LAMP_DAMPING = 0.45f
+        /** Below this amplitude (degrees) the lamp counts as standing still. */
+        const val LAMP_REST = 0.4f
 
         fun lampPosition(l: SceneLayout) = Offset(l.plant.center.x, l.plant.top + l.plant.height * 0.12f)
     }

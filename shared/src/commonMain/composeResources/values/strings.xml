@@ -157,4 +157,7 @@
     <string name="ground_wood">Wood deck</string>
     <string name="ground_snow">Snow</string>
     <string name="hint_select_plant">Tap a plant to look after it.</string>
+    <string name="settings_music">Music</string>
+    <string name="settings_ambience">Ambient sounds</string>
+    <string name="settings_ambience_desc">Rain, wind, waves, birds and crickets</string>
 </resources>
