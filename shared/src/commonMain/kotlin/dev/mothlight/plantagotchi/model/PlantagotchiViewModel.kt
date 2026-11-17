@@ -24,6 +24,11 @@ import dev.mothlight.plantagotchi.data.weather.CurrentWeather
 import dev.mothlight.plantagotchi.data.weather.OpenMeteoClient
 import dev.mothlight.plantagotchi.platform.PlatformServices
 import dev.mothlight.plantagotchi.platform.Sfx
+import dev.mothlight.plantagotchi.platform.play
+import dev.mothlight.plantagotchi.audio.AudioAssets
+import dev.mothlight.plantagotchi.audio.AudioDirector
+import dev.mothlight.plantagotchi.data.shop.Need
+import dev.mothlight.plantagotchi.data.state.Species
 import dev.mothlight.plantagotchi.platform.WidgetSnapshot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
@@ -107,6 +112,8 @@ class PlantagotchiViewModel(
     val events: SharedFlow<GameEvent> = _events.asSharedFlow()
 
     private var lastPetSound = 0L
+    private var lastVoice = 0L
+    private val audio = AudioDirector(platform.sound)
 
     init {
         platform.lightSensor.setCameraEnabled(_state.value.settings.cameraLight)
@@ -122,6 +129,7 @@ class PlantagotchiViewModel(
         _state.update {
             it.copy(loading = false, player = player, position = player.lastPosition, now = now, today = today(now))
         }
+        audio.update(_state.value)
         if (!loops) return
         if (_state.value.settings.notifications) {
             viewModelScope.launch { runCatchingCancellable { platform.notifications.requestPermission() } }
@@ -132,11 +140,13 @@ class PlantagotchiViewModel(
     }
 
     fun onStart() {
+        audio.start(viewModelScope)
         platform.lightSensor.start()
         platform.notifications.cancelAll()
     }
 
     fun onStop() {
+        audio.stop()
         platform.lightSensor.stop()
         viewModelScope.launch {
             save()
@@ -155,9 +165,16 @@ class PlantagotchiViewModel(
             _state.update { it.copy(player = after) }
             _events.tryEmit(GameEvent.Petted)
             val now = clock.now().toEpochMilliseconds()
-            if (now - lastPetSound > 250) {
-                lastPetSound = now
-                sound(Sfx.PET)
+            when {
+                now - lastVoice > 1_500 -> {
+                    lastVoice = now
+                    lastPetSound = now
+                    voice(after.activePlant.species, happy = true)
+                }
+                now - lastPetSound > 250 -> {
+                    lastPetSound = now
+                    sound(Sfx.PET)
+                }
             }
         }
     }
@@ -169,7 +186,16 @@ class PlantagotchiViewModel(
             _state.update { it.copy(player = result.state) }
             _events.tryEmit(GameEvent.Purchased(item))
             sound(Sfx.BUY)
+            when (item) {
+                is ShopItem.Refill -> sound(if (item.need == Need.WATER) Sfx.WATER else Sfx.FERTILIZER)
+                is ShopItem.GrowLamp -> sound(Sfx.LAMP)
+                is ShopItem.Pot, is ShopItem.Backdrop, is ShopItem.Floor -> sound(Sfx.DECOR)
+                is ShopItem.Seed -> voice(item.species, happy = true)
+                is ShopItem.Revive -> voice(result.state.activePlant.species, happy = true)
+            }
             viewModelScope.launch { save() }
+        } else {
+            sound(Sfx.ERROR)
         }
         return result
     }
@@ -199,12 +225,37 @@ class PlantagotchiViewModel(
         if (index !in player.plants.indices || index == player.activeIndex) return
         updatePlayer { it.copy(activePlantId = it.plants[index].id) }
         _events.tryEmit(GameEvent.PlantSwitched)
-        sound(Sfx.TAP)
+        sound(Sfx.SWITCH)
+        player.plants[index].takeUnless { it.dead }?.let { voice(it.species, happy = true, volume = 0.6f) }
     }
 
-    fun selectScenery(scenery: Scenery) = updatePlayer { Shop.selectScenery(it, scenery) }
+    /** Tapping the active plant: the flytrap snaps, the others say hello. */
+    fun tapPlant() {
+        val plant = _state.value.player.activePlant
+        if (plant.dead) return
+        if (plant.species == Species.FLYTRAP) {
+            sound(Sfx.SNAP)
+        } else {
+            val now = clock.now().toEpochMilliseconds()
+            if (now - lastVoice > 800) {
+                lastVoice = now
+                voice(plant.species, happy = true, volume = 0.7f)
+            }
+        }
+    }
 
-    fun selectGround(ground: Ground) = updatePlayer { Shop.selectGround(it, ground) }
+    /** UI sounds, e.g. opening and closing sheets. */
+    fun playUi(sfx: Sfx) = sound(sfx, 0.6f)
+
+    fun selectScenery(scenery: Scenery) {
+        updatePlayer { Shop.selectScenery(it, scenery) }
+        sound(Sfx.DECOR)
+    }
+
+    fun selectGround(ground: Ground) {
+        updatePlayer { Shop.selectGround(it, ground) }
+        sound(Sfx.DECOR)
+    }
 
     fun claimReward() {
         val s = _state.value
@@ -279,8 +330,12 @@ class PlantagotchiViewModel(
         _state.update { it.copy(player = transform(it.player)) }
     }
 
-    private fun sound(sfx: Sfx) {
-        if (_state.value.settings.sound) platform.sound.play(sfx)
+    private fun sound(sfx: Sfx, volume: Float = 1f) {
+        if (_state.value.settings.sound) platform.sound.play(sfx, volume)
+    }
+
+    private fun voice(species: Species, happy: Boolean, volume: Float = 0.8f) {
+        if (_state.value.settings.sound) platform.sound.play(AudioAssets.voice(species, happy), volume)
     }
 
     private fun today(now: Long): Long =
@@ -304,12 +359,14 @@ class PlantagotchiViewModel(
                 luxFromSensor = sensorLux != null,
             )
         }
+        audio.update(_state.value)
         val after = _state.value.player
         before.plants.forEach { old ->
             val new = after.plants.firstOrNull { it.id == old.id } ?: return@forEach
             if (new.stage > old.stage) {
                 _events.tryEmit(GameEvent.GrewUp(new.id, new.stage))
                 sound(Sfx.LEVEL_UP)
+                voice(new.species, happy = true)
             }
             if (new.dead && !old.dead) {
                 _events.tryEmit(GameEvent.Withered(new.id))

@@ -5,6 +5,8 @@ import com.russhwolf.settings.Settings
 /** Device-local preferences (not synced). */
 data class AppSettingsState(
     val sound: Boolean = true,
+    val music: Boolean = true,
+    val ambience: Boolean = true,
     val notifications: Boolean = true,
     val cameraLight: Boolean = false,
 )
@@ -12,18 +14,24 @@ data class AppSettingsState(
 class AppSettings(private val settings: Settings = Settings()) {
     fun load() = AppSettingsState(
         sound = settings.getBoolean(SOUND, true),
+        music = settings.getBoolean(MUSIC, true),
+        ambience = settings.getBoolean(AMBIENCE, true),
         notifications = settings.getBoolean(NOTIFICATIONS, true),
         cameraLight = settings.getBoolean(CAMERA_LIGHT, false),
     )
 
     fun save(state: AppSettingsState) {
         settings.putBoolean(SOUND, state.sound)
+        settings.putBoolean(MUSIC, state.music)
+        settings.putBoolean(AMBIENCE, state.ambience)
         settings.putBoolean(NOTIFICATIONS, state.notifications)
         settings.putBoolean(CAMERA_LIGHT, state.cameraLight)
     }
 
     private companion object {
         const val SOUND = "settings_sound"
+        const val MUSIC = "settings_music"
+        const val AMBIENCE = "settings_ambience"
         const val NOTIFICATIONS = "settings_notifications"
         const val CAMERA_LIGHT = "settings_camera_light"
     }

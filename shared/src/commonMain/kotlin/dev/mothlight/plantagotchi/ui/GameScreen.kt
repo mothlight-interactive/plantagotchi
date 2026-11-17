@@ -36,6 +36,7 @@ import dev.mothlight.plantagotchi.data.shop.ShopItem
 import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.model.GameEvent
+import dev.mothlight.plantagotchi.platform.Sfx
 import dev.mothlight.plantagotchi.model.GameUiState
 import dev.mothlight.plantagotchi.model.PlantagotchiViewModel
 import dev.mothlight.plantagotchi.resources.Res
@@ -71,6 +72,8 @@ class GameActions(
     val selectPot: (String) -> Unit = {},
     val switchPlant: (Int) -> Unit = {},
     val selectPlant: (Int) -> Unit = {},
+    val tapPlant: () -> Unit = {},
+    val playUi: (Sfx) -> Unit = {},
     val selectScenery: (Scenery) -> Unit = {},
     val selectGround: (Ground) -> Unit = {},
     val replant: () -> Unit = {},
@@ -93,6 +96,8 @@ fun GameScreen(viewModel: PlantagotchiViewModel) {
             selectPot = viewModel::selectPot,
             switchPlant = viewModel::switchPlant,
             selectPlant = viewModel::selectPlant,
+            tapPlant = viewModel::tapPlant,
+            playUi = viewModel::playUi,
             selectScenery = viewModel::selectScenery,
             selectGround = viewModel::selectGround,
             replant = viewModel::replant,
@@ -121,6 +126,17 @@ fun GameContent(
     initialAbout: Boolean = false,
 ) {
     var sheet by remember { mutableStateOf(initialSheet) }
+    var previousSheet by remember { mutableStateOf(initialSheet) }
+    LaunchedEffect(sheet) {
+        if (sheet != previousSheet) {
+            when {
+                previousSheet == Sheet.NONE -> actions.playUi(Sfx.OPEN)
+                sheet == Sheet.NONE -> actions.playUi(Sfx.CLOSE)
+                else -> actions.playUi(Sfx.TAP)
+            }
+            previousSheet = sheet
+        }
+    }
     var about by remember { mutableStateOf(initialAbout) }
     var hint by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -194,7 +210,7 @@ fun GameContent(
                             hint = getString(if (state.luxFromSensor) Res.string.hint_light_sensor else Res.string.hint_light_estimated)
                         }
                         SceneTarget.NEED_LOVE -> scope.launch { hint = getString(Res.string.hint_love) }
-                        SceneTarget.PLANT -> Unit
+                        SceneTarget.PLANT -> actions.tapPlant()
                     }
                 },
             )

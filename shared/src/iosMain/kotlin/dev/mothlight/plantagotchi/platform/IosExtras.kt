@@ -54,26 +54,52 @@ import kotlin.math.pow
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 class IosSoundPlayer : SoundPlayer {
-    private val players = mutableMapOf<Sfx, AVAudioPlayer>()
+    private val players = mutableMapOf<String, AVAudioPlayer>()
+    /** Loop volumes requested before the files were loaded. */
+    private val pending = mutableMapOf<String, Float>()
 
-    override suspend fun load(sounds: Map<Sfx, ByteArray>) {
+    override suspend fun load(sounds: Map<String, ByteArray>) {
         runCatching {
             AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryAmbient, null)
             AVAudioSession.sharedInstance().setActive(true, null)
         }
-        sounds.forEach { (sfx, bytes) ->
+        sounds.forEach { (asset, bytes) ->
             val data = bytes.usePinned { NSData.dataWithBytes(it.addressOf(0), bytes.size.toULong()) }
             AVAudioPlayer(data = data, error = null).let { player ->
+                if (asset.startsWith("music/") || asset.startsWith("ambient/")) player.numberOfLoops = -1
                 player.prepareToPlay()
-                players[sfx] = player
+                players[asset] = player
             }
+        }
+        pending.toMap().forEach { (asset, volume) -> setLoop(asset, volume) }
+        pending.clear()
+    }
+
+    override fun play(asset: String, volume: Float) {
+        players[asset]?.let {
+            it.volume = volume
+            it.currentTime = 0.0
+            it.play()
         }
     }
 
-    override fun play(sfx: Sfx) {
-        players[sfx]?.let {
-            it.currentTime = 0.0
-            it.play()
+    override fun setLoop(asset: String, volume: Float) {
+        val player = players[asset]
+        if (player == null) {
+            pending[asset] = volume
+            return
+        }
+        player.volume = volume
+        if (volume <= 0.001f) {
+            if (player.playing) player.pause()
+        } else if (!player.playing) {
+            player.play()
+        }
+    }
+
+    override fun pauseAll() {
+        players.forEach { (asset, player) ->
+            if ((asset.startsWith("music/") || asset.startsWith("ambient/")) && player.playing) player.pause()
         }
     }
 }

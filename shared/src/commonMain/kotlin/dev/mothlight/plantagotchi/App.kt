@@ -13,7 +13,7 @@ import dev.mothlight.plantagotchi.data.repository.SyncingGameStateRepository
 import dev.mothlight.plantagotchi.data.weather.OpenMeteoClient
 import dev.mothlight.plantagotchi.model.PlantagotchiViewModel
 import dev.mothlight.plantagotchi.platform.PlatformServices
-import dev.mothlight.plantagotchi.platform.Sfx
+import dev.mothlight.plantagotchi.audio.AudioAssets
 import dev.mothlight.plantagotchi.resources.Res
 import dev.mothlight.plantagotchi.ui.GameScreen
 import io.github.jan.supabase.auth.Auth
@@ -29,8 +29,8 @@ fun App(platform: PlatformServices) {
     val viewModel = viewModel { createViewModel(platform) }
 
     LaunchedEffect(platform) {
-        val sounds = Sfx.entries.mapNotNull { sfx ->
-            runCatching { sfx to Res.readBytes("files/sfx/${sfx.file}.wav") }.getOrNull()
+        val sounds = AudioAssets.all.mapNotNull { asset ->
+            runCatching { asset to Res.readBytes("files/$asset.wav") }.getOrNull()
         }.toMap()
         runCatching { platform.sound.load(sounds) }
     }

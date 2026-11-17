@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.media.SoundPool
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -22,28 +23,58 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 class AndroidSoundPlayer(private val context: Context) : SoundPlayer {
-    private val pool = SoundPool.Builder()
-        .setMaxStreams(6)
-        .setAudioAttributes(
-            AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_GAME)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build()
-        )
+    private val attributes = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_GAME)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
-    private val ids = mutableMapOf<Sfx, Int>()
+    private val pool = SoundPool.Builder().setMaxStreams(8).setAudioAttributes(attributes).build()
+    private val ids = mutableMapOf<String, Int>()
+    private val loopFiles = mutableMapOf<String, File>()
+    private val loops = mutableMapOf<String, MediaPlayer>()
+    /** Loop volumes requested before the files were loaded. */
+    private val pending = mutableMapOf<String, Float>()
 
-    override suspend fun load(sounds: Map<Sfx, ByteArray>) {
-        val dir = File(context.cacheDir, "sfx").apply { mkdirs() }
-        sounds.forEach { (sfx, bytes) ->
-            val file = File(dir, "${sfx.file}.wav").apply { writeBytes(bytes) }
-            ids[sfx] = pool.load(file.absolutePath, 1)
+    override suspend fun load(sounds: Map<String, ByteArray>) {
+        val dir = File(context.cacheDir, "audio").apply { mkdirs() }
+        sounds.forEach { (asset, bytes) ->
+            val file = File(dir, asset.replace('/', '_') + ".wav").apply { writeBytes(bytes) }
+            if (asset.isLoop()) loopFiles[asset] = file else ids[asset] = pool.load(file.absolutePath, 1)
+        }
+        pending.toMap().forEach { (asset, volume) -> setLoop(asset, volume) }
+        pending.clear()
+    }
+
+    override fun play(asset: String, volume: Float) {
+        ids[asset]?.let { pool.play(it, volume, volume, 1, 0, 1f) }
+    }
+
+    override fun setLoop(asset: String, volume: Float) {
+        val file = loopFiles[asset]
+        if (file == null) {
+            pending[asset] = volume
+            return
+        }
+        val player = loops.getOrPut(asset) {
+            MediaPlayer().apply {
+                setAudioAttributes(attributes)
+                setDataSource(file.absolutePath)
+                isLooping = true
+                prepare()
+            }
+        }
+        if (volume <= 0.001f) {
+            if (player.isPlaying) player.pause()
+        } else {
+            player.setVolume(volume, volume)
+            if (!player.isPlaying) player.start()
         }
     }
 
-    override fun play(sfx: Sfx) {
-        ids[sfx]?.let { pool.play(it, 0.8f, 0.8f, 0, 0, 1f) }
+    override fun pauseAll() {
+        loops.values.forEach { if (it.isPlaying) it.pause() }
     }
+
+    private fun String.isLoop() = startsWith("music/") || startsWith("ambient/")
 }
 
 /** Schedules reminders with WorkManager so they survive the app being killed. */
