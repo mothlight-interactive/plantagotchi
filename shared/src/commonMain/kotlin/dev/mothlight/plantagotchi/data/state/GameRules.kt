@@ -21,6 +21,8 @@ object GameRules {
 
     /** Ambient light (lux) above which the plant is considered to get enough sun. */
     const val LUX_THRESHOLD = 1_000f
+    /** Light a grow lamp provides. */
+    const val LAMP_LUX = 5_000f
     const val LUX_GAIN = 0.1
     const val LOVE_GAIN = 1.0
     const val MIN_PET_DRAG_PX = 25f
@@ -32,6 +34,10 @@ object GameRules {
         WeatherState.THUNDERSTORM -> 0.8
         else -> 0.0
     }
+
+    /** Light the plant actually receives, taking an active grow lamp into account. */
+    fun effectiveLux(state: PlayerState, ambientLux: Float, nowMillis: Long): Float =
+        if (state.isLampActive(nowMillis)) maxOf(ambientLux, LAMP_LUX) else ambientLux
 
     /** One game loop step of [seconds] (normally 1). */
     fun tick(state: PlayerState, ambientLux: Float, weather: WeatherState, seconds: Double = 1.0): PlayerState {

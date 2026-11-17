@@ -1,6 +1,7 @@
 package dev.mothlight.plantagotchi.data.repository
 
 import dev.mothlight.plantagotchi.data.GeoPosition
+import dev.mothlight.plantagotchi.data.shop.PotId
 import dev.mothlight.plantagotchi.data.state.PlayerState
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -49,6 +50,9 @@ internal data class GameStateRow(
     val latitude: Double,
     val longitude: Double,
     val altitude: Double,
+    @SerialName("owned_pots") val ownedPots: List<String> = listOf(PotId.DEFAULT),
+    @SerialName("selected_pot") val selectedPot: String = PotId.DEFAULT,
+    @SerialName("lamp_until_ms") val lampUntil: Long = 0L,
     @SerialName("updated_at_ms") val updatedAt: Long,
 ) {
     fun toPlayerState() = PlayerState(
@@ -58,6 +62,9 @@ internal data class GameStateRow(
         fertilizer = fertilizer,
         coins = coins,
         lastPosition = GeoPosition(latitude, longitude, altitude),
+        ownedPots = ownedPots.toSet() + PotId.DEFAULT,
+        selectedPot = selectedPot,
+        lampUntil = lampUntil,
         updatedAt = updatedAt,
     )
 
@@ -72,6 +79,9 @@ internal data class GameStateRow(
             latitude = s.lastPosition.latitude,
             longitude = s.lastPosition.longitude,
             altitude = s.lastPosition.altitude,
+            ownedPots = s.ownedPots.sorted(),
+            selectedPot = s.selectedPot,
+            lampUntil = s.lampUntil,
             updatedAt = s.updatedAt,
         )
     }

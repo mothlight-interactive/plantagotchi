@@ -61,6 +61,27 @@ The state is always written locally and mirrored to Supabase; on start the most 
 * *Fertilizer*: empties in 2 weeks.
 * Every gain earns a coin. Decay continues while the app is closed.
 
+== Shop
+
+Tap the shop bag, the coin counter or the water/fertilizer bubble.
+
+* *Watering can* (15 coins): +35 water
+* *Fertilizer* (25 coins): +50 fertilizer
+* *Grow lamp* (60 coins): full light for 30 minutes, stacks
+* *Pots* (80 to 200 coins): 12 pots in 3 shapes and 4 colors, switch between owned pots any time
+
+== Rendering
+
+The game scene is a single Compose `Canvas` (`shared/src/commonMain/.../ui/game`) redrawn every frame:
+
+* `GameCanvas`: frame loop, input and hit testing, draws plant, pot, HUD and need bubbles
+* `SkyRenderer`: sky, sun and moon, stars, fog, lightning, clouds and precipitation
+* `SceneState`: animation clock, effects (hearts, floating coins, water, dirt, sparkles, falling leaves) and tool animations
+* `PixelSprite`: pixel art defined in code (watering can, fertilizer bag, grow lamp, shop bag)
+
+The plant sways with the real wind speed, breathes, bounces when petted and wilts (droops, loses color, drops
+leaves) when neglected. Low needs pulse and shake. Fireflies appear on calm nights.
+
 == Attribution
 
 * Weather particles based on https://github.com/fidloo/flux
