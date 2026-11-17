@@ -120,16 +120,6 @@ internal fun DrawScope.drawWeatherBack(scene: SceneState) {
     }
 }
 
-internal fun DrawScope.drawMountains(sprites: SceneSprites, tint: Float) {
-    val img = sprites.mountains
-    val h = size.width * img.height / img.width
-    drawBitmap(
-        img,
-        Rect(0f, size.height - h, size.width, size.height),
-        colorFilter = ColorFilter.tint(Color.Black.copy(alpha = tint), BlendMode.SrcAtop),
-    )
-}
-
 /** Clouds and precipitation in front of the mountains. */
 internal fun DrawScope.drawWeatherFront(scene: SceneState, sprites: SceneSprites, tint: Float) {
     val dp = scene.layout?.dp ?: return

@@ -16,10 +16,27 @@ enum class Species(
     /** Extra water decay factor above 30 °C. */
     val heatSensitivity: Double,
     val seedPrice: Int,
+    val loveDecay: Double = 1.0,
+    val fertilizerDecay: Double = 1.0,
 ) {
     SPROUT(waterDecay = 1.0, luxDecay = 1.0, frostSensitivity = 1.5, heatSensitivity = 2.0, seedPrice = 100),
     CACTUS(waterDecay = 0.3, luxDecay = 1.2, frostSensitivity = 2.5, heatSensitivity = 1.0, seedPrice = 150),
     FERN(waterDecay = 1.4, luxDecay = 0.5, frostSensitivity = 1.2, heatSensitivity = 2.5, seedPrice = 150),
+
+    /** Hungry for sun, turns its head to follow it. */
+    SUNFLOWER(waterDecay = 1.2, luxDecay = 1.5, frostSensitivity = 2.0, heatSensitivity = 1.0, seedPrice = 180),
+
+    /** Hardy in the cold, opens its bloom during the day. */
+    TULIP(waterDecay = 1.0, luxDecay = 1.0, frostSensitivity = 0.8, heatSensitivity = 2.0, seedPrice = 120),
+
+    /** Big leaves, happy in the shade, hates the cold. */
+    MONSTERA(waterDecay = 0.8, luxDecay = 0.6, frostSensitivity = 2.5, heatSensitivity = 1.2, seedPrice = 220),
+
+    /** Slow and wise, needs a lot of attention. */
+    BONSAI(waterDecay = 1.0, luxDecay = 0.8, frostSensitivity = 1.2, heatSensitivity = 1.5, seedPrice = 300, loveDecay = 2.0, fertilizerDecay = 0.6),
+
+    /** Bog plant: thirsty, but catches its own food. */
+    FLYTRAP(waterDecay = 1.6, luxDecay = 1.1, frostSensitivity = 1.5, heatSensitivity = 1.0, seedPrice = 250, fertilizerDecay = 0.3),
 }
 
 /** All needs are percentages in the range 0..100. */

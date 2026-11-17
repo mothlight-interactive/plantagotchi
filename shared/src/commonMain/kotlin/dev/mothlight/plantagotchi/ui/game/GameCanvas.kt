@@ -58,7 +58,7 @@ import kotlin.random.Random
 /** Elements of the scene that react to taps. */
 enum class SceneTarget {
     SHOP, MENU, CHEST, WEATHER, NEED_FERTILIZER, NEED_WATER, NEED_LIGHT, NEED_LOVE,
-    PLANT, PREVIOUS_PLANT, NEXT_PLANT, REPLANT, COMPOST,
+    PLANT, REPLANT, COMPOST,
 }
 
 /** Localized texts the canvas draws. */
@@ -80,6 +80,7 @@ fun GameCanvas(
     onPet: (Float) -> Unit,
     onTap: (SceneTarget) -> Unit,
     modifier: Modifier = Modifier,
+    onSelectPlant: (Int) -> Unit = {},
     events: Flow<GameEvent> = emptyFlow(),
 ) {
     val sprites = rememberSceneSprites()
@@ -94,6 +95,7 @@ fun GameCanvas(
 
     val currentOnPet by rememberUpdatedState(onPet)
     val currentOnTap by rememberUpdatedState(onTap)
+    val currentOnSelect by rememberUpdatedState(onSelectPlant)
     val currentState by rememberUpdatedState(state)
 
     val frameNanos = remember { mutableLongStateOf(0L) }
@@ -116,7 +118,11 @@ fun GameCanvas(
         modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures { offset -> scene.hitTest(offset, currentState)?.let { currentOnTap(it) } }
+                detectTapGestures { offset ->
+                    val selected = scene.plantAt(offset, currentState)
+                    if (selected != null) currentOnSelect(selected)
+                    else scene.hitTest(offset, currentState)?.let { currentOnTap(it) }
+                }
             }
             .pointerInput(Unit) {
                 detectDragGestures { change, drag ->
@@ -131,7 +137,9 @@ fun GameCanvas(
             dp = density.density,
             topInset = topInset,
             bottomInset = bottomInset,
-            potAspect = sprites.pot(plant.pot).aspectRatioOrDefault(190f / 296f),
+            weights = scene.weights(state),
+            potAspects = state.player.plants.map { sprites.pot(it.pot).aspectRatioOrDefault(190f / 296f) },
+            activeIndex = state.player.activeIndex,
         )
         scene.layout = layout
         scene.advance(frameNanos.longValue, state)
@@ -143,14 +151,19 @@ fun GameCanvas(
 
         drawSky(scene, sprites, state.weather, scene.shownMinutes)
         drawWeatherBack(scene)
-        drawMountains(sprites, tint)
+        val wind = (state.weather.facts.windSpeed.toFloat() / 40f).coerceIn(0f, 1f)
+        SceneryRenderer.drawScenery(
+            this, state.player.scenery,
+            Rect(0f, size.height * 0.3f, size.width, layout.ground.top),
+            block = 4 * layout.dp, tint = tint, time = scene.time, wind = wind, sprites = sprites,
+        )
         drawWeatherFront(scene, sprites, tint)
         drawButterflies(scene, state, layout)
         drawFireflies(scene, state, layout)
-        drawPainter(sprites.ground, layout.ground)
-        drawGroundSeason(state.season, layout)
+        SceneryRenderer.drawGround(this, state.player.ground, layout.ground, 4 * layout.dp, tint, scene.time, sprites)
+        if (state.player.ground != dev.mothlight.plantagotchi.data.state.Ground.SNOW) drawGroundSeason(state.season, layout)
         if (state.lampActive) drawLampLight(scene, layout)
-        drawPlantAndPot(scene, state, plant, sprites, layout)
+        drawPlants(scene, state, sprites, layout)
         if (state.lampActive) drawLamp(scene, layout)
         drawTools(scene, layout)
         drawTemperatureOverlay(scene, state, layout)
@@ -173,15 +186,25 @@ private fun SceneState.hitTest(offset: Offset, state: GameUiState): SceneTarget?
         l.weatherChip.hit(4f) -> SceneTarget.WEATHER
         plant.dead && l.replantButton.hit(4f) -> SceneTarget.REPLANT
         plant.dead && multiple && l.compostButton.hit(4f) -> SceneTarget.COMPOST
-        multiple && l.arrowLeft.hit() -> SceneTarget.PREVIOUS_PLANT
-        multiple && l.arrowRight.hit() -> SceneTarget.NEXT_PLANT
         l.bubbles[0].contains(offset) -> SceneTarget.NEED_LOVE
         l.bubbles[1].contains(offset) -> SceneTarget.NEED_FERTILIZER
         l.bubbles[2].contains(offset) -> SceneTarget.NEED_WATER
         l.bubbles[3].contains(offset) -> SceneTarget.NEED_LIGHT
-        l.leaves.contains(offset) || l.pot.contains(offset) -> SceneTarget.PLANT.also { petBounceAt = time }
+        l.slots[l.activeIndex].touch.contains(offset) -> SceneTarget.PLANT.also {
+            petBounceAt = time
+            if (plant.species == dev.mothlight.plantagotchi.data.state.Species.FLYTRAP && !plant.dead) activeAnimator.trigger(PlantAction.SNAP, time)
+        }
         else -> null
     }
+}
+
+/** Index of a plant other than the active one at [offset], to select it. */
+private fun SceneState.plantAt(offset: Offset, state: GameUiState): Int? {
+    val l = layout ?: return null
+    if (l.slots.size < 2) return null
+    // Keep the buttons and HUD in front.
+    if (state.player.activePlant.dead && (l.replantButton.contains(offset) || l.compostButton.contains(offset))) return null
+    return l.slots.indices.firstOrNull { it != l.activeIndex && l.slots[it].touch.contains(offset) }
 }
 
 private val witheredMatrix = ColorMatrix(
@@ -193,46 +216,51 @@ private val witheredMatrix = ColorMatrix(
     )
 )
 
-private fun DrawScope.drawPlantAndPot(scene: SceneState, state: GameUiState, plant: PlantState, sprites: SceneSprites, l: SceneLayout) {
+private fun DrawScope.drawPlants(scene: SceneState, state: GameUiState, sprites: SceneSprites, l: SceneLayout) {
     val t = scene.time
-    // Slide in after switching plants.
-    val switchT = ((t - scene.switchAt) / 0.35f).coerceIn(0f, 1f)
-    val slide = (1f - easeOut(switchT)) * scene.switchDirection * size.width * 0.6f
-
-    translate(left = slide) {
-        val noon = (state.weather.sunrise.minutesOfDay() + state.weather.sunset.minutesOfDay()) / 2
-        val pose = scene.plantAnimator.pose(
+    val noon = (state.weather.sunrise.minutesOfDay() + state.weather.sunset.minutesOfDay()) / 2
+    val plants = state.player.plants
+    // Others first, the active plant on top.
+    val order = plants.indices.sortedBy { if (it == l.activeIndex) 1 else 0 }
+    order.forEach { i ->
+        val plant = plants[i]
+        val slot = l.slots[i]
+        val active = i == l.activeIndex
+        val animator = scene.animator(plant.id)
+        val pose = animator.pose(
             state = state,
             plant = plant,
             time = t,
             sunIsRight = scene.shownMinutes < noon,
-            petBounce = bounce(t - scene.petBounceAt),
-            growBounce = bounce(t - scene.growAt, 1f),
+            petBounce = if (active) bounce(t - scene.petBounceAt) else 0f,
+            growBounce = if (active) bounce(t - scene.growAt, 1f) else 0f,
         )
-        val maturity = scene.plantAnimator.maturity(plant, t)
+        val maturity = animator.maturity(plant, t)
         val filter = when {
             plant.dead -> ColorFilter.colorMatrix(witheredMatrix)
             pose.droop > 0f -> ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(1f - pose.droop * 0.75f) })
             else -> null
         }
         val draw: DrawScope.() -> Unit = {
-            PlantRenderer.draw(
-                scope = this,
-                species = plant.species,
-                maturity = maturity,
-                seed = plant.id.hashCode(),
-                pose = pose,
-                base = Offset(l.plant.center.x + l.plantPixel / 2, l.plant.bottom),
-                pixel = l.plantPixel,
-            )
+            PlantRenderer.draw(this, plant.species, maturity, plant.id.hashCode(), pose, slot.base, slot.pixel)
         }
         if (filter == null) draw() else drawIntoLayer(filter) { draw() }
 
-        val potBounce = bounce(t - scene.potBounceAt)
+        val potBounce = if (active) bounce(t - scene.potBounceAt) else 0f
         withTransform({
-            scale(1f - potBounce * 0.06f, 1f + potBounce * 0.08f, Offset(l.pot.center.x, l.pot.bottom))
+            scale(1f - potBounce * 0.06f, 1f + potBounce * 0.08f, Offset(slot.pot.center.x, slot.pot.bottom))
         }) {
-            drawPainter(sprites.pot(plant.pot), l.pot)
+            drawPainter(sprites.pot(plant.pot), slot.pot)
+        }
+
+        // Inactive plants call for attention when something is low.
+        if (!active && (plant.dead || listOf(plant.water, plant.lux, plant.love, plant.fertilizer).any { it < 20 })) {
+            val bob = sin(t * 4f + i) * 2 * l.dp
+            val center = Offset(slot.pot.right - 4 * l.dp, slot.pot.top - 14 * l.dp + bob)
+            drawCircle(Color(0xFF222034), 9 * l.dp, center)
+            drawCircle(if (plant.dead) Color(0xFF8D6E3F) else Color(0xFFFF5A5A), 7 * l.dp, center)
+            drawRect(Color.White, center + Offset(-1.5f * l.dp, -5 * l.dp), Size(3 * l.dp, 6 * l.dp))
+            drawRect(Color.White, center + Offset(-1.5f * l.dp, 2.5f * l.dp), Size(3 * l.dp, 2.5f * l.dp))
         }
     }
 }
@@ -491,14 +519,6 @@ private fun DrawScope.drawPlantControls(
     drawText(label, color = Color(0xFF222034), topLeft = labelPos + Offset(l.dp, l.dp))
     drawText(label, topLeft = labelPos)
 
-    if (state.player.plants.size > 1) {
-        val nudge = sin(scene.time * 3f) * 2 * l.dp
-        CodeSprites.arrowRight.drawFit(this, l.arrowRight.size, l.arrowRight.topLeft + Offset(nudge, 0f))
-        withTransform({ scale(-1f, 1f, l.arrowLeft.center) }) {
-            CodeSprites.arrowRight.drawFit(this, l.arrowLeft.size, l.arrowLeft.topLeft + Offset(nudge, 0f))
-        }
-    }
-
     if (plant.dead) {
         pixelButton(l.replantButton, texts.replant, PlantagotchiColors.Water, l, textMeasurer, style)
         if (state.player.plants.size > 1) {
@@ -525,8 +545,18 @@ private fun DrawScope.drawNeeds(
     textMeasurer: TextMeasurer,
     style: TextStyle,
 ) {
+    // Darken the bottom so the label and bubbles stay readable on bright grounds (sand, snow).
+    val bandTop = l.needsLabelBaseline - 40 * l.dp
+    drawRect(
+        Brush.verticalGradient(listOf(Color.Transparent, Color(0x88000000)), startY = bandTop, endY = l.needsLabelBaseline),
+        topLeft = Offset(0f, bandTop),
+        size = Size(size.width, size.height - bandTop),
+    )
+    drawRect(Color(0x88000000), Offset(0f, l.needsLabelBaseline), Size(size.width, size.height - l.needsLabelBaseline))
     val label = textMeasurer.measure(texts.needsLabel, style.copy(color = Color.White))
-    drawText(label, topLeft = Offset((size.width - label.size.width) / 2, l.needsLabelBaseline - label.size.height))
+    val labelPos = Offset((size.width - label.size.width) / 2, l.needsLabelBaseline - label.size.height)
+    drawText(label, color = Color(0xFF222034), topLeft = labelPos + Offset(l.dp, l.dp))
+    drawText(label, topLeft = labelPos)
 
     val needs = listOf(
         Triple(plant.love, PlantagotchiColors.Love, sprites.heart),

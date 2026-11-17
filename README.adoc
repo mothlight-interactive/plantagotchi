@@ -54,8 +54,16 @@ The state is always written locally and mirrored to Supabase; on start the most 
 
 == Game rules
 
-* Up to 4 plants: *Sprout*, *Cactus* (little water, loves sun, hates frost) and *Fern* (likes shade, drinks a lot).
-  Switch between them with the arrows next to the pot.
+* Up to 5 plants, all visible side by side; tap one to look after it (it moves to the front and grows bigger).
+  Plants that need something show a red marker. Species:
+** *Sprout*: easy going
+** *Cactus*: little water, loves sun, hates frost
+** *Fern*: likes shade, drinks a lot
+** *Sunflower*: needs lots of light, turns its head to the sun and lets it hang at night
+** *Tulip*: hardy in the cold, opens its bloom by day
+** *Monstera*: big holey leaves, likes shade, hates frost
+** *Bonsai*: slow, needs twice the love, little fertilizer
+** *Flytrap*: thirsty, catches its own food (little fertilizer), snaps when you tap it
 * *Light*: rises while the ambient light is above 1000 lux, otherwise empties in about a day.
   Android uses the light sensor. iOS has no public light sensor API: light is estimated from daylight and
   weather, or measured with the camera if enabled in the settings.
@@ -78,7 +86,10 @@ Tap the shop bag, the coin counter or the water/fertilizer bubble.
 * *Fertilizer* (25 coins): +50 fertilizer
 * *Grow lamp* (60 coins): full light for 30 minutes, stacks
 * *Revival tonic* (120 coins): brings a withered plant back
-* *Seeds* (100 to 150 coins): a new plant
+* *Seeds* (100 to 300 coins): a new plant
+* *Scenery* (150 to 300 coins): mountains, desert, beach (moving waves), forest, city (windows light up at night),
+  zen garden (cherry blossoms); drawn in the canvas
+* *Ground* (80 to 120 coins): grass, sand, stone, wood deck, snow
 * *Pots* (80 to 200 coins): 12 pots in 3 shapes and 4 colors
 
 == More
@@ -101,7 +112,8 @@ The game scene is a single Compose `Canvas` (`shared/src/commonMain/.../ui/game`
 * `PlantRenderer`: plants are drawn procedurally on a pixel grid, no images. Stem, leaves, cactus arms,
   fern fronds and flowers come from a skeleton, so plants grow continuously (leaves unfold, arms grow out,
   fronds unroll from fiddleheads, flowers open) and every part can move. Each plant's shape is seeded by its id.
-* `PlantAnimator`: wind bend and leaf flutter, plus idle actions every few seconds (wiggle, stretch, turn to the sun,
+* `SceneryRenderer`: sceneries and grounds as pixel blocks, darkened at night
+* `PlantAnimator`: per plant; wind bend and leaf flutter, plus idle actions every few seconds (wiggle, stretch, turn to the sun,
   shake off rain, dance when loved, nod at night) and reactions to petting, watering, growing and withering
 * `PixelSprite`: other pixel art defined in code (watering can, fertilizer bag, grow lamp, shop bag)
 * `MothlightLogo`: the pixel version of the Mothlight wordmark with a glowing lamp and a circling moth (splash and about screen)

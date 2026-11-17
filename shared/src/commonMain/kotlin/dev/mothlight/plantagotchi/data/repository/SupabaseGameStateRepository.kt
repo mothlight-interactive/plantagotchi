@@ -3,6 +3,8 @@ package dev.mothlight.plantagotchi.data.repository
 import dev.mothlight.plantagotchi.data.GeoPosition
 import dev.mothlight.plantagotchi.data.shop.PotId
 import dev.mothlight.plantagotchi.data.state.FriendCode
+import dev.mothlight.plantagotchi.data.state.Ground
+import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.data.state.PlantState
 import dev.mothlight.plantagotchi.data.state.PlayerState
 import dev.mothlight.plantagotchi.data.state.Species
@@ -67,6 +69,10 @@ internal data class GameStateRow(
     val streak: Int = 0,
     @SerialName("friend_code") val friendCode: String? = null,
     val friends: List<String> = emptyList(),
+    @SerialName("owned_scenery") val ownedScenery: List<String> = listOf(Scenery.MOUNTAINS.name),
+    val scenery: String = Scenery.MOUNTAINS.name,
+    @SerialName("owned_grounds") val ownedGrounds: List<String> = listOf(Ground.GRASS.name),
+    val ground: String = Ground.GRASS.name,
     @SerialName("updated_at_ms") val updatedAt: Long,
 ) {
     fun toPlayerState(): PlayerState {
@@ -84,6 +90,10 @@ internal data class GameStateRow(
             streak = streak,
             friendCode = friendCode ?: FriendCode.generate(),
             friends = friends,
+            ownedScenery = ownedScenery.mapNotNull { n -> Scenery.entries.firstOrNull { it.name == n } }.toSet() + Scenery.MOUNTAINS,
+            scenery = Scenery.entries.firstOrNull { it.name == scenery } ?: Scenery.MOUNTAINS,
+            ownedGrounds = ownedGrounds.mapNotNull { n -> Ground.entries.firstOrNull { it.name == n } }.toSet() + Ground.GRASS,
+            ground = Ground.entries.firstOrNull { it.name == ground } ?: Ground.GRASS,
             updatedAt = updatedAt,
         )
     }
@@ -113,6 +123,10 @@ internal data class GameStateRow(
                 streak = s.streak,
                 friendCode = s.friendCode,
                 friends = s.friends,
+                ownedScenery = s.ownedScenery.map { it.name }.sorted(),
+                scenery = s.scenery.name,
+                ownedGrounds = s.ownedGrounds.map { it.name }.sorted(),
+                ground = s.ground.name,
                 updatedAt = s.updatedAt,
             )
         }

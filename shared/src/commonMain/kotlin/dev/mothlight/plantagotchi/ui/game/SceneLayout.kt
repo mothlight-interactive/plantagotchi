@@ -4,21 +4,28 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 
+/** One plant in its pot. The plant rect shares the pot's 296 px wide viewport width. */
+internal class PlantSlot(val pot: Rect, val plant: Rect) {
+    /** One pixel of the 25 px plant grid; plants may be wider than their pot. */
+    val pixel: Float get() = plant.width / 25f
+    val base: Offset get() = Offset(plant.center.x + pixel / 2, plant.bottom)
+    /** Area that counts as tapping this plant. */
+    val touch: Rect get() = Rect(minOf(pot.left, plant.left + plant.width * 0.2f), plant.top + plant.height * 0.3f, maxOf(pot.right, plant.right - plant.width * 0.2f), pot.bottom)
+}
+
 /** Positions of all scene elements in px. Also used for hit testing. */
 internal class SceneLayout(
     val size: Size,
     /** 1 dp in px. */
     val dp: Float,
     val ground: Rect,
-    val pot: Rect,
-    val plant: Rect,
+    val slots: List<PlantSlot>,
+    val activeIndex: Int,
     val coinHud: Rect,
     val weatherChip: Rect,
     val menuButton: Rect,
     val chest: Rect,
     val shopButton: Rect,
-    val arrowLeft: Rect,
-    val arrowRight: Rect,
     val plantLabelY: Float,
     val replantButton: Rect,
     val compostButton: Rect,
@@ -26,26 +33,49 @@ internal class SceneLayout(
     /** Love, fertilizer, water, light. */
     val bubbles: List<Rect>,
 ) {
-    /** Bottom center of the stem, rotation pivot for swaying. */
+    private val active get() = slots[activeIndex]
+    val pot: Rect get() = active.pot
+    val plant: Rect get() = active.plant
+    val plantPixel: Float get() = active.pixel
+
+    /** Bottom center of the active stem. */
     val plantPivot: Offset get() = Offset(plant.center.x, plant.bottom)
 
-    /** One pixel of the 25 px plant grid. */
-    val plantPixel: Float get() = plant.width / 25.06f
-
-    /** Roughly where the leaves are, for effects. */
+    /** Roughly where the active plant's leaves are, for effects. */
     val leaves: Rect get() = Rect(plant.left + plant.width * 0.25f, plant.top + plant.height * 0.35f, plant.right - plant.width * 0.25f, plant.bottom - plant.height * 0.1f)
 
     companion object {
-        fun compute(size: Size, dp: Float, topInset: Float, bottomInset: Float, potAspect: Float): SceneLayout {
+        /**
+         * @param weights relative width per plant (the active one is animated towards a larger weight)
+         * @param potAspects pot height / width per plant
+         */
+        fun compute(
+            size: Size,
+            dp: Float,
+            topInset: Float,
+            bottomInset: Float,
+            weights: List<Float>,
+            potAspects: List<Float>,
+            activeIndex: Int,
+        ): SceneLayout {
             val w = size.width
             val h = size.height
             val ground = Rect(0f, h - 128 * dp, w, h)
 
-            val potWidth = w * 0.86f
-            val potBottom = ground.top + 48 * dp
-            val pot = Rect((w - potWidth) / 2, potBottom - potWidth * potAspect, (w + potWidth) / 2, potBottom)
-            // Plant and pot vectors share the same 296 px wide viewport.
-            val plant = Rect(pot.left, pot.top + 2 * dp - potWidth, pot.right, pot.top + 2 * dp)
+            val available = w * 0.96f
+            val total = weights.sum().coerceAtLeast(0.01f)
+            var x = (w - available) / 2
+            val slots = weights.mapIndexed { i, weight ->
+                val slotWidth = available * weight / total
+                val potWidth = minOf(slotWidth * 0.9f, w * 0.62f * weight / ACTIVE_WEIGHT)
+                val potBottom = ground.top + potWidth * 0.14f
+                val center = x + slotWidth / 2
+                x += slotWidth
+                val pot = Rect(center - potWidth / 2, potBottom - potWidth * potAspects[i], center + potWidth / 2, potBottom)
+                val plantBottom = pot.top + potWidth * 0.006f
+                val plantSize = potWidth * PLANT_TO_POT
+                PlantSlot(pot, Rect(center - plantSize / 2, plantBottom - plantSize, center + plantSize / 2, plantBottom))
+            }
 
             val top = topInset + 12 * dp
             val coinHud = Rect(12 * dp, top, 132 * dp, top + 38 * dp)
@@ -54,14 +84,12 @@ internal class SceneLayout(
             val chest = Rect(menuButton.left - 50 * dp, top, menuButton.left - 10 * dp, top + 38 * dp)
             val shopButton = Rect(chest.left - 52 * dp, top - 3 * dp, chest.left - 8 * dp, top + 41 * dp)
 
-            val arrowY = pot.top - 8 * dp
-            val arrowLeft = Rect(8 * dp, arrowY - 24 * dp, 44 * dp, arrowY + 24 * dp)
-            val arrowRight = Rect(w - 44 * dp, arrowY - 24 * dp, w - 8 * dp, arrowY + 24 * dp)
-
+            val activePot = slots[activeIndex].pot
             val buttonW = 150 * dp
             val buttonH = 40 * dp
-            val buttonsY = pot.top - 120 * dp
-            val replant = Rect(w / 2 - buttonW / 2, buttonsY, w / 2 + buttonW / 2, buttonsY + buttonH)
+            val buttonsY = activePot.top - activePot.width * 0.55f - buttonH
+            val buttonX = activePot.center.x.coerceIn(buttonW / 2 + 8 * dp, w - buttonW / 2 - 8 * dp)
+            val replant = Rect(buttonX - buttonW / 2, buttonsY, buttonX + buttonW / 2, buttonsY + buttonH)
             val compost = Rect(replant.left, replant.bottom + 10 * dp, replant.right, replant.bottom + 10 * dp + buttonH)
 
             val bubble = 80 * dp
@@ -73,11 +101,16 @@ internal class SceneLayout(
             }
 
             return SceneLayout(
-                size, dp, ground, pot, plant, coinHud, weatherChip, menuButton, chest, shopButton,
-                arrowLeft, arrowRight, plantLabelY = weatherChip.bottom + 14 * dp,
+                size, dp, ground, slots, activeIndex, coinHud, weatherChip, menuButton, chest, shopButton,
+                plantLabelY = weatherChip.bottom + 14 * dp,
                 replantButton = replant, compostButton = compost,
                 needsLabelBaseline = bubbleTop - 4 * dp, bubbles = bubbles,
             )
         }
+
+        const val ACTIVE_WEIGHT = 2.2f
+
+        /** Plant grid size relative to the pot width (the original art used 1). */
+        const val PLANT_TO_POT = 25f / 19f
     }
 }

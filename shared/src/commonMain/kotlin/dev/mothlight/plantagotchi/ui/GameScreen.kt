@@ -33,6 +33,8 @@ import dev.mothlight.plantagotchi.data.AppSettingsState
 import dev.mothlight.plantagotchi.data.repository.SendWaterResult
 import dev.mothlight.plantagotchi.data.shop.PurchaseResult
 import dev.mothlight.plantagotchi.data.shop.ShopItem
+import dev.mothlight.plantagotchi.data.state.Ground
+import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.model.GameEvent
 import dev.mothlight.plantagotchi.model.GameUiState
 import dev.mothlight.plantagotchi.model.PlantagotchiViewModel
@@ -68,6 +70,9 @@ class GameActions(
     val buy: (ShopItem) -> PurchaseResult = { PurchaseResult.NotEnoughCoins },
     val selectPot: (String) -> Unit = {},
     val switchPlant: (Int) -> Unit = {},
+    val selectPlant: (Int) -> Unit = {},
+    val selectScenery: (Scenery) -> Unit = {},
+    val selectGround: (Ground) -> Unit = {},
     val replant: () -> Unit = {},
     val compost: () -> Unit = {},
     val claimReward: () -> Unit = {},
@@ -87,6 +92,9 @@ fun GameScreen(viewModel: PlantagotchiViewModel) {
             buy = viewModel::buy,
             selectPot = viewModel::selectPot,
             switchPlant = viewModel::switchPlant,
+            selectPlant = viewModel::selectPlant,
+            selectScenery = viewModel::selectScenery,
+            selectGround = viewModel::selectGround,
             replant = viewModel::replant,
             compost = viewModel::compost,
             claimReward = viewModel::claimReward,
@@ -173,14 +181,13 @@ fun GameContent(
                 texts = texts,
                 events = events,
                 onPet = actions.pet,
+                onSelectPlant = actions.selectPlant,
                 onTap = { target ->
                     when (target) {
                         SceneTarget.SHOP, SceneTarget.NEED_FERTILIZER, SceneTarget.NEED_WATER -> sheet = Sheet.SHOP
                         SceneTarget.MENU -> sheet = Sheet.MENU
                         SceneTarget.WEATHER -> sheet = Sheet.WEATHER
                         SceneTarget.CHEST -> actions.claimReward()
-                        SceneTarget.PREVIOUS_PLANT -> actions.switchPlant(-1)
-                        SceneTarget.NEXT_PLANT -> actions.switchPlant(1)
                         SceneTarget.REPLANT -> actions.replant()
                         SceneTarget.COMPOST -> actions.compost()
                         SceneTarget.NEED_LIGHT -> scope.launch {
@@ -224,6 +231,14 @@ fun GameContent(
                         onBuy = { item -> actions.buy(item).also { if (it is PurchaseResult.Success) sheet = Sheet.NONE } },
                         onSelectPot = {
                             actions.selectPot(it)
+                            sheet = Sheet.NONE
+                        },
+                        onSelectScenery = {
+                            actions.selectScenery(it)
+                            sheet = Sheet.NONE
+                        },
+                        onSelectGround = {
+                            actions.selectGround(it)
                             sheet = Sheet.NONE
                         },
                     )

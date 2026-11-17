@@ -55,18 +55,20 @@ import dev.mothlight.plantagotchi.resources.item_grow_lamp_desc
 import dev.mothlight.plantagotchi.resources.item_revive
 import dev.mothlight.plantagotchi.resources.item_revive_desc
 import dev.mothlight.plantagotchi.resources.item_seed
-import dev.mothlight.plantagotchi.resources.item_seed_desc_cactus
-import dev.mothlight.plantagotchi.resources.item_seed_desc_fern
-import dev.mothlight.plantagotchi.resources.item_seed_desc_sprout
 import dev.mothlight.plantagotchi.resources.item_watering_can
 import dev.mothlight.plantagotchi.resources.item_watering_can_desc
 import dev.mothlight.plantagotchi.resources.shop_plants
+import dev.mothlight.plantagotchi.resources.shop_ground
 import dev.mothlight.plantagotchi.resources.shop_pots
+import dev.mothlight.plantagotchi.resources.shop_scenery
 import dev.mothlight.plantagotchi.resources.shop_supplies
 import dev.mothlight.plantagotchi.resources.shop_title
 import dev.mothlight.plantagotchi.ui.game.CodeSprites
 import dev.mothlight.plantagotchi.ui.game.PixelSprite
 import dev.mothlight.plantagotchi.ui.game.PlantPreview
+import dev.mothlight.plantagotchi.ui.game.ScenePreview
+import dev.mothlight.plantagotchi.data.state.Ground
+import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.ui.game.aspectRatioOrDefault
 import dev.mothlight.plantagotchi.ui.game.rememberPotPainters
 import dev.mothlight.plantagotchi.ui.theme.PlantagotchiColors
@@ -98,6 +100,8 @@ fun ShopSheet(
     onBuy: (ShopItem) -> PurchaseResult,
     onSelectPot: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onSelectScenery: (Scenery) -> Unit = {},
+    onSelectGround: (Ground) -> Unit = {},
 ) {
     var message by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(message) {
@@ -173,13 +177,7 @@ fun ShopSheet(
         SectionTitle("${stringResource(Res.string.shop_plants)} (${player.plants.size}/${PlayerState.MAX_PLANTS})")
         ShopCatalog.seeds.forEach { seed ->
             val name = stringResource(Res.string.item_seed, speciesName(seed.species))
-            val description = stringResource(
-                when (seed.species) {
-                    Species.SPROUT -> Res.string.item_seed_desc_sprout
-                    Species.CACTUS -> Res.string.item_seed_desc_cactus
-                    Species.FERN -> Res.string.item_seed_desc_fern
-                }
-            )
+            val description = stringResource(seed.species.descriptionRes())
             ItemRow(
                 preview = { PlantPreview(seed.species, maturity = 1f, seed = seed.id.hashCode(), modifier = Modifier.size(48.dp)) },
                 name = name,
@@ -191,6 +189,49 @@ fun ShopSheet(
                     showCoin = true,
                 ) { buy(seed) }
             }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        SectionTitle(stringResource(Res.string.shop_scenery))
+        ShopCatalog.backdrops.chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { item ->
+                    DecorCard(
+                        title = sceneryName(item.scenery),
+                        preview = { ScenePreview(item.scenery, player.ground, Modifier.fillMaxWidth().height(64.dp)) },
+                        owned = item.scenery in player.ownedScenery,
+                        selected = item.scenery == player.scenery,
+                        price = item.price,
+                        affordable = player.coins >= item.price,
+                        onBuy = { buy(item) },
+                        onSelect = { onSelectScenery(item.scenery) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(12.dp))
+        SectionTitle(stringResource(Res.string.shop_ground))
+        ShopCatalog.floors.chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { item ->
+                    DecorCard(
+                        title = groundName(item.ground),
+                        preview = { ScenePreview(player.scenery, item.ground, Modifier.fillMaxWidth().height(64.dp)) },
+                        owned = item.ground in player.ownedGrounds,
+                        selected = item.ground == player.ground,
+                        price = item.price,
+                        affordable = player.coins >= item.price,
+                        onBuy = { buy(item) },
+                        onSelect = { onSelectGround(item.ground) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(8.dp))
         }
 
         Spacer(Modifier.height(12.dp))
@@ -237,6 +278,29 @@ private fun ItemRow(
             Text(description, style = MaterialTheme.typography.bodySmall, color = PlantagotchiColors.AmethystSmoke)
         }
         button()
+    }
+}
+
+@Composable
+private fun DecorCard(
+    title: String,
+    preview: @Composable () -> Unit,
+    owned: Boolean,
+    selected: Boolean,
+    price: Int,
+    affordable: Boolean,
+    onBuy: () -> Unit,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.pixelPanel(selected).padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        preview()
+        Text(title, style = MaterialTheme.typography.labelSmall, color = PlantagotchiColors.OffWhite, modifier = Modifier.padding(vertical = 4.dp))
+        when {
+            selected -> PixelButton(stringResource(Res.string.btn_in_use), enabled = false) {}
+            owned -> PixelButton(stringResource(Res.string.btn_use), onClick = onSelect)
+            else -> PixelButton("$price", enabled = affordable, showCoin = true, onClick = onBuy)
+        }
     }
 }
 

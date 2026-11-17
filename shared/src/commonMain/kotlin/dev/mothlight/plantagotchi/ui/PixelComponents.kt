@@ -19,11 +19,37 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.mothlight.plantagotchi.data.shop.PotId
+import dev.mothlight.plantagotchi.data.state.Ground
+import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.data.state.Season
 import dev.mothlight.plantagotchi.data.state.Species
 import dev.mothlight.plantagotchi.data.weather.WeatherState
 import dev.mothlight.plantagotchi.resources.Res
 import dev.mothlight.plantagotchi.resources.coin
+import dev.mothlight.plantagotchi.resources.species_sunflower
+import dev.mothlight.plantagotchi.resources.species_tulip
+import dev.mothlight.plantagotchi.resources.species_monstera
+import dev.mothlight.plantagotchi.resources.species_bonsai
+import dev.mothlight.plantagotchi.resources.species_flytrap
+import dev.mothlight.plantagotchi.resources.item_seed_desc_sprout
+import dev.mothlight.plantagotchi.resources.item_seed_desc_cactus
+import dev.mothlight.plantagotchi.resources.item_seed_desc_fern
+import dev.mothlight.plantagotchi.resources.item_seed_desc_sunflower
+import dev.mothlight.plantagotchi.resources.item_seed_desc_tulip
+import dev.mothlight.plantagotchi.resources.item_seed_desc_monstera
+import dev.mothlight.plantagotchi.resources.item_seed_desc_bonsai
+import dev.mothlight.plantagotchi.resources.item_seed_desc_flytrap
+import dev.mothlight.plantagotchi.resources.scenery_mountains
+import dev.mothlight.plantagotchi.resources.scenery_desert
+import dev.mothlight.plantagotchi.resources.scenery_beach
+import dev.mothlight.plantagotchi.resources.scenery_forest
+import dev.mothlight.plantagotchi.resources.scenery_city
+import dev.mothlight.plantagotchi.resources.scenery_zen
+import dev.mothlight.plantagotchi.resources.ground_grass
+import dev.mothlight.plantagotchi.resources.ground_sand
+import dev.mothlight.plantagotchi.resources.ground_stone
+import dev.mothlight.plantagotchi.resources.ground_wood
+import dev.mothlight.plantagotchi.resources.ground_snow
 import dev.mothlight.plantagotchi.resources.pot_color_1
 import dev.mothlight.plantagotchi.resources.pot_color_2
 import dev.mothlight.plantagotchi.resources.pot_color_3
@@ -123,7 +149,46 @@ fun Species.nameRes(): StringResource = when (this) {
     Species.SPROUT -> Res.string.species_sprout
     Species.CACTUS -> Res.string.species_cactus
     Species.FERN -> Res.string.species_fern
+    Species.SUNFLOWER -> Res.string.species_sunflower
+    Species.TULIP -> Res.string.species_tulip
+    Species.MONSTERA -> Res.string.species_monstera
+    Species.BONSAI -> Res.string.species_bonsai
+    Species.FLYTRAP -> Res.string.species_flytrap
 }
+
+fun Species.descriptionRes(): StringResource = when (this) {
+    Species.SPROUT -> Res.string.item_seed_desc_sprout
+    Species.CACTUS -> Res.string.item_seed_desc_cactus
+    Species.FERN -> Res.string.item_seed_desc_fern
+    Species.SUNFLOWER -> Res.string.item_seed_desc_sunflower
+    Species.TULIP -> Res.string.item_seed_desc_tulip
+    Species.MONSTERA -> Res.string.item_seed_desc_monstera
+    Species.BONSAI -> Res.string.item_seed_desc_bonsai
+    Species.FLYTRAP -> Res.string.item_seed_desc_flytrap
+}
+
+@Composable
+fun sceneryName(scenery: Scenery): String = stringResource(
+    when (scenery) {
+        Scenery.MOUNTAINS -> Res.string.scenery_mountains
+        Scenery.DESERT -> Res.string.scenery_desert
+        Scenery.BEACH -> Res.string.scenery_beach
+        Scenery.FOREST -> Res.string.scenery_forest
+        Scenery.CITY -> Res.string.scenery_city
+        Scenery.ZEN -> Res.string.scenery_zen
+    }
+)
+
+@Composable
+fun groundName(ground: Ground): String = stringResource(
+    when (ground) {
+        Ground.GRASS -> Res.string.ground_grass
+        Ground.SAND -> Res.string.ground_sand
+        Ground.STONE -> Res.string.ground_stone
+        Ground.WOOD -> Res.string.ground_wood
+        Ground.SNOW -> Res.string.ground_snow
+    }
+)
 
 @Composable
 fun stageName(stage: Int): String = stringResource(

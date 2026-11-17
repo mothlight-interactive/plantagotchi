@@ -1,5 +1,7 @@
 package dev.mothlight.plantagotchi.data.shop
 
+import dev.mothlight.plantagotchi.data.state.Ground
+import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.data.state.Species
 
 /** Pots are named after the bundled drawables `ic_pot<shape><color>`. */
@@ -56,6 +58,22 @@ sealed class ShopItem {
         override val price: Int,
     ) : ShopItem()
 
+    data class Backdrop(
+        override val id: String,
+        override val name: String,
+        override val description: String,
+        override val price: Int,
+        val scenery: Scenery,
+    ) : ShopItem()
+
+    data class Floor(
+        override val id: String,
+        override val name: String,
+        override val description: String,
+        override val price: Int,
+        val ground: Ground,
+    ) : ShopItem()
+
     data class Pot(
         override val id: String,
         override val name: String,
@@ -108,6 +126,14 @@ object ShopCatalog {
         )
     }
 
+    val backdrops: List<ShopItem.Backdrop> = Scenery.entries.map {
+        ShopItem.Backdrop("scenery_${it.name.lowercase()}", it.name.lowercase(), "Scenery", it.price, it)
+    }
+
+    val floors: List<ShopItem.Floor> = Ground.entries.map {
+        ShopItem.Floor("ground_${it.name.lowercase()}", it.name.lowercase(), "Ground", it.price, it)
+    }
+
     private val colorNames = mapOf(1 to "Terracotta", 2 to "Lavender", 3 to "Rose", 4 to "Mint")
     private val shapeNames = mapOf(1 to "Bowl", 2 to "Pot", 3 to "Vase")
     private val shapePrices = mapOf(1 to 80, 2 to 120, 3 to 200)
@@ -124,5 +150,5 @@ object ShopCatalog {
 
     val supplies: List<ShopItem> = listOf(wateringCan, fertilizerBag, growLamp)
 
-    fun byId(id: String): ShopItem? = (supplies + seeds + revive + pots).firstOrNull { it.id == id }
+    fun byId(id: String): ShopItem? = (supplies + seeds + revive + pots + backdrops + floors).firstOrNull { it.id == id }
 }

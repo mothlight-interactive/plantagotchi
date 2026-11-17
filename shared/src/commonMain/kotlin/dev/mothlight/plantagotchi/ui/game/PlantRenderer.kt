@@ -35,6 +35,14 @@ data class PlantPose(
     val droop: Float = 0f,
     val flutter: Float = 0.3f,
     val time: Float = 0f,
+    /** -1 = sun on the left, 1 = on the right. */
+    val sunDirection: Float = 0f,
+    /** 0 = night, 1 = day (smoothed). */
+    val daylight: Float = 1f,
+    /** Flytrap jaws: 0 = open, 1 = shut. */
+    val snap: Float = 0f,
+    /** Flytrap: a fly buzzes around. */
+    val fly: Boolean = false,
 )
 
 /**
@@ -80,6 +88,11 @@ object PlantRenderer {
             Species.SPROUT -> drawSprout(canvas, m, seed, pose)
             Species.CACTUS -> drawCactus(canvas, m, seed, pose)
             Species.FERN -> drawFern(canvas, m, seed, pose)
+            Species.SUNFLOWER -> drawSunflower(canvas, m, seed, pose)
+            Species.TULIP -> drawTulip(canvas, m, seed, pose)
+            Species.MONSTERA -> drawMonstera(canvas, m, seed, pose)
+            Species.BONSAI -> drawBonsai(canvas, m, seed, pose)
+            Species.FLYTRAP -> drawFlytrap(canvas, m, seed, pose)
         }
     }
 
@@ -255,6 +268,296 @@ object PlantRenderer {
                 g.plot(fx + 1, fy, bloom)
                 g.plot(fx, fy + 1, bloom)
             }
+        }
+    }
+
+    // endregion
+
+    // region Sunflower
+
+    private val sunPetal = Color(0xFFFFD21F)
+    private val sunPetalDark = Color(0xFFE8A317)
+    private val sunDisc = Color(0xFF6B3E1E)
+    private val sunSeed = Color(0xFF3E2410)
+
+    private fun drawSunflower(g: PixelGrid, m: Float, seed: Int, pose: PlantPose) {
+        val random = Random(seed)
+        val firstSide = if (random.nextBoolean()) 1 else -1
+        val scaleY = 1f + pose.squash
+        val height = ((3 + m * 17 + pose.stretch) * scaleY).coerceAtLeast(2f)
+        val top = height.roundToInt()
+        val stemX = IntArray(top + 1) { y -> bendX(y.toFloat(), height, pose) }
+        for (y in 0 until top) {
+            g.plot(stemX[y] - 1, y, stemColor)
+            g.plot(stemX[y], y, dark)
+            if (m > 0.4f && y < 3) g.plot(stemX[y] - 2, y, stemColor)
+        }
+        var node = 0
+        var y = 2
+        while (y <= top - 4) {
+            val side = if (node % 2 == 0) firstSide else -firstSide
+            val age = ((height - y) / 7f).coerceIn(0f, 1f)
+            val flutter = sin(pose.time * (2.4f + node * 0.3f) + node) * pose.flutter
+            drawLeaf(g, stemX[y], y, side, (age * 3).roundToInt(), pose.flap + flutter - pose.droop * 2.5f)
+            node++
+            y += 4
+        }
+        val tipX = stemX[max(0, top - 1)]
+        when {
+            m < 0.5f -> {
+                drawLeaf(g, tipX, top - 1, -1, 1, pose.flap + 0.5f)
+                drawLeaf(g, tipX, top - 1, 1, 1, pose.flap + 0.5f)
+            }
+            m < 0.7f -> {
+                // Green bud swelling
+                val r = if (m < 0.6f) 0 else 1
+                for (dx in -1 - r..r) for (dy in 0..1 + r) g.plot(tipX + dx, top + dy, if (dy == 1 + r) light else mid)
+            }
+            else -> {
+                // Open head facing the sun; at night it hangs down.
+                val radius = if (m < 0.85f) 2 else 3
+                val night = 1f - pose.daylight
+                val face = (pose.sunDirection * pose.daylight * 1.4f).roundToInt()
+                val hang = (night * 2f + pose.droop * 3f).roundToInt()
+                val cx = tipX - 1 + face
+                val cy = top + radius - hang
+                val petals = pose.daylight > 0.3f
+                for (dx in -radius - 1..radius + 1) for (dy in -radius - 1..radius + 1) {
+                    val d = kotlin.math.sqrt((dx * dx + dy * dy).toFloat())
+                    when {
+                        d <= radius - 0.4f -> g.plot(cx + dx + face.coerceIn(-1, 1), cy + dy, if ((dx + dy) % 2 == 0) sunSeed else sunDisc)
+                        petals && d <= radius + 1.3f -> g.plot(cx + dx, cy + dy, if ((dx * 3 + dy) % 3 == 0) sunPetalDark else sunPetal)
+                    }
+                }
+            }
+        }
+    }
+
+    // endregion
+
+    // region Tulip
+
+    private val tulipColors = listOf(
+        Color(0xFFE53950) to Color(0xFFB0213A),
+        Color(0xFFFF8FB8) to Color(0xFFD7609A),
+        Color(0xFFFFD84D) to Color(0xFFE0A81E),
+        Color(0xFFFF9A3C) to Color(0xFFD86A1E),
+    )
+
+    private fun drawTulip(g: PixelGrid, m: Float, seed: Int, pose: PlantPose) {
+        val (petalLight, petalDark) = tulipColors[abs(seed) % tulipColors.size]
+        val scaleY = 1f + pose.squash
+        // Two long leaves from the base
+        val leafLength = (3 + m * 6).roundToInt()
+        for (side in listOf(-1, 1)) {
+            val flutter = sin(pose.time * 2f + side) * pose.flutter
+            for (r in 0 until leafLength) {
+                val t = r / leafLength.toFloat()
+                val x = (side * (1 + t * 2.5f + pose.droop * t * 3f + (flutter - pose.flap * 0.5f) * t * t)).roundToInt()
+                val px = if (side < 0) x - 1 else x
+                g.plot(px, r, mid)
+                if (r < leafLength - 2) g.plot(px - side, r, if (side < 0) light else dark)
+            }
+        }
+        val height = ((3 + m * 9 + pose.stretch) * scaleY).coerceAtLeast(2f)
+        val top = height.roundToInt()
+        val stemX = IntArray(top + 1) { y -> bendX(y.toFloat(), height, pose) }
+        for (y in 0 until top) g.plot(stemX[y] - 1, y, stemColor)
+        val cx = stemX[max(0, top - 1)] - 1
+        if (m < 0.6f) {
+            val r = if (m < 0.3f) 0 else 1
+            for (dx in -r..r) for (dy in 0..1 + r) g.plot(cx + dx, top + dy, if (dx == 0) light else mid)
+            return
+        }
+        // Cup of petals; it opens with daylight and when fully grown.
+        val grown = ((m - 0.6f) / 0.4f).coerceIn(0f, 1f)
+        val open = (pose.daylight * grown - pose.droop).coerceIn(0f, 1f)
+        val spread = (open * 1.6f).roundToInt()
+        val cupHeight = if (grown < 0.5f) 3 else 4
+        for (row in 0 until cupHeight) {
+            val y = top + row
+            val upper = row >= cupHeight - 2
+            val half = if (row == 0) 1 else 2
+            for (dx in -half..half) g.plot(cx + dx, y, if (dx % 2 == 0) petalLight else petalDark)
+            if (upper && spread > 0) {
+                g.plot(cx - half - spread, y + 1 - (row - (cupHeight - 2)), petalLight)
+                g.plot(cx + half + spread, y + 1 - (row - (cupHeight - 2)), petalLight)
+            }
+        }
+        if (open > 0.5f) g.plot(cx, top + cupHeight - 1, pollen)
+    }
+
+    // endregion
+
+    // region Monstera
+
+    private val mDark = Color(0xFF1E6B2E)
+    private val mMid = Color(0xFF2E8B3E)
+    private val mVein = Color(0xFF57B05A)
+
+    private val monsteraLeaves = listOf(
+        listOf("cb", "cb", "cb", "b."),
+        listOf(".aaa.", "abcba", "abcba", ".a.a."),
+        listOf("..aaa..", ".abbba.", "abbcbba", "ab.c.ba", ".abcba.", "..a.a.."),
+        listOf("...aaa...", "..abbba..", ".abbcbba.", "abb.c.bba", "abbbcbbba", "ab.bcb.ba", ".abbcbba.", "..aa.aa.."),
+    )
+
+    private fun drawMonstera(g: PixelGrid, m: Float, seed: Int, pose: PlantPose) {
+        val random = Random(seed)
+        val grown = floor(m * 4).toInt()
+        val count = 1 + grown
+        val newest = if (m >= 1f) 1f else m * 4 - grown
+        val slots = (0 until count).map { i ->
+            val spread = if (count == 1) 0f else i / (count - 1f) * 2f - 1f
+            spread * 62f + random.nextInt(-6, 7)
+        }
+        val youngestIndex = slots.indices.minByOrNull { abs(slots[it]) } ?: 0
+        slots.indices.sortedByDescending { abs(slots[it]) }.forEach { i ->
+            val youngest = i == youngestIndex && m < 1f
+            val growth = if (youngest) newest else 1f
+            val length = (3 + m * 11) * (0.75f + random.nextFloat() * 0.25f) * (0.6f + 0.4f * growth) * (1f - abs(slots[i]) / 250f)
+            val slope = sin(slots[i] / 180f * PI.toFloat()) * 1.5f
+            val sway = (pose.sway + pose.lean) * 0.6f + sin(pose.time * (1.8f + i * 0.4f) + i) * pose.flutter * 1.5f
+            val rows = max(2, (length * (1f - abs(slots[i]) / 160f)).roundToInt())
+            var endX = 0
+            for (r in 0 until rows) {
+                val t = r / rows.toFloat()
+                val droopBend = pose.droop * t * t * 4f * (if (slots[i] >= 0) 1 else -1)
+                endX = (slope * r + sway * t * t + droopBend - 0.5f).roundToInt()
+                g.plot(endX, r, stemColor)
+            }
+            val size = when {
+                youngest && growth < 0.35f -> 0
+                youngest && growth < 0.7f -> 1
+                m < 0.6f -> 2
+                else -> 3
+            }
+            val template = monsteraLeaves[size]
+            val w = template.maxOf { it.length }
+            val lift = (pose.flap * 0.5f - pose.droop * 2f).roundToInt()
+            template.forEachIndexed { row, line ->
+                line.forEachIndexed { col, c ->
+                    val color = when (c) {
+                        'a' -> mDark
+                        'b' -> mMid
+                        'c' -> mVein
+                        else -> return@forEachIndexed
+                    }
+                    g.plot(endX - w / 2 + col, rows + template.size - 1 - row + lift, color)
+                }
+            }
+        }
+    }
+
+    // endregion
+
+    // region Bonsai
+
+    private val bark = Color(0xFF6B4A2E)
+    private val barkLight = Color(0xFF8D6744)
+    private val padDark = Color(0xFF2F6B3A)
+    private val padMid = Color(0xFF3F8F4A)
+    private val padLight = Color(0xFF6FBF5A)
+
+    private fun drawBonsai(g: PixelGrid, m: Float, seed: Int, pose: PlantPose) {
+        val phase = (abs(seed) % 628) / 100f
+        val scaleY = 1f + pose.squash * 0.5f
+        val height = ((3 + m * 10 + pose.stretch * 0.4f) * scaleY).coerceAtLeast(2f)
+        val top = height.roundToInt()
+        val calm = pose.copy(sway = pose.sway * 0.3f, lean = pose.lean * 0.5f)
+        fun trunkX(y: Int): Int {
+            val t = y / height
+            return (sin(t * PI.toFloat() * 1.2f + phase) * 1.6f * m + bendX(y.toFloat(), height, calm)).roundToInt()
+        }
+        for (y in 0 until top) {
+            val x = trunkX(y)
+            g.plot(x - 1, y, bark)
+            g.plot(x, y, barkLight)
+            if (m > 0.5f && y < top / 2) g.plot(x + 1, y, bark)
+        }
+        val breathe = sin(pose.time * 1.3f) * 0.35f
+        fun pad(cx: Int, cy: Int, size: Float) {
+            val rx = 1.5f + size * 2f + breathe
+            val ry = 0.8f + size * 1f
+            for (dx in -4..4) for (dy in -2..2) {
+                val e = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry)
+                if (e > 1f) continue
+                val color = when {
+                    dy > 0 && e < 0.6f -> padLight
+                    e > 0.7f -> padDark
+                    else -> padMid
+                }
+                g.plot(cx + dx, cy + dy, color)
+            }
+        }
+        // Branches appear one by one, each ending in a foliage pad.
+        listOf(Triple(0.45f, -1, 0.3f), Triple(0.65f, 1, 0.5f), Triple(0.82f, -1, 0.7f)).forEach { (at, side, from) ->
+            if (m <= from) return@forEach
+            val grow = ((m - from) / 0.25f).coerceIn(0f, 1f)
+            val y = (height * at).roundToInt()
+            val x0 = trunkX(y)
+            val length = (1 + grow * 3).roundToInt()
+            for (i in 1..length) g.plot(x0 + side * i - (if (side < 0) 1 else 0), y + i / 2, bark)
+            pad(x0 + side * (length + 1), y + length / 2 + 1, grow)
+        }
+        pad(trunkX(top - 1), top, (0.4f + m * 0.6f))
+    }
+
+    // endregion
+
+    // region Flytrap
+
+    private val trapRed = Color(0xFFC8243C)
+    private val trapGreen = Color(0xFF6CB33A)
+    private val trapTooth = Color(0xFFE8F5B0)
+    private val flyColor = Color(0xFF222034)
+
+    private fun drawFlytrap(g: PixelGrid, m: Float, seed: Int, pose: PlantPose) {
+        val random = Random(seed)
+        val count = 1 + floor(m * 4).toInt()
+        val big = m > 0.4f
+        val half = if (big) 2 else 1
+        val openness = (0.55f + pose.daylight * 0.45f) * (1f - pose.snap) * (1f - pose.droop)
+        val gap = (openness * 2f).roundToInt()
+        val slots = (0 until count).map { i ->
+            val spread = if (count == 1) 0f else i / (count - 1f) * 2f - 1f
+            spread * 60f + random.nextInt(-5, 6)
+        }
+        var firstTrap = Offset.Zero
+        slots.indices.sortedByDescending { abs(slots[it]) }.forEach { i ->
+            val slope = sin(slots[i] / 180f * PI.toFloat()) * 1.3f
+            val length = ((2 + m * 4) * (0.8f + random.nextFloat() * 0.2f) * (1f - abs(slots[i]) / 200f)).roundToInt()
+            val sway = (pose.sway + pose.lean) * 0.5f + sin(pose.time * 2f + i) * pose.flutter
+            var x = 0
+            for (r in 0 until length) {
+                val t = r / length.toFloat()
+                x = (slope * r + sway * t - 0.5f + pose.droop * t * 3f * (if (slots[i] >= 0) 1 else -1)).roundToInt()
+                g.plot(x, r, stemColor)
+            }
+            // Jaws, bottom to top: teeth, lower jaw, red inside (gap rows), upper jaw, teeth
+            var y = length
+            fun row(color: (Int) -> Color?) {
+                for (dx in -half..half) color(dx)?.let { g.plot(x + dx, y, it) }
+                y++
+            }
+            if (gap == 0) {
+                row { trapGreen }
+                row { dx -> if (dx % 2 == 0) trapTooth else trapGreen }
+                row { trapGreen }
+            } else {
+                row { dx -> if (dx % 2 == 0) trapTooth else null }
+                row { trapGreen }
+                repeat(gap) { row { dx -> if (abs(dx) == half) trapGreen else trapRed } }
+                row { trapGreen }
+                row { dx -> if (dx % 2 == 0) trapTooth else null }
+            }
+            if (i == slots.indices.minByOrNull { abs(slots[it]) }) firstTrap = Offset(x.toFloat(), y.toFloat())
+        }
+        if (pose.fly) {
+            val fx = firstTrap.x + cos(pose.time * 3.1f) * 4f + sin(pose.time * 7f) * 0.6f
+            val fy = firstTrap.y + 2 + sin(pose.time * 2.3f) * 2f
+            g.plot(fx.roundToInt(), fy.roundToInt(), flyColor)
+            if ((pose.time * 20).toInt() % 2 == 0) g.plot(fx.roundToInt(), fy.roundToInt() + 1, Color(0x99FFFFFF))
         }
     }
 

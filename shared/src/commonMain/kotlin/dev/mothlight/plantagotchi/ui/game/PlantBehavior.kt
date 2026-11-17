@@ -18,6 +18,9 @@ enum class PlantAction(val duration: Float) {
     SHAKE(1.0f),
     DANCE(2.4f),
     NOD(2.6f),
+
+    /** Flytrap: jaws shut, then slowly open again. */
+    SNAP(2.4f),
 }
 
 /**
@@ -31,6 +34,7 @@ internal class PlantAnimator(private val random: Random = Random.Default) {
     private var nextActionAt = 3f
     private val shownMaturity = HashMap<String, Float>()
     private var lastTime = 0f
+    private var daylight = -1f
 
     /** Lets the plant do [next] in [delay] seconds (or now). */
     fun trigger(next: PlantAction, time: Float, delay: Float = 0f) {
@@ -49,7 +53,11 @@ internal class PlantAnimator(private val random: Random = Random.Default) {
 
     fun pose(state: GameUiState, plant: PlantState, time: Float, sunIsRight: Boolean, petBounce: Float, growBounce: Float): PlantPose {
         if (!plant.dead && time >= nextActionAt) trigger(pick(state, plant), time)
+        val dt = (time - lastTime).coerceIn(0f, 0.1f)
         lastTime = time
+        val targetDaylight = if (state.weather.isDay) 1f else 0f
+        daylight = if (daylight < 0) targetDaylight else daylight + (targetDaylight - daylight) * min(1f, dt * 0.8f)
+        var snap = 0f
 
         val wind = (state.weather.facts.windSpeed.toFloat() / 40f).coerceIn(0f, 1f)
         val droop = if (plant.dead) 1f else ((WILT_START - plant.health.toFloat()) / WILT_START).coerceIn(0f, 1f)
@@ -88,15 +96,25 @@ internal class PlantAnimator(private val random: Random = Random.Default) {
                     flap -= envelope * 1.5f
                     lean += envelope * 1f
                 }
+                PlantAction.SNAP -> snap = when {
+                    p < 0.04f -> p / 0.04f
+                    p < 0.55f -> 1f
+                    else -> 1f - (p - 0.55f) / 0.45f
+                }
             }
         }
         if (plant.dead) {
             sway *= 0.2f
             flutter = 0f
         }
+        val snapping = current == PlantAction.SNAP && p in 0f..0.9f
         return PlantPose(
             sway = sway, lean = lean, flap = flap, stretch = stretch,
             squash = squash, droop = droop, flutter = flutter, time = time,
+            sunDirection = if (sunIsRight) 1f else -1f,
+            daylight = daylight,
+            snap = snap,
+            fly = plant.species == dev.mothlight.plantagotchi.data.state.Species.FLYTRAP && !plant.dead && !snapping && daylight > 0.5f,
         )
     }
 
@@ -108,6 +126,12 @@ internal class PlantAnimator(private val random: Random = Random.Default) {
             if (state.weather.isDay) add(PlantAction.LOOK) else repeat(2) { add(PlantAction.NOD) }
             if (raining) repeat(2) { add(PlantAction.SHAKE) }
             if (plant.love > 60) add(PlantAction.DANCE)
+            when (plant.species) {
+                dev.mothlight.plantagotchi.data.state.Species.SUNFLOWER -> if (state.weather.isDay) repeat(2) { add(PlantAction.LOOK) }
+                dev.mothlight.plantagotchi.data.state.Species.FLYTRAP -> repeat(3) { add(PlantAction.SNAP) }
+                dev.mothlight.plantagotchi.data.state.Species.BONSAI -> remove(PlantAction.WIGGLE)
+                else -> Unit
+            }
         }
         return options[random.nextInt(options.size)]
     }

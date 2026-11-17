@@ -79,8 +79,8 @@ object GameRules {
         val next = plant.copy(
             lux = lux.clampNeed(),
             water = water.clampNeed(),
-            love = (plant.love - LOVE_DECAY * frost * seconds).clampNeed(),
-            fertilizer = (plant.fertilizer - FERTILIZER_DECAY * frost * seconds).clampNeed(),
+            love = (plant.love - LOVE_DECAY * s.loveDecay * frost * seconds).clampNeed(),
+            fertilizer = (plant.fertilizer - FERTILIZER_DECAY * s.fertilizerDecay * frost * seconds).clampNeed(),
         )
         val growth = if (next.health >= GROW_HEALTH) {
             next.growth + seconds * (0.5 + next.fertilizer / MAX)

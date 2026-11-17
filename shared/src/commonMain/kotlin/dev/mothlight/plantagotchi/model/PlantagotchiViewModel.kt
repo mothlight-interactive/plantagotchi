@@ -16,6 +16,8 @@ import dev.mothlight.plantagotchi.data.state.DailyReward
 import dev.mothlight.plantagotchi.data.state.Environment
 import dev.mothlight.plantagotchi.data.state.FriendCode
 import dev.mothlight.plantagotchi.data.state.GameRules
+import dev.mothlight.plantagotchi.data.state.Ground
+import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.data.state.PlayerState
 import dev.mothlight.plantagotchi.data.state.Season
 import dev.mothlight.plantagotchi.data.weather.CurrentWeather
@@ -191,6 +193,18 @@ class PlantagotchiViewModel(
         _events.tryEmit(GameEvent.PlantSwitched)
         sound(Sfx.TAP)
     }
+
+    fun selectPlant(index: Int) {
+        val player = _state.value.player
+        if (index !in player.plants.indices || index == player.activeIndex) return
+        updatePlayer { it.copy(activePlantId = it.plants[index].id) }
+        _events.tryEmit(GameEvent.PlantSwitched)
+        sound(Sfx.TAP)
+    }
+
+    fun selectScenery(scenery: Scenery) = updatePlayer { Shop.selectScenery(it, scenery) }
+
+    fun selectGround(ground: Ground) = updatePlayer { Shop.selectGround(it, ground) }
 
     fun claimReward() {
         val s = _state.value

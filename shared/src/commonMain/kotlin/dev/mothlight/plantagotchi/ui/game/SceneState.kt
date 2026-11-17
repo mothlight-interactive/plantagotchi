@@ -92,7 +92,30 @@ internal class SceneState {
     private var lastAmbientAt = 0f
     private var lastActiveIndex = -1
 
-    val plantAnimator = PlantAnimator()
+    private val animators = HashMap<String, PlantAnimator>()
+
+    /** Each plant moves on its own. */
+    fun animator(plantId: String): PlantAnimator = animators.getOrPut(plantId) { PlantAnimator() }
+
+    /** The active plant's animator, for event reactions. */
+    var activeAnimator: PlantAnimator = PlantAnimator()
+        private set
+
+    private val slotWeights = HashMap<String, Float>()
+
+    /** Animated layout weights: the active plant grows, the others shrink. */
+    fun weights(state: GameUiState): List<Float> {
+        val activeId = state.player.activePlant.id
+        val dt = 1f / 60f
+        activeAnimator = animator(activeId)
+        return state.player.plants.map { plant ->
+            val target = if (plant.id == activeId) SceneLayout.ACTIVE_WEIGHT else 1f
+            val current = slotWeights[plant.id] ?: target
+            val next = current + (target - current) * min(1f, dt * 8f)
+            slotWeights[plant.id] = next
+            next
+        }
+    }
 
     val effects = mutableListOf<Fx>()
     val tools = mutableListOf<ToolAnimation>()
@@ -170,7 +193,7 @@ internal class SceneState {
     private fun handle(event: GameEvent, l: SceneLayout) {
         when (event) {
             GameEvent.Petted -> {
-                if (time - petBounceAt > 0.8f) plantAnimator.trigger(PlantAction.WIGGLE, time)
+                if (time - petBounceAt > 0.8f) activeAnimator.trigger(PlantAction.WIGGLE, time)
                 petBounceAt = time
                 repeat(2) {
                     val leaves = l.leaves
@@ -191,14 +214,17 @@ internal class SceneState {
                     sprite = if (item.need == Need.WATER) CodeSprites.wateringCan else CodeSprites.fertilizerBag,
                     kind = if (item.need == Need.WATER) FxKind.WATER else FxKind.DIRT,
                     start = time,
-                ).also { plantAnimator.trigger(PlantAction.STRETCH, time, delay = 1.9f) }
+                ).also { activeAnimator.trigger(PlantAction.STRETCH, time, delay = 1.9f) }
                 is ShopItem.GrowLamp -> {
                     sparkleBurst(lampPosition(l), 14, l.dp)
-                    plantAnimator.trigger(PlantAction.LOOK, time)
+                    activeAnimator.trigger(PlantAction.LOOK, time)
                 }
                 is ShopItem.Pot -> {
                     potBounceAt = time
                     sparkleBurst(l.pot.center, 18, l.dp, spread = l.pot.width / 2)
+                }
+                is ShopItem.Backdrop, is ShopItem.Floor -> repeat(4) { i ->
+                    sparkleBurst(Offset(l.size.width * (0.15f + i * 0.23f), l.ground.top - 40 * l.dp), 8, l.dp, spread = 60 * l.dp)
                 }
                 is ShopItem.Revive, is ShopItem.Seed -> {
                     growAt = time
@@ -208,7 +234,7 @@ internal class SceneState {
 
             is GameEvent.GrewUp -> {
                 growAt = time
-                plantAnimator.trigger(PlantAction.DANCE, time, delay = 0.5f)
+                activeAnimator.trigger(PlantAction.DANCE, time, delay = 0.5f)
                 sparkleBurst(l.leaves.center, 30, l.dp, spread = l.leaves.width / 2)
             }
             GameEvent.Replanted -> {
@@ -231,7 +257,7 @@ internal class SceneState {
             }
             GameEvent.RewardAlreadyClaimed -> chestOpenAt = time - 0.5f
             is GameEvent.WaterReceived -> repeat(40) {
-                if (it == 0) plantAnimator.trigger(PlantAction.SHAKE, time, delay = 1.2f)
+                if (it == 0) activeAnimator.trigger(PlantAction.SHAKE, time, delay = 1.2f)
                 val leaves = l.leaves
                 effects += Fx(
                     FxKind.WATER,
@@ -274,9 +300,11 @@ internal class SceneState {
 
     /** Autumn leaves and spring petals drifting across the scene. */
     private fun spawnSeasonal(state: GameUiState, l: SceneLayout) {
-        val (interval, colors) = when (state.season) {
-            Season.AUTUMN -> 0.8f to listOf(Color(0xFFE07A2E), Color(0xFFC94A2B), Color(0xFFE8B83D))
-            Season.SPRING -> 1.4f to listOf(Color(0xFFFFC2DC), Color(0xFFFFFFFF))
+        val (interval, colors) = when {
+            state.player.scenery == dev.mothlight.plantagotchi.data.state.Scenery.ZEN ->
+                0.9f to listOf(Color(0xFFFFC2DC), Color(0xFFF4A6C6), Color(0xFFFFFFFF))
+            state.season == Season.AUTUMN -> 0.8f to listOf(Color(0xFFE07A2E), Color(0xFFC94A2B), Color(0xFFE8B83D))
+            state.season == Season.SPRING -> 1.4f to listOf(Color(0xFFFFC2DC), Color(0xFFFFFFFF))
             else -> return
         }
         if (time - lastAmbientAt < interval) return
@@ -287,7 +315,7 @@ internal class SceneState {
             y = -10 * l.dp,
             vx = 0f, vy = (30 + Random.nextFloat() * 20) * l.dp,
             life = l.size.height / (30 * l.dp),
-            size = (if (state.season == Season.SPRING) 4 else 6) * l.dp,
+            size = (if (state.season == Season.AUTUMN && state.player.scenery != dev.mothlight.plantagotchi.data.state.Scenery.ZEN) 6 else 4) * l.dp,
             color = colors.random(),
         )
     }

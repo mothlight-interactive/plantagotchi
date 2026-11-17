@@ -13,6 +13,10 @@ data class PlayerState(
     val lastPosition: GeoPosition = GeoPosition.Default,
     /** Pots the player owns, see [PotId]. */
     val ownedPots: Set<String> = setOf(PotId.DEFAULT),
+    val ownedScenery: Set<Scenery> = setOf(Scenery.MOUNTAINS),
+    val scenery: Scenery = Scenery.MOUNTAINS,
+    val ownedGrounds: Set<Ground> = setOf(Ground.GRASS),
+    val ground: Ground = Ground.GRASS,
     /** Epoch millis until which the grow lamp booster is active (lights all plants). */
     val lampUntil: Long = 0L,
     /** Local epoch day of the last claimed daily reward, -1 if never. */
@@ -37,7 +41,7 @@ data class PlayerState(
     }
 
     companion object {
-        const val MAX_PLANTS = 4
+        const val MAX_PLANTS = 5
     }
 }
 

@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import dev.mothlight.plantagotchi.data.state.Species
 import kotlin.math.floor
@@ -17,7 +18,7 @@ import kotlin.math.sin
 fun PlantPreview(species: Species, maturity: Float, seed: Int, modifier: Modifier = Modifier, withered: Boolean = false) {
     val frame = remember { mutableLongStateOf(0L) }
     LaunchedEffect(Unit) { while (true) withFrameNanos { frame.longValue = it } }
-    Canvas(modifier) {
+    Canvas(modifier.clipToBounds()) {
         val time = (frame.longValue % 1_000_000_000_000L) / 1e9f
         val pixel = floor(size.height / PlantRenderer.GRID_HEIGHT * 1.15f).coerceAtLeast(1f)
         PlantRenderer.draw(

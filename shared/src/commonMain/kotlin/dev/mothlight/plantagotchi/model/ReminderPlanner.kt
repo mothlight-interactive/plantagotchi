@@ -14,7 +14,12 @@ import dev.mothlight.plantagotchi.resources.notif_reward
 import dev.mothlight.plantagotchi.resources.notif_title
 import dev.mothlight.plantagotchi.resources.notif_water
 import dev.mothlight.plantagotchi.resources.species_cactus
+import dev.mothlight.plantagotchi.resources.species_bonsai
 import dev.mothlight.plantagotchi.resources.species_fern
+import dev.mothlight.plantagotchi.resources.species_flytrap
+import dev.mothlight.plantagotchi.resources.species_monstera
+import dev.mothlight.plantagotchi.resources.species_sunflower
+import dev.mothlight.plantagotchi.resources.species_tulip
 import dev.mothlight.plantagotchi.resources.species_sprout
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -44,8 +49,8 @@ class ReminderPlanner(
                 val (value, decay) = when (need) {
                     Need.WATER -> plant.water to GameRules.WATER_DECAY * plant.species.waterDecay
                     Need.LIGHT -> plant.lux to GameRules.LUX_DECAY * plant.species.luxDecay
-                    Need.LOVE -> plant.love to GameRules.LOVE_DECAY
-                    Need.FERTILIZER -> plant.fertilizer to GameRules.FERTILIZER_DECAY
+                    Need.LOVE -> plant.love to GameRules.LOVE_DECAY * plant.species.loveDecay
+                    Need.FERTILIZER -> plant.fertilizer to GameRules.FERTILIZER_DECAY * plant.species.fertilizerDecay
                 }
                 val seconds = if (value <= LOW) MIN_DELAY_SECONDS else ((value - LOW) / decay).toLong()
                 plant.species to seconds.coerceIn(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
@@ -71,6 +76,11 @@ class ReminderPlanner(
                 Species.SPROUT -> Res.string.species_sprout
                 Species.CACTUS -> Res.string.species_cactus
                 Species.FERN -> Res.string.species_fern
+                Species.SUNFLOWER -> Res.string.species_sunflower
+                Species.TULIP -> Res.string.species_tulip
+                Species.MONSTERA -> Res.string.species_monstera
+                Species.BONSAI -> Res.string.species_bonsai
+                Species.FLYTRAP -> Res.string.species_flytrap
             }
         )
 
