@@ -4,16 +4,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import dev.mothlight.plantagotchi.data.shop.Need
 import dev.mothlight.plantagotchi.data.shop.ShopItem
+import dev.mothlight.plantagotchi.data.state.Season
 import dev.mothlight.plantagotchi.data.weather.WeatherState
 import dev.mothlight.plantagotchi.model.GameEvent
 import dev.mothlight.plantagotchi.model.GameUiState
 import dev.mothlight.plantagotchi.ui.particlesystem.ParticleSystem
 import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
 import kotlin.random.Random
 
-internal enum class FxKind { HEART, TEXT, WATER, DIRT, SPARKLE, LEAF }
+internal enum class FxKind { HEART, TEXT, WATER, DIRT, SPARKLE, LEAF, COIN }
 
 /** A short-lived particle: hearts, floating numbers, water drops, ... */
 internal class Fx(
@@ -27,6 +31,9 @@ internal class Fx(
     val text: String = "",
     val color: Color = Color.White,
     val phase: Float = Random.nextFloat() * 6.28f,
+    /** For COIN: where it flies to. */
+    val target: Offset = Offset.Zero,
+    val start: Offset = Offset(x, y),
 ) {
     var age = 0f
     val progress get() = (age / life).coerceIn(0f, 1f)
@@ -74,10 +81,16 @@ internal class SceneState {
     var petBounceAt = -10f
     var potBounceAt = -10f
     var coinPopAt = -10f
+    var growAt = -10f
+    var chestOpenAt = -10f
+    var switchAt = -10f
+    var switchDirection = 1
     private var lastCoins = -1
     private var pendingCoinGain = 0
     private var lastCoinText = -10f
     private var lastLeafAt = 0f
+    private var lastAmbientAt = 0f
+    private var lastActiveIndex = -1
 
     val effects = mutableListOf<Fx>()
     val tools = mutableListOf<ToolAnimation>()
@@ -94,11 +107,14 @@ internal class SceneState {
         val l = layout ?: return dt
         trackWeather(state.weather.facts.state)
         trackCoins(state.player.coins, l)
+        trackActivePlant(state.player.activeIndex)
         while (pendingEvents.isNotEmpty()) handle(pendingEvents.removeFirst(), l)
-        if (state.player.health < 35 && time - lastLeafAt > 2.5f) {
+        val plant = state.player.activePlant
+        if (!plant.dead && plant.health < 35 && time - lastLeafAt > 2.5f) {
             lastLeafAt = time
-            spawnLeaf(l)
+            spawnLeaf(l, Color(0xFF7FA03A))
         }
+        spawnSeasonal(state, l)
         updateTools(l)
         updateEffects(dt, l.dp)
         return dt
@@ -112,6 +128,14 @@ internal class SceneState {
             weather = current
             weatherChangedAt = time
         }
+    }
+
+    private fun trackActivePlant(index: Int) {
+        if (lastActiveIndex >= 0 && index != lastActiveIndex) {
+            switchDirection = if (index > lastActiveIndex) 1 else -1
+            switchAt = time
+        }
+        lastActiveIndex = index
     }
 
     private fun trackCoins(coins: Int, l: SceneLayout) {
@@ -165,13 +189,51 @@ internal class SceneState {
                     kind = if (item.need == Need.WATER) FxKind.WATER else FxKind.DIRT,
                     start = time,
                 )
-
                 is ShopItem.GrowLamp -> sparkleBurst(lampPosition(l), 14, l.dp)
                 is ShopItem.Pot -> {
                     potBounceAt = time
                     sparkleBurst(l.pot.center, 18, l.dp, spread = l.pot.width / 2)
                 }
+                is ShopItem.Revive, is ShopItem.Seed -> {
+                    growAt = time
+                    sparkleBurst(l.leaves.center, 24, l.dp, spread = l.leaves.width / 2)
+                }
             }
+
+            is GameEvent.GrewUp -> {
+                growAt = time
+                sparkleBurst(l.leaves.center, 30, l.dp, spread = l.leaves.width / 2)
+            }
+            GameEvent.Replanted -> {
+                growAt = time
+                sparkleBurst(l.pot.center.copy(y = l.pot.top), 16, l.dp, spread = l.pot.width / 3)
+            }
+            is GameEvent.Withered -> repeat(8) { spawnLeaf(l, Color(0xFF8D6E3F)) }
+            is GameEvent.RewardClaimed -> {
+                chestOpenAt = time
+                repeat(min(event.coins / 5, 20)) { i ->
+                    effects += Fx(
+                        FxKind.COIN,
+                        x = l.chest.center.x, y = l.chest.center.y,
+                        vx = 0f, vy = 0f,
+                        life = 0.7f + i * 0.04f,
+                        size = 14 * l.dp,
+                        target = l.coinHud.center,
+                    )
+                }
+            }
+            GameEvent.RewardAlreadyClaimed -> chestOpenAt = time - 0.5f
+            is GameEvent.WaterReceived -> repeat(40) {
+                val leaves = l.leaves
+                effects += Fx(
+                    FxKind.WATER,
+                    x = leaves.left + Random.nextFloat() * leaves.width,
+                    y = leaves.top - 100 * l.dp - Random.nextFloat() * 120 * l.dp,
+                    vx = 0f, vy = 80 * l.dp,
+                    life = 1.4f, size = 3 * l.dp, color = Color(0xFF5FCDE4),
+                )
+            }
+            GameEvent.PlantSwitched -> Unit
         }
     }
 
@@ -181,26 +243,44 @@ internal class SceneState {
             val speed = (30 + Random.nextFloat() * 60) * dp
             effects += Fx(
                 FxKind.SPARKLE,
-                x = center.x + kotlin.math.cos(angle) * spread * Random.nextFloat(),
-                y = center.y + kotlin.math.sin(angle) * spread * Random.nextFloat() * 0.6f,
-                vx = kotlin.math.cos(angle) * speed,
-                vy = kotlin.math.sin(angle) * speed - 20 * dp,
+                x = center.x + cos(angle) * spread * Random.nextFloat(),
+                y = center.y + sin(angle) * spread * Random.nextFloat() * 0.6f,
+                vx = cos(angle) * speed,
+                vy = sin(angle) * speed - 20 * dp,
                 life = 0.9f + Random.nextFloat() * 0.6f,
                 size = 2 * dp,
             )
         }
     }
 
-    private fun spawnLeaf(l: SceneLayout) {
+    private fun spawnLeaf(l: SceneLayout, color: Color) {
         val leaves = l.leaves
         effects += Fx(
             FxKind.LEAF,
             x = leaves.left + Random.nextFloat() * leaves.width,
             y = leaves.center.y,
-            vx = 0f,
-            vy = 25 * l.dp,
-            life = 3.5f,
-            size = 6 * l.dp,
+            vx = 0f, vy = 25 * l.dp,
+            life = 3.5f, size = 6 * l.dp, color = color,
+        )
+    }
+
+    /** Autumn leaves and spring petals drifting across the scene. */
+    private fun spawnSeasonal(state: GameUiState, l: SceneLayout) {
+        val (interval, colors) = when (state.season) {
+            Season.AUTUMN -> 0.8f to listOf(Color(0xFFE07A2E), Color(0xFFC94A2B), Color(0xFFE8B83D))
+            Season.SPRING -> 1.4f to listOf(Color(0xFFFFC2DC), Color(0xFFFFFFFF))
+            else -> return
+        }
+        if (time - lastAmbientAt < interval) return
+        lastAmbientAt = time
+        effects += Fx(
+            FxKind.LEAF,
+            x = Random.nextFloat() * l.size.width,
+            y = -10 * l.dp,
+            vx = 0f, vy = (30 + Random.nextFloat() * 20) * l.dp,
+            life = l.size.height / (30 * l.dp),
+            size = (if (state.season == Season.SPRING) 4 else 6) * l.dp,
+            color = colors.random(),
         )
     }
 
@@ -214,12 +294,9 @@ internal class SceneState {
         val tilt = if (tool.kind == FxKind.WATER) -35f else -110f
         val pixel = 4 * l.dp
         return when {
-            p < 0.2f -> {
-                val t = easeOut(p / 0.2f)
-                ToolPose(lerpOffset(offscreen, target, t), 0f, 1f, false, pixel)
-            }
+            p < 0.2f -> ToolPose(lerpOffset(offscreen, target, easeOut(p / 0.2f)), 0f, 1f, false, pixel)
             p < 0.3f -> ToolPose(target, tilt * easeOut((p - 0.2f) / 0.1f), 1f, false, pixel)
-            p < 0.75f -> ToolPose(target, tilt + kotlin.math.sin(time * 6f) * 3f, 1f, true, pixel)
+            p < 0.75f -> ToolPose(target, tilt + sin(time * 6f) * 3f, 1f, true, pixel)
             p < 0.85f -> ToolPose(target, tilt * (1 - (p - 0.75f) / 0.1f), 1f, false, pixel)
             else -> {
                 val t = (p - 0.85f) / 0.15f
@@ -240,7 +317,7 @@ internal class SceneState {
                     tool.kind,
                     x = spout.x + (Random.nextFloat() - 0.5f) * 8 * l.dp,
                     y = spout.y,
-                    vx = -(20 + Random.nextFloat() * 30) * l.dp,
+                    vx = -(30 + Random.nextFloat() * 40) * l.dp,
                     vy = (20 + Random.nextFloat() * 40) * l.dp,
                     life = 1.1f,
                     size = (if (tool.kind == FxKind.WATER) 3f else 4f) * l.dp,
@@ -258,17 +335,26 @@ internal class SceneState {
             fx.age += dt
             if (!fx.alive) {
                 iterator.remove()
+                if (fx.kind == FxKind.COIN) coinPopAt = time
                 continue
             }
             when (fx.kind) {
                 FxKind.WATER, FxKind.DIRT -> fx.vy += 700 * dp * dt
-                FxKind.LEAF -> fx.vx = kotlin.math.sin(time * 2.5f + fx.phase) * 25 * dp
-                FxKind.HEART -> fx.vx = kotlin.math.sin(time * 4f + fx.phase) * 20 * dp
+                FxKind.LEAF -> fx.vx = sin(time * 2.5f + fx.phase) * 25 * dp
+                FxKind.HEART -> fx.vx = sin(time * 4f + fx.phase) * 20 * dp
                 FxKind.SPARKLE -> {
                     fx.vx *= max(0f, 1 - 2.5f * dt)
                     fx.vy *= max(0f, 1 - 2.5f * dt)
                 }
                 FxKind.TEXT -> Unit
+                FxKind.COIN -> {
+                    // Arc from the chest to the coin counter.
+                    val t = easeOut(fx.progress)
+                    val p = lerpOffset(fx.start, fx.target, t)
+                    fx.x = p.x + sin(fx.phase) * 40 * dp * sin(t * PI.toFloat())
+                    fx.y = p.y + 90 * dp * sin(t * PI.toFloat())
+                    continue
+                }
             }
             fx.x += fx.vx * dt
             fx.y += fx.vy * dt
@@ -277,7 +363,7 @@ internal class SceneState {
     }
 
     companion object {
-        const val MAX_EFFECTS = 400
+        const val MAX_EFFECTS = 500
 
         fun lampPosition(l: SceneLayout) = Offset(l.plant.center.x, l.plant.top + l.plant.height * 0.12f)
     }
@@ -290,4 +376,4 @@ internal fun lerpOffset(a: Offset, b: Offset, t: Float) = Offset(a.x + (b.x - a.
 /** Damped oscillation after an event at [since] seconds ago, 0 when settled. */
 internal fun bounce(since: Float, duration: Float = 0.7f): Float =
     if (since < 0 || since > duration) 0f
-    else kotlin.math.sin(since * PI.toFloat() * 4) * kotlin.math.exp(-since * 6) * min(1f, since * 20)
+    else sin(since * PI.toFloat() * 4) * exp(-since * 6) * min(1f, since * 20)

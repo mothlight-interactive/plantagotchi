@@ -16,6 +16,8 @@ import dev.mothlight.plantagotchi.resources.heart
 import dev.mothlight.plantagotchi.resources.ic_button_bg
 import dev.mothlight.plantagotchi.resources.ic_ground
 import dev.mothlight.plantagotchi.resources.ic_plant1
+import dev.mothlight.plantagotchi.resources.ic_plant2
+import dev.mothlight.plantagotchi.resources.ic_plant3
 import dev.mothlight.plantagotchi.resources.ic_pot11
 import dev.mothlight.plantagotchi.resources.ic_pot12
 import dev.mothlight.plantagotchi.resources.ic_pot13
@@ -59,7 +61,8 @@ class SceneSprites(
     val water: ImageBitmap,
     val sunshine: ImageBitmap,
     val ground: Painter,
-    val plant: Painter,
+    /** Sprout growth stages. */
+    val sproutStages: List<Painter>,
     val buttonFrame: Painter,
     val pots: Map<String, Painter>,
 ) {
@@ -97,7 +100,11 @@ fun rememberSceneSprites(): SceneSprites = SceneSprites(
     water = imageResource(Res.drawable.water),
     sunshine = imageResource(Res.drawable.sunshine),
     ground = painterResource(Res.drawable.ic_ground),
-    plant = painterResource(Res.drawable.ic_plant1),
+    sproutStages = listOf(
+        painterResource(Res.drawable.ic_plant1),
+        painterResource(Res.drawable.ic_plant2),
+        painterResource(Res.drawable.ic_plant3),
+    ),
     buttonFrame = painterResource(Res.drawable.ic_button_bg),
     pots = rememberPotPainters(),
 )

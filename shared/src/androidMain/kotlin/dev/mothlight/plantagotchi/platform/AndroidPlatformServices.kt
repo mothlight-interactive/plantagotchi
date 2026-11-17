@@ -17,9 +17,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 
-fun androidPlatformServices(context: Context) = PlatformServices(
+fun androidPlatformServices(context: Context, widget: WidgetBridge = NoWidget) = PlatformServices(
     lightSensor = AndroidLightSensor(context.applicationContext),
     locationProvider = AndroidLocationProvider(context.applicationContext),
+    notifications = AndroidNotificationScheduler(context.applicationContext),
+    sound = AndroidSoundPlayer(context.applicationContext),
+    widget = widget,
 )
 
 class AndroidLightSensor(context: Context) : LightSensor, SensorEventListener {

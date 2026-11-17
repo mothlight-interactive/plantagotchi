@@ -1,12 +1,8 @@
 package dev.mothlight.plantagotchi.ui
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,23 +32,65 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.mothlight.plantagotchi.data.shop.Need
 import dev.mothlight.plantagotchi.data.shop.PurchaseResult
+import dev.mothlight.plantagotchi.data.shop.Shop.need
 import dev.mothlight.plantagotchi.data.shop.ShopCatalog
 import dev.mothlight.plantagotchi.data.shop.ShopItem
 import dev.mothlight.plantagotchi.data.state.GameRules
 import dev.mothlight.plantagotchi.data.state.PlayerState
+import dev.mothlight.plantagotchi.data.state.Species
 import dev.mothlight.plantagotchi.resources.Res
-import dev.mothlight.plantagotchi.resources.coin
+import dev.mothlight.plantagotchi.resources.btn_full
+import dev.mothlight.plantagotchi.resources.btn_in_use
+import dev.mothlight.plantagotchi.resources.btn_use
+import dev.mothlight.plantagotchi.resources.err_coins
+import dev.mothlight.plantagotchi.resources.err_not_needed
+import dev.mothlight.plantagotchi.resources.err_owned
+import dev.mothlight.plantagotchi.resources.err_slots
+import dev.mothlight.plantagotchi.resources.err_withered
+import dev.mothlight.plantagotchi.resources.ic_plant3
+import dev.mothlight.plantagotchi.resources.item_fertilizer
+import dev.mothlight.plantagotchi.resources.item_fertilizer_desc
+import dev.mothlight.plantagotchi.resources.item_grow_lamp
+import dev.mothlight.plantagotchi.resources.item_grow_lamp_active
+import dev.mothlight.plantagotchi.resources.item_grow_lamp_desc
+import dev.mothlight.plantagotchi.resources.item_revive
+import dev.mothlight.plantagotchi.resources.item_revive_desc
+import dev.mothlight.plantagotchi.resources.item_seed
+import dev.mothlight.plantagotchi.resources.item_seed_desc_cactus
+import dev.mothlight.plantagotchi.resources.item_seed_desc_fern
+import dev.mothlight.plantagotchi.resources.item_seed_desc_sprout
+import dev.mothlight.plantagotchi.resources.item_watering_can
+import dev.mothlight.plantagotchi.resources.item_watering_can_desc
+import dev.mothlight.plantagotchi.resources.shop_plants
+import dev.mothlight.plantagotchi.resources.shop_pots
+import dev.mothlight.plantagotchi.resources.shop_supplies
+import dev.mothlight.plantagotchi.resources.shop_title
 import dev.mothlight.plantagotchi.ui.game.CodeSprites
 import dev.mothlight.plantagotchi.ui.game.PixelSprite
+import dev.mothlight.plantagotchi.ui.game.PlantSprites
 import dev.mothlight.plantagotchi.ui.game.aspectRatioOrDefault
 import dev.mothlight.plantagotchi.ui.game.rememberPotPainters
 import dev.mothlight.plantagotchi.ui.theme.PlantagotchiColors
 import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
-private val Panel = Color(0xFF2B1D24)
-private val PanelLight = Color(0xFF3F282F)
-private val Outline = Color(0xFF222034)
+private val tonic = PixelSprite(
+    listOf(
+        "..oo..",
+        "..ww..",
+        ".owwo.",
+        "oppppo",
+        "opPppo",
+        "opppPo",
+        "oppppo",
+        ".oooo.",
+    ),
+    mapOf('o' to Color(0xFF222034), 'w' to Color(0xFFB8AFBF), 'p' to Color(0xFF9FD3C7), 'P' to Color(0xFFE8FFF8)),
+)
 
 @Composable
 fun ShopSheet(
@@ -65,18 +103,26 @@ fun ShopSheet(
     var message by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(message) {
         if (message != null) {
-            delay(2_000)
+            delay(2_500)
             message = null
         }
     }
+    val scope = rememberCoroutineScope()
     val pots = rememberPotPainters()
+    val sproutPainter = painterResource(Res.drawable.ic_plant3)
+    val plant = player.activePlant
 
     fun buy(item: ShopItem) {
-        message = when (onBuy(item)) {
-            is PurchaseResult.Success -> null
-            PurchaseResult.NotEnoughCoins -> "Not enough coins. Pet your plant and give it light!"
-            PurchaseResult.NotNeeded -> "Your plant doesn't need that right now."
-            PurchaseResult.AlreadyOwned -> "You already own that."
+        val result = onBuy(item)
+        scope.launch {
+            message = when (result) {
+                is PurchaseResult.Success -> null
+                PurchaseResult.NotEnoughCoins -> getString(Res.string.err_coins)
+                PurchaseResult.NotNeeded -> getString(Res.string.err_not_needed)
+                PurchaseResult.AlreadyOwned -> getString(Res.string.err_owned)
+                PurchaseResult.PlantIsWithered -> getString(Res.string.err_withered)
+                PurchaseResult.NoFreeSlot -> getString(Res.string.err_slots, PlayerState.MAX_PLANTS)
+            }
         }
     }
 
@@ -89,7 +135,7 @@ fun ShopSheet(
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Shop", style = MaterialTheme.typography.headlineMedium, color = PlantagotchiColors.Sunshine, modifier = Modifier.weight(1f))
+            SheetTitle(stringResource(Res.string.shop_title), Modifier.weight(1f))
             CoinAmount(player.coins)
         }
         Text(
@@ -99,22 +145,66 @@ fun ShopSheet(
             modifier = Modifier.padding(vertical = 6.dp),
         )
 
-        SectionTitle("Supplies")
+        SectionTitle(stringResource(Res.string.shop_supplies))
+        if (plant.dead) {
+            ItemRow(tonic, stringResource(Res.string.item_revive), stringResource(Res.string.item_revive_desc)) {
+                PixelButton("${ShopCatalog.revive.price}", enabled = player.coins >= ShopCatalog.revive.price, showCoin = true) {
+                    buy(ShopCatalog.revive)
+                }
+            }
+        }
         ShopCatalog.supplies.forEach { item ->
-            val (enabled, label) = when {
-                item is ShopItem.Refill && player.needValue(item.need) >= GameRules.MAX -> false to "Full"
-                else -> (player.coins >= item.price) to "${item.price}"
+            val full = item is ShopItem.Refill && plant.need(item.need) >= GameRules.MAX
+            val (name, description) = when (item) {
+                ShopCatalog.wateringCan -> Res.string.item_watering_can to Res.string.item_watering_can_desc
+                ShopCatalog.fertilizerBag -> Res.string.item_fertilizer to Res.string.item_fertilizer_desc
+                else -> Res.string.item_grow_lamp to Res.string.item_grow_lamp_desc
             }
-            val description = if (item is ShopItem.GrowLamp && player.isLampActive(now)) {
-                "Active, ${((player.lampUntil - now) / 60_000).coerceAtLeast(1)} min left. Buy to extend."
+            val descriptionText = if (item is ShopItem.GrowLamp && player.isLampActive(now)) {
+                stringResource(Res.string.item_grow_lamp_active, ((player.lampUntil - now) / 60_000).coerceAtLeast(1))
             } else {
-                item.description
+                stringResource(description)
             }
-            SupplyRow(item, description, enabled, label) { buy(item) }
+            ItemRow(item.sprite(), stringResource(name), descriptionText) {
+                if (full) PixelButton(stringResource(Res.string.btn_full), enabled = false) {}
+                else PixelButton("${item.price}", enabled = player.coins >= item.price && !plant.dead, showCoin = true) { buy(item) }
+            }
         }
 
         Spacer(Modifier.height(12.dp))
-        SectionTitle("Pots")
+        SectionTitle("${stringResource(Res.string.shop_plants)} (${player.plants.size}/${PlayerState.MAX_PLANTS})")
+        ShopCatalog.seeds.forEach { seed ->
+            val name = stringResource(Res.string.item_seed, speciesName(seed.species))
+            val description = stringResource(
+                when (seed.species) {
+                    Species.SPROUT -> Res.string.item_seed_desc_sprout
+                    Species.CACTUS -> Res.string.item_seed_desc_cactus
+                    Species.FERN -> Res.string.item_seed_desc_fern
+                }
+            )
+            ItemRow(
+                preview = {
+                    Canvas(Modifier.size(48.dp)) {
+                        when (seed.species) {
+                            Species.SPROUT -> with(sproutPainter) { draw(size) }
+                            Species.CACTUS -> PlantSprites.cactus[2].drawFit(this, size)
+                            Species.FERN -> PlantSprites.fern[2].drawFit(this, size)
+                        }
+                    }
+                },
+                name = name,
+                description = description,
+            ) {
+                PixelButton(
+                    "${seed.price}",
+                    enabled = player.coins >= seed.price && player.plants.size < PlayerState.MAX_PLANTS,
+                    showCoin = true,
+                ) { buy(seed) }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        SectionTitle(stringResource(Res.string.shop_pots))
         ShopCatalog.pots.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { pot ->
@@ -122,7 +212,7 @@ fun ShopSheet(
                         pot = pot,
                         painter = pots.getValue(pot.id),
                         owned = pot.id in player.ownedPots,
-                        selected = pot.id == player.selectedPot,
+                        selected = pot.id == plant.pot,
                         affordable = player.coins >= pot.price,
                         onBuy = { buy(pot) },
                         onSelect = { onSelectPot(pot.id) },
@@ -136,46 +226,27 @@ fun ShopSheet(
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        color = PlantagotchiColors.OffWhite,
-        modifier = Modifier.padding(bottom = 8.dp),
-    )
-}
+private fun ItemRow(sprite: PixelSprite, name: String, description: String, button: @Composable () -> Unit) =
+    ItemRow({ SpritePreview(sprite, Modifier.size(48.dp)) }, name, description, button)
 
 @Composable
-private fun CoinAmount(coins: Int) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Image(
-            painter = painterResource(Res.drawable.coin),
-            contentDescription = "Coins",
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.width(6.dp))
-        Text("$coins", style = MaterialTheme.typography.titleMedium, color = PlantagotchiColors.Sunshine)
-    }
-}
-
-@Composable
-private fun SupplyRow(item: ShopItem, description: String, enabled: Boolean, buttonLabel: String, onBuy: () -> Unit) {
+private fun ItemRow(
+    preview: @Composable () -> Unit,
+    name: String,
+    description: String,
+    button: @Composable () -> Unit,
+) {
     Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp)
-            .background(PanelLight)
-            .border(2.dp, Outline)
-            .padding(10.dp),
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).pixelPanel().padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SpritePreview(item.sprite(), Modifier.size(48.dp))
+        preview()
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(item.name, style = MaterialTheme.typography.titleSmall, color = PlantagotchiColors.OffWhite)
+            Text(name, style = MaterialTheme.typography.titleSmall, color = PlantagotchiColors.OffWhite)
             Text(description, style = MaterialTheme.typography.bodySmall, color = PlantagotchiColors.AmethystSmoke)
         }
-        PixelButton(buttonLabel, enabled, showCoin = buttonLabel != "Full", onClick = onBuy)
+        button()
     }
 }
 
@@ -190,13 +261,7 @@ private fun PotCard(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier
-            .background(if (selected) Color(0xFF4A3540) else PanelLight)
-            .border(2.dp, if (selected) PlantagotchiColors.Sunshine else Outline)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    Column(modifier.pixelPanel(selected).padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Canvas(Modifier.fillMaxWidth().height(56.dp)) {
             val aspect = painter.aspectRatioOrDefault(190f / 296f)
             val w = minOf(size.width, size.height / aspect)
@@ -206,7 +271,7 @@ private fun PotCard(
             }
         }
         Text(
-            pot.name,
+            potName(pot.id),
             style = MaterialTheme.typography.labelSmall,
             color = PlantagotchiColors.OffWhite,
             textAlign = TextAlign.Center,
@@ -214,51 +279,15 @@ private fun PotCard(
             modifier = Modifier.padding(vertical = 4.dp),
         )
         when {
-            selected -> PixelButton("In use", enabled = false, showCoin = false) {}
-            owned -> PixelButton("Use", enabled = true, showCoin = false, onClick = onSelect)
+            selected -> PixelButton(stringResource(Res.string.btn_in_use), enabled = false) {}
+            owned -> PixelButton(stringResource(Res.string.btn_use), onClick = onSelect)
             else -> PixelButton("${pot.price}", enabled = affordable, showCoin = true, onClick = onBuy)
         }
-    }
-}
-
-@Composable
-private fun PixelButton(text: String, enabled: Boolean, showCoin: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .background(if (enabled) PlantagotchiColors.Water else Color(0xFF5A5060))
-            .border(2.dp, Outline)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (showCoin) {
-            Image(
-                painter = painterResource(Res.drawable.coin),
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-            )
-            Spacer(Modifier.width(4.dp))
-        }
-        Text(text, style = MaterialTheme.typography.labelLarge, color = if (enabled) Outline else Color(0xFFB8AFBF))
-    }
-}
-
-@Composable
-private fun SpritePreview(sprite: PixelSprite, modifier: Modifier = Modifier) {
-    Box(modifier) {
-        Canvas(Modifier.matchParentSize()) { sprite.drawFit(this, size) }
     }
 }
 
 private fun ShopItem.sprite(): PixelSprite = when (this) {
     is ShopItem.Refill -> if (need == Need.WATER) CodeSprites.wateringCan else CodeSprites.fertilizerBag
     is ShopItem.GrowLamp -> CodeSprites.growLamp
-    is ShopItem.Pot -> CodeSprites.shopBag
-}
-
-private fun PlayerState.needValue(need: Need): Double = when (need) {
-    Need.WATER -> water
-    Need.FERTILIZER -> fertilizer
-    Need.LIGHT -> lux
-    Need.LOVE -> love
+    else -> CodeSprites.shopBag
 }

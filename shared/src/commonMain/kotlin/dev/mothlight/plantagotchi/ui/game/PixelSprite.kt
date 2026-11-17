@@ -131,6 +131,67 @@ object CodeSprites {
         ),
     )
 
+    val menu = PixelSprite(
+        listOf(
+            "wwwwwwwww",
+            "wwwwwwwww",
+            ".........",
+            "wwwwwwwww",
+            "wwwwwwwww",
+            ".........",
+            "wwwwwwwww",
+            "wwwwwwwww",
+        ),
+        mapOf('w' to Color(0xFFEDEDED)),
+    )
+
+    val arrowRight = PixelSprite(
+        listOf(
+            "oo....",
+            "owo...",
+            "owwo..",
+            "owwwo.",
+            "owwwwo",
+            "owwwo.",
+            "owwo..",
+            "owo...",
+            "oo....",
+        ),
+        mapOf('o' to outline, 'w' to Color(0xFFEDEDED)),
+    )
+
+    val butterflyOpen = PixelSprite(
+        listOf(
+            "pp...pp",
+            "ppp.ppp",
+            ".ppbpp.",
+            "..pbp..",
+            ".pp.pp.",
+        ),
+        mapOf('p' to Color(0xFFFFB3D9), 'b' to outline),
+    )
+
+    val butterflyClosed = PixelSprite(
+        listOf(
+            "...b...",
+            "..pbp..",
+            ".ppbpp.",
+            "..pbp..",
+            "...b...",
+        ),
+        mapOf('p' to Color(0xFFFFB3D9), 'b' to outline),
+    )
+
+    val flower = PixelSprite(
+        listOf(
+            ".r.",
+            "ryr",
+            ".r.",
+            ".g.",
+        ),
+        mapOf('r' to Color(0xFFFF8FB8), 'y' to Color(0xFFFFEB57), 'g' to Color(0xFF40922E)),
+    )
+
     val sparkle = PixelSprite(
         listOf(
             "..w..",

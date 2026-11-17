@@ -3,8 +3,8 @@
 A pixel-art Tamagotchi for a plant. Keep it alive by giving it light, water, fertilizer and love.
 The scene mirrors the real weather and time of day at your location; rain waters the plant automatically.
 
-Originally built as the ws6C Mobile Experience project (FHNW) by Joyce Hänggi and Florian Thiévent,
-now a Kotlin/Compose Multiplatform app for Android and iOS.
+A Mothlight Interactive game. Originally built as the ws6C Mobile Experience project (FHNW) by Joyce Hänggi
+and Florian Thiévent, now a Kotlin/Compose Multiplatform app for Android and iOS.
 
 == Project structure
 
@@ -41,7 +41,7 @@ Tests:
 
 Without configuration the game is stored on the device only. To sync it with Supabase:
 
-. Apply `supabase/migrations/*.sql` to your project.
+. Apply all `supabase/migrations/*.sql` to your project, in order.
 . Enable *Allow anonymous sign-ins* (Authentication > Sign In / Providers).
 . Add to `local.properties` (not committed):
 +
@@ -54,12 +54,21 @@ The state is always written locally and mirrored to Supabase; on start the most 
 
 == Game rules
 
-* *Light*: rises while the ambient light is above 1000 lux, otherwise empties in 1 day.
-  Android uses the light sensor; iOS has no public light sensor API, so light is estimated from daylight and weather.
-* *Water*: refilled by rain, light rain, heavy rain and thunderstorms, otherwise empties in 2 days.
-* *Love*: swipe over the plant to pet it, empties in 1 week.
-* *Fertilizer*: empties in 2 weeks.
-* Every gain earns a coin. Decay continues while the app is closed.
+* Up to 4 plants: *Sprout*, *Cactus* (little water, loves sun, hates frost) and *Fern* (likes shade, drinks a lot).
+  Switch between them with the arrows next to the pot.
+* *Light*: rises while the ambient light is above 1000 lux, otherwise empties in about a day.
+  Android uses the light sensor. iOS has no public light sensor API: light is estimated from daylight and
+  weather, or measured with the camera if enabled in the settings.
+* *Water*: refilled by rain, otherwise empties in about two days. Friends can send water once a day.
+* *Love*: swipe over the plant to pet it, empties in a week.
+* *Fertilizer*: empties in two weeks and speeds up growth.
+* *Temperature*: above 30 °C plants dry out faster, below 0 °C all needs drop faster (cacti suffer most).
+* *Growth*: healthy plants (average need ≥ 60 %) grow from seedling to young plant (6 h) to grown (48 h).
+* *Withering*: below 10 % health for 24 hours a plant withers. Revive it in the shop, replant it for free or compost it.
+* *Daily chest*: coins once a day, more for consecutive days (streak).
+* Every gain earns a coin. Decay, growth and withering continue while the app is closed.
+* Seasons follow the date and hemisphere: snow in winter, flowers and butterflies in spring and summer,
+  falling leaves in autumn.
 
 == Shop
 
@@ -68,7 +77,19 @@ Tap the shop bag, the coin counter or the water/fertilizer bubble.
 * *Watering can* (15 coins): +35 water
 * *Fertilizer* (25 coins): +50 fertilizer
 * *Grow lamp* (60 coins): full light for 30 minutes, stacks
-* *Pots* (80 to 200 coins): 12 pots in 3 shapes and 4 colors, switch between owned pots any time
+* *Revival tonic* (120 coins): brings a withered plant back
+* *Seeds* (100 to 150 coins): a new plant
+* *Pots* (80 to 200 coins): 12 pots in 3 shapes and 4 colors
+
+== More
+
+* *Friends* (needs Supabase): share your 6 character friend code, see friends' plants and send them water.
+* *Reminders*: local notifications when a need will drop below 20 % and when the daily chest is ready.
+* *Widgets*: Android home screen widget (Glance). The iOS WidgetKit code is in `iosApp/PlantagotchiWidget`,
+  see its README to add the extension target.
+* *Sound*: 8-bit effects, synthesized and stored in `composeResources/files/sfx`.
+* *Languages*: English and German.
+* *Weather*: tap the weather chip for details.
 
 == Rendering
 
@@ -77,7 +98,8 @@ The game scene is a single Compose `Canvas` (`shared/src/commonMain/.../ui/game`
 * `GameCanvas`: frame loop, input and hit testing, draws plant, pot, HUD and need bubbles
 * `SkyRenderer`: sky, sun and moon, stars, fog, lightning, clouds and precipitation
 * `SceneState`: animation clock, effects (hearts, floating coins, water, dirt, sparkles, falling leaves) and tool animations
-* `PixelSprite`: pixel art defined in code (watering can, fertilizer bag, grow lamp, shop bag)
+* `PixelSprite`: pixel art defined in code (watering can, fertilizer bag, grow lamp, shop bag, cactus and fern growth stages)
+* `MothlightLogo`: the pixel version of the Mothlight wordmark with a glowing lamp and a circling moth (splash and about screen)
 
 The plant sways with the real wind speed, breathes, bounces when petted and wilts (droops, loses color, drops
 leaves) when neglected. Low needs pulse and shake. Fireflies appear on calm nights.
@@ -86,4 +108,4 @@ leaves) when neglected. Low needs pulse and shake. Fireflies appear on calm nigh
 
 * Weather particles based on https://github.com/fidloo/flux
 * Weather data by https://open-meteo.com[Open-Meteo] (CC BY 4.0)
-* Fonts: pixelmix, Play Me Games
+* Fonts: pixelmix (umlauts and accents added as pixel glyphs), Play Me Games

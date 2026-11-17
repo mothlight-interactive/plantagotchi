@@ -1,8 +1,8 @@
 TEAM_ID=
 PRODUCT_NAME=Plantagotchi
 PRODUCT_BUNDLE_IDENTIFIER=dev.mothlight.plantagotchi
-CURRENT_PROJECT_VERSION=2
-MARKETING_VERSION=2.0.0
+CURRENT_PROJECT_VERSION=3
+MARKETING_VERSION=2.1.0
 
 // Optional, not committed: set TEAM_ID etc. locally
 #include? "Secrets.xcconfig"

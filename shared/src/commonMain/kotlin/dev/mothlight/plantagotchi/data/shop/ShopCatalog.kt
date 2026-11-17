@@ -1,5 +1,7 @@
 package dev.mothlight.plantagotchi.data.shop
 
+import dev.mothlight.plantagotchi.data.state.Species
+
 /** Pots are named after the bundled drawables `ic_pot<shape><color>`. */
 object PotId {
     const val DEFAULT = "pot12"
@@ -37,6 +39,23 @@ sealed class ShopItem {
         val durationMillis: Long,
     ) : ShopItem()
 
+    /** Adds a new plant of [species]. */
+    data class Seed(
+        override val id: String,
+        override val name: String,
+        override val description: String,
+        override val price: Int,
+        val species: Species,
+    ) : ShopItem()
+
+    /** Brings a withered plant back to life. */
+    data class Revive(
+        override val id: String,
+        override val name: String,
+        override val description: String,
+        override val price: Int,
+    ) : ShopItem()
+
     data class Pot(
         override val id: String,
         override val name: String,
@@ -72,6 +91,23 @@ object ShopCatalog {
         durationMillis = 30 * 60 * 1000L,
     )
 
+    val revive = ShopItem.Revive(
+        id = "revive",
+        name = "Revival tonic",
+        description = "Brings a withered plant back",
+        price = 120,
+    )
+
+    val seeds: List<ShopItem.Seed> = Species.entries.map { species ->
+        ShopItem.Seed(
+            id = "seed_${species.name.lowercase()}",
+            name = species.name.lowercase().replaceFirstChar { it.uppercase() } + " seeds",
+            description = "A new plant",
+            price = species.seedPrice,
+            species = species,
+        )
+    }
+
     private val colorNames = mapOf(1 to "Terracotta", 2 to "Lavender", 3 to "Rose", 4 to "Mint")
     private val shapeNames = mapOf(1 to "Bowl", 2 to "Pot", 3 to "Vase")
     private val shapePrices = mapOf(1 to 80, 2 to 120, 3 to 200)
@@ -88,5 +124,5 @@ object ShopCatalog {
 
     val supplies: List<ShopItem> = listOf(wateringCan, fertilizerBag, growLamp)
 
-    fun byId(id: String): ShopItem? = (supplies + pots).firstOrNull { it.id == id }
+    fun byId(id: String): ShopItem? = (supplies + seeds + revive + pots).firstOrNull { it.id == id }
 }

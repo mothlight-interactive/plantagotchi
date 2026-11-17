@@ -4,6 +4,8 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Plantagotchi can use the camera as a light meter, so your plant knows how bright it is. No images are stored.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Plantagotchi uses your location to let your plant feel the local weather.</string>
 	<key>UIRequiresFullScreen</key>

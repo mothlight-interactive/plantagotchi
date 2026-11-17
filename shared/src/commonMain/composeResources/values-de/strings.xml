@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Plantagotchi</string>
+    <string name="loading">Lädt</string>
+    <string name="needs_label">Was braucht deine Pflanze?</string>
+    <string name="need_love">Liebe</string>
+    <string name="need_fertilizer">Dünger</string>
+    <string name="need_water">Wasser</string>
+    <string name="need_light">Licht</string>
+
+    <string name="hint_love">Wische über deine Pflanze, um sie zu streicheln.</string>
+    <string name="hint_light_sensor">Halte dein Handy ins helle Licht oder kaufe eine Pflanzenlampe.</string>
+    <string name="hint_light_estimated">Deine Pflanze bekommt tagsüber Licht. Mit einer Pflanzenlampe mehr.</string>
+    <string name="hint_reward">+%1$d Münzen! Tag %2$d deiner Serie.</string>
+    <string name="hint_reward_tomorrow">Komm morgen für die nächste Truhe wieder.</string>
+    <string name="hint_water_received">Deine Freunde haben gegossen (+%1$d).</string>
+    <string name="hint_grew">Dein %1$s ist gewachsen!</string>
+    <string name="hint_withered">Dein %1$s ist verwelkt. Belebe ihn im Shop oder pflanze neu.</string>
+
+    <string name="species_sprout">Spross</string>
+    <string name="species_cactus">Kaktus</string>
+    <string name="species_fern">Farn</string>
+    <string name="stage_0">Keimling</string>
+    <string name="stage_1">Jungpflanze</string>
+    <string name="stage_2">Ausgewachsen</string>
+    <string name="plant_withered">Verwelkt</string>
+    <string name="plant_counter">%1$d / %2$d</string>
+    <string name="replant">Neu pflanzen (gratis)</string>
+    <string name="compost">Kompostieren</string>
+
+    <string name="shop_title">Shop</string>
+    <string name="shop_supplies">Zubehör</string>
+    <string name="shop_plants">Pflanzen</string>
+    <string name="shop_pots">Töpfe</string>
+    <string name="item_watering_can">Giesskanne</string>
+    <string name="item_watering_can_desc">+35 Wasser</string>
+    <string name="item_fertilizer">Dünger</string>
+    <string name="item_fertilizer_desc">+50 Dünger</string>
+    <string name="item_grow_lamp">Pflanzenlampe</string>
+    <string name="item_grow_lamp_desc">30 Min volles Licht</string>
+    <string name="item_grow_lamp_active">Aktiv, noch %1$d Min. Kaufen verlängert.</string>
+    <string name="item_revive">Lebenselixier</string>
+    <string name="item_revive_desc">Belebt eine verwelkte Pflanze</string>
+    <string name="item_seed">%1$s-Samen</string>
+    <string name="item_seed_desc_sprout">Pflegeleicht, mag von allem etwas</string>
+    <string name="item_seed_desc_cactus">Braucht wenig Wasser, liebt Sonne, hasst Frost</string>
+    <string name="item_seed_desc_fern">Mag Schatten, trinkt viel</string>
+    <string name="pot_name">%2$s %1$s</string>
+    <string name="pot_color_1">Terrakotta</string>
+    <string name="pot_color_2">Lavendel</string>
+    <string name="pot_color_3">Rosa</string>
+    <string name="pot_color_4">Mint</string>
+    <string name="pot_shape_1">Schale</string>
+    <string name="pot_shape_2">Topf</string>
+    <string name="pot_shape_3">Vase</string>
+    <string name="btn_full">Voll</string>
+    <string name="btn_use">Nutzen</string>
+    <string name="btn_in_use">Aktiv</string>
+    <string name="btn_close">Schliessen</string>
+    <string name="err_coins">Zu wenig Münzen. Streichle deine Pflanze und gib ihr Licht!</string>
+    <string name="err_not_needed">Das braucht deine Pflanze gerade nicht.</string>
+    <string name="err_owned">Das hast du schon.</string>
+    <string name="err_withered">Deine Pflanze ist verwelkt. Belebe sie zuerst oder pflanze neu.</string>
+    <string name="err_slots">Alle %1$d Pflanzenplätze sind belegt.</string>
+
+    <string name="menu_friends">Freunde</string>
+    <string name="menu_settings">Einstellungen</string>
+    <string name="menu_about">Über</string>
+
+    <string name="weather_title">Wetter</string>
+    <string name="weather_feels_like">Gefühlt %1$s</string>
+    <string name="weather_min_max">Min / Max</string>
+    <string name="weather_humidity">Luftfeuchte</string>
+    <string name="weather_wind">Wind</string>
+    <string name="weather_clouds">Wolken</string>
+    <string name="weather_sunrise">Sonnenaufgang</string>
+    <string name="weather_sunset">Sonnenuntergang</string>
+    <string name="weather_uv">UV-Index</string>
+    <string name="weather_season">Jahreszeit</string>
+    <string name="weather_effect_rain">Der Regen giesst deine Pflanzen.</string>
+    <string name="weather_effect_heat">Heisser Tag: Pflanzen trocknen schneller aus.</string>
+    <string name="weather_effect_frost">Frost: Pflanzen leiden, Kakteen am meisten.</string>
+    <string name="weather_effect_none">Gutes Wetter für Pflanzen.</string>
+    <string name="season_spring">Frühling</string>
+    <string name="season_summer">Sommer</string>
+    <string name="season_autumn">Herbst</string>
+    <string name="season_winter">Winter</string>
+    <string name="ws_clear_sky">Klarer Himmel</string>
+    <string name="ws_few_clouds">Leicht bewölkt</string>
+    <string name="ws_scattered_clouds">Aufgelockert</string>
+    <string name="ws_mostly_cloudy">Stark bewölkt</string>
+    <string name="ws_heavy_rain">Starkregen</string>
+    <string name="ws_light_rain">Leichter Regen</string>
+    <string name="ws_thunderstorm">Gewitter</string>
+    <string name="ws_rain">Regen</string>
+    <string name="ws_snow">Schnee</string>
+    <string name="ws_fog">Nebel</string>
+
+    <string name="friends_title">Freunde</string>
+    <string name="friends_your_code">Dein Freundescode</string>
+    <string name="friends_code_hint">Freundescode</string>
+    <string name="friends_add">Hinzufügen</string>
+    <string name="friends_send_water">Giessen</string>
+    <string name="friends_remove">Entfernen</string>
+    <string name="friends_empty">Noch keine Freunde. Teile deinen Code!</string>
+    <string name="friends_health">Gesundheit %1$d%%</string>
+    <string name="friends_unknown_plant">Nicht gefunden</string>
+    <string name="friends_sent">Wasser gesendet!</string>
+    <string name="friends_already">Diesen Freund hast du heute schon gegossen.</string>
+    <string name="friends_unknown">Kein Spieler mit diesem Code.</string>
+    <string name="friends_own">Das ist dein eigener Code.</string>
+    <string name="friends_invalid">Ein Code hat 6 Buchstaben oder Ziffern.</string>
+    <string name="friends_offline">Freunde brauchen Cloud-Speicher. Richte dafür Supabase ein.</string>
+
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_sound">Soundeffekte</string>
+    <string name="settings_notifications">Erinnerungen</string>
+    <string name="settings_notifications_desc">Benachrichtige mich, wenn eine Pflanze etwas braucht</string>
+    <string name="settings_camera">Kamera als Lichtsensor</string>
+    <string name="settings_camera_desc">Misst das Licht mit der Kamera, während du spielst</string>
+
+    <string name="notif_title">%1$s braucht dich</string>
+    <string name="notif_water">Dein %1$s hat Durst. Gib ihm Wasser!</string>
+    <string name="notif_light">Dein %1$s braucht Licht.</string>
+    <string name="notif_love">Dein %1$s vermisst dich. Komm streicheln!</string>
+    <string name="notif_fertilizer">Dein %1$s hat Hunger auf Dünger.</string>
+    <string name="notif_reward">Deine tägliche Truhe wartet.</string>
+
+    <string name="about_interactive">interactive</string>
+    <string name="about_presents">präsentiert</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_original">Ursprünglich an der FHNW entwickelt von Joyce Hänggi und Florian Thiévent</string>
+    <string name="about_weather">Wetterdaten von Open-Meteo (CC BY 4.0)</string>
+    <string name="about_particles">Wetterpartikel basierend auf flux</string>
+    <string name="about_tap">Tippen zum Schliessen</string>
+</resources>
