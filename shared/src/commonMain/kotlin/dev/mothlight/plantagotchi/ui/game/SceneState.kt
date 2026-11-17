@@ -92,6 +92,8 @@ internal class SceneState {
     private var lastAmbientAt = 0f
     private var lastActiveIndex = -1
 
+    val plantAnimator = PlantAnimator()
+
     val effects = mutableListOf<Fx>()
     val tools = mutableListOf<ToolAnimation>()
     private val pendingEvents = ArrayDeque<GameEvent>()
@@ -168,6 +170,7 @@ internal class SceneState {
     private fun handle(event: GameEvent, l: SceneLayout) {
         when (event) {
             GameEvent.Petted -> {
+                if (time - petBounceAt > 0.8f) plantAnimator.trigger(PlantAction.WIGGLE, time)
                 petBounceAt = time
                 repeat(2) {
                     val leaves = l.leaves
@@ -188,8 +191,11 @@ internal class SceneState {
                     sprite = if (item.need == Need.WATER) CodeSprites.wateringCan else CodeSprites.fertilizerBag,
                     kind = if (item.need == Need.WATER) FxKind.WATER else FxKind.DIRT,
                     start = time,
-                )
-                is ShopItem.GrowLamp -> sparkleBurst(lampPosition(l), 14, l.dp)
+                ).also { plantAnimator.trigger(PlantAction.STRETCH, time, delay = 1.9f) }
+                is ShopItem.GrowLamp -> {
+                    sparkleBurst(lampPosition(l), 14, l.dp)
+                    plantAnimator.trigger(PlantAction.LOOK, time)
+                }
                 is ShopItem.Pot -> {
                     potBounceAt = time
                     sparkleBurst(l.pot.center, 18, l.dp, spread = l.pot.width / 2)
@@ -202,6 +208,7 @@ internal class SceneState {
 
             is GameEvent.GrewUp -> {
                 growAt = time
+                plantAnimator.trigger(PlantAction.DANCE, time, delay = 0.5f)
                 sparkleBurst(l.leaves.center, 30, l.dp, spread = l.leaves.width / 2)
             }
             GameEvent.Replanted -> {
@@ -224,6 +231,7 @@ internal class SceneState {
             }
             GameEvent.RewardAlreadyClaimed -> chestOpenAt = time - 0.5f
             is GameEvent.WaterReceived -> repeat(40) {
+                if (it == 0) plantAnimator.trigger(PlantAction.SHAKE, time, delay = 1.2f)
                 val leaves = l.leaves
                 effects += Fx(
                     FxKind.WATER,

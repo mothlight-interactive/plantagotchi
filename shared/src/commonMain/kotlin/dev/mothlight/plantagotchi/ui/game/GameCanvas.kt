@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.sp
 import dev.mothlight.plantagotchi.data.state.GameRules
 import dev.mothlight.plantagotchi.data.state.PlantState
 import dev.mothlight.plantagotchi.data.state.Season
-import dev.mothlight.plantagotchi.data.state.Species
 import dev.mothlight.plantagotchi.data.weather.WeatherState
 import dev.mothlight.plantagotchi.model.GameEvent
 import dev.mothlight.plantagotchi.model.GameUiState
@@ -151,7 +150,7 @@ fun GameCanvas(
         drawPainter(sprites.ground, layout.ground)
         drawGroundSeason(state.season, layout)
         if (state.lampActive) drawLampLight(scene, layout)
-        drawPlantAndPot(scene, sprites, state, plant, layout)
+        drawPlantAndPot(scene, state, plant, sprites, layout)
         if (state.lampActive) drawLamp(scene, layout)
         drawTools(scene, layout)
         drawTemperatureOverlay(scene, state, layout)
@@ -194,38 +193,40 @@ private val witheredMatrix = ColorMatrix(
     )
 )
 
-private fun DrawScope.drawPlantAndPot(scene: SceneState, sprites: SceneSprites, state: GameUiState, plant: PlantState, l: SceneLayout) {
+private fun DrawScope.drawPlantAndPot(scene: SceneState, state: GameUiState, plant: PlantState, sprites: SceneSprites, l: SceneLayout) {
     val t = scene.time
     // Slide in after switching plants.
     val switchT = ((t - scene.switchAt) / 0.35f).coerceIn(0f, 1f)
     val slide = (1f - easeOut(switchT)) * scene.switchDirection * size.width * 0.6f
 
     translate(left = slide) {
-        val health = plant.health.toFloat()
-        // 0 = healthy, 1 = badly neglected
-        val droop = if (plant.dead) 1f else ((WILT_START - health) / WILT_START).coerceIn(0f, 1f)
-        val wind = min(state.weather.facts.windSpeed.toFloat(), 40f) / 40f
-        val alive = if (plant.dead) 0.2f else 1f
-        val sway = (sin(t * 1.7f) * (2f + wind * 5f) * (1 - droop * 0.6f) + sin(t * 0.6f) * wind * 2f) * alive
-        val breathe = 1f + 0.012f * sin(t * 2.3f) * alive
-        val bounce = bounce(t - scene.petBounceAt)
-        val grow = bounce(t - scene.growAt, 1f)
-        val plantFilter = when {
+        val noon = (state.weather.sunrise.minutesOfDay() + state.weather.sunset.minutesOfDay()) / 2
+        val pose = scene.plantAnimator.pose(
+            state = state,
+            plant = plant,
+            time = t,
+            sunIsRight = scene.shownMinutes < noon,
+            petBounce = bounce(t - scene.petBounceAt),
+            growBounce = bounce(t - scene.growAt, 1f),
+        )
+        val maturity = scene.plantAnimator.maturity(plant, t)
+        val filter = when {
             plant.dead -> ColorFilter.colorMatrix(witheredMatrix)
-            droop > 0f -> ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(1f - droop * 0.75f) })
+            pose.droop > 0f -> ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(1f - pose.droop * 0.75f) })
             else -> null
         }
-
-        withTransform({
-            rotate(sway + droop * if (plant.dead) 22f else 12f, l.plantPivot)
-            scale(
-                scaleX = (1f / breathe) - bounce * 0.08f + grow * 0.15f,
-                scaleY = breathe * (1f - droop * 0.12f) + bounce * 0.12f + grow * 0.2f,
-                pivot = l.plantPivot,
+        val draw: DrawScope.() -> Unit = {
+            PlantRenderer.draw(
+                scope = this,
+                species = plant.species,
+                maturity = maturity,
+                seed = plant.id.hashCode(),
+                pose = pose,
+                base = Offset(l.plant.center.x + l.plantPixel / 2, l.plant.bottom),
+                pixel = l.plantPixel,
             )
-        }) {
-            drawPlantSprite(sprites, plant, l, plantFilter)
         }
+        if (filter == null) draw() else drawIntoLayer(filter) { draw() }
 
         val potBounce = bounce(t - scene.potBounceAt)
         withTransform({
@@ -233,26 +234,6 @@ private fun DrawScope.drawPlantAndPot(scene: SceneState, sprites: SceneSprites, 
         }) {
             drawPainter(sprites.pot(plant.pot), l.pot)
         }
-    }
-}
-
-private fun DrawScope.drawPlantSprite(sprites: SceneSprites, plant: PlantState, l: SceneLayout, filter: ColorFilter?) {
-    val stage = plant.stage
-    if (plant.species == Species.SPROUT) {
-        drawPainter(sprites.sproutStages[stage], l.plant, colorFilter = filter)
-        return
-    }
-    val sprite = when (plant.species) {
-        Species.CACTUS -> PlantSprites.cactus[stage]
-        else -> PlantSprites.fern[stage]
-    }
-    val pixel = l.plantPixel
-    val topLeft = Offset(l.plant.center.x - sprite.width * pixel / 2, l.plant.bottom - sprite.height * pixel)
-    if (filter == null) {
-        sprite.draw(this, topLeft, pixel)
-    } else {
-        // Pixel sprites are drawn as rects; apply the filter through a layer.
-        drawIntoLayer(filter) { sprite.draw(this, topLeft, pixel) }
     }
 }
 
@@ -592,5 +573,4 @@ private fun DrawScope.drawNeeds(
 }
 
 
-private const val WILT_START = 35f
 private const val LOW_NEED = 20f

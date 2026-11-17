@@ -47,7 +47,6 @@ import dev.mothlight.plantagotchi.resources.err_not_needed
 import dev.mothlight.plantagotchi.resources.err_owned
 import dev.mothlight.plantagotchi.resources.err_slots
 import dev.mothlight.plantagotchi.resources.err_withered
-import dev.mothlight.plantagotchi.resources.ic_plant3
 import dev.mothlight.plantagotchi.resources.item_fertilizer
 import dev.mothlight.plantagotchi.resources.item_fertilizer_desc
 import dev.mothlight.plantagotchi.resources.item_grow_lamp
@@ -67,7 +66,7 @@ import dev.mothlight.plantagotchi.resources.shop_supplies
 import dev.mothlight.plantagotchi.resources.shop_title
 import dev.mothlight.plantagotchi.ui.game.CodeSprites
 import dev.mothlight.plantagotchi.ui.game.PixelSprite
-import dev.mothlight.plantagotchi.ui.game.PlantSprites
+import dev.mothlight.plantagotchi.ui.game.PlantPreview
 import dev.mothlight.plantagotchi.ui.game.aspectRatioOrDefault
 import dev.mothlight.plantagotchi.ui.game.rememberPotPainters
 import dev.mothlight.plantagotchi.ui.theme.PlantagotchiColors
@@ -109,7 +108,6 @@ fun ShopSheet(
     }
     val scope = rememberCoroutineScope()
     val pots = rememberPotPainters()
-    val sproutPainter = painterResource(Res.drawable.ic_plant3)
     val plant = player.activePlant
 
     fun buy(item: ShopItem) {
@@ -183,15 +181,7 @@ fun ShopSheet(
                 }
             )
             ItemRow(
-                preview = {
-                    Canvas(Modifier.size(48.dp)) {
-                        when (seed.species) {
-                            Species.SPROUT -> with(sproutPainter) { draw(size) }
-                            Species.CACTUS -> PlantSprites.cactus[2].drawFit(this, size)
-                            Species.FERN -> PlantSprites.fern[2].drawFit(this, size)
-                        }
-                    }
-                },
+                preview = { PlantPreview(seed.species, maturity = 1f, seed = seed.id.hashCode(), modifier = Modifier.size(48.dp)) },
                 name = name,
                 description = description,
             ) {

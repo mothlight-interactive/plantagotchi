@@ -98,11 +98,15 @@ The game scene is a single Compose `Canvas` (`shared/src/commonMain/.../ui/game`
 * `GameCanvas`: frame loop, input and hit testing, draws plant, pot, HUD and need bubbles
 * `SkyRenderer`: sky, sun and moon, stars, fog, lightning, clouds and precipitation
 * `SceneState`: animation clock, effects (hearts, floating coins, water, dirt, sparkles, falling leaves) and tool animations
-* `PixelSprite`: pixel art defined in code (watering can, fertilizer bag, grow lamp, shop bag, cactus and fern growth stages)
+* `PlantRenderer`: plants are drawn procedurally on a pixel grid, no images. Stem, leaves, cactus arms,
+  fern fronds and flowers come from a skeleton, so plants grow continuously (leaves unfold, arms grow out,
+  fronds unroll from fiddleheads, flowers open) and every part can move. Each plant's shape is seeded by its id.
+* `PlantAnimator`: wind bend and leaf flutter, plus idle actions every few seconds (wiggle, stretch, turn to the sun,
+  shake off rain, dance when loved, nod at night) and reactions to petting, watering, growing and withering
+* `PixelSprite`: other pixel art defined in code (watering can, fertilizer bag, grow lamp, shop bag)
 * `MothlightLogo`: the pixel version of the Mothlight wordmark with a glowing lamp and a circling moth (splash and about screen)
 
-The plant sways with the real wind speed, breathes, bounces when petted and wilts (droops, loses color, drops
-leaves) when neglected. Low needs pulse and shake. Fireflies appear on calm nights.
+Neglected plants let their leaves hang, lose color and drop leaves; withered plants collapse. Low needs pulse and shake. Fireflies appear on calm nights.
 
 == Attribution
 

@@ -82,7 +82,7 @@ import dev.mothlight.plantagotchi.resources.weather_title
 import dev.mothlight.plantagotchi.resources.weather_uv
 import dev.mothlight.plantagotchi.resources.weather_wind
 import dev.mothlight.plantagotchi.ui.game.CodeSprites
-import dev.mothlight.plantagotchi.ui.game.PlantSprites
+import dev.mothlight.plantagotchi.ui.game.PlantPreview
 import dev.mothlight.plantagotchi.ui.theme.PlantagotchiColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -234,14 +234,13 @@ fun FriendsSheet(
                 Modifier.fillMaxWidth().padding(bottom = 8.dp).pixelPanel().padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Canvas(Modifier.size(40.dp)) {
-                    val sprite = when (info?.species) {
-                        dev.mothlight.plantagotchi.data.state.Species.CACTUS -> PlantSprites.cactus[info.stage.coerceIn(0, 2)]
-                        dev.mothlight.plantagotchi.data.state.Species.FERN -> PlantSprites.fern[info.stage.coerceIn(0, 2)]
-                        else -> PlantSprites.fern[0]
-                    }
-                    sprite.drawFit(this, size)
-                }
+                PlantPreview(
+                    species = info?.species ?: dev.mothlight.plantagotchi.data.state.Species.SPROUT,
+                    maturity = (info?.stage ?: 0) / 2f,
+                    seed = code.hashCode(),
+                    withered = info?.dead == true,
+                    modifier = Modifier.size(40.dp),
+                )
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(code, style = MaterialTheme.typography.titleSmall, color = PlantagotchiColors.OffWhite)
