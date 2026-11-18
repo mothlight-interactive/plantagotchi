@@ -176,8 +176,10 @@
     <string name="dev_reset_game">Spiel zurücksetzen</string>
     <string name="dev_reset_game_confirm">Nochmals tippen löscht den Spielstand</string>
     <string name="reward_title">Tägliche Truhe</string>
-    <string name="reward_streak">Serie: %1$d Tage</string>
-    <string name="reward_legend">Grün: abgeholt, rot: verpasst. Ein verpasster Tag beendet die Serie.</string>
+    <plurals name="reward_streak">
+        <item quantity="one">Serie: %1$d Tag</item>
+        <item quantity="other">Serie: %1$d Tage</item>
+    </plurals>
     <string name="reward_today">Heute: +%1$d Münzen</string>
     <string name="reward_claim">Abholen</string>
     <string name="reward_claimed">Heute abgeholt. Morgen: +%1$d Münzen</string>

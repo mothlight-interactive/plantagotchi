@@ -130,134 +130,139 @@ fun ShopSheet(
         }
     }
 
-    Column(
-        modifier
-            .fillMaxWidth()
-            .background(Panel)
-            .verticalScroll(rememberScrollState())
-            .navigationBarsPadding()
-            .padding(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            SheetTitle(stringResource(Res.string.shop_title), Modifier.weight(1f))
-            CoinAmount(player.coins)
-            if (onClose != null) {
-                Spacer(Modifier.width(12.dp))
-                PixelButton(stringResource(Res.string.btn_close), color = PlantagotchiColors.OffWhite, onClick = onClose)
-            }
-        }
-        Text(
-            text = message ?: " ",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFFFF9E9E),
-            modifier = Modifier.padding(vertical = 6.dp),
-        )
-
-        SectionTitle(stringResource(Res.string.shop_supplies))
-        if (plant.dead) {
-            ItemRow(tonic, stringResource(Res.string.item_revive), stringResource(Res.string.item_revive_desc)) {
-                PixelButton("${ShopCatalog.revive.price}", enabled = player.coins >= ShopCatalog.revive.price, showCoin = true) {
-                    buy(ShopCatalog.revive)
+    Column(modifier.fillMaxWidth().background(Panel)) {
+        // Pinned header: title, coins, close and the purchase message stay put while the items scroll.
+        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SheetTitle(stringResource(Res.string.shop_title), Modifier.weight(1f))
+                CoinAmount(player.coins)
+                if (onClose != null) {
+                    Spacer(Modifier.width(12.dp))
+                    PixelButton(stringResource(Res.string.btn_close), color = PlantagotchiColors.OffWhite, onClick = onClose)
                 }
             }
+            Text(
+                text = message ?: " ",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFFFF9E9E),
+                modifier = Modifier.padding(vertical = 6.dp),
+            )
         }
-        ShopCatalog.supplies.forEach { item ->
-            val full = item is ShopItem.Refill && plant.need(item.need) >= GameRules.MAX
-            val (name, description) = when (item) {
-                ShopCatalog.wateringCan -> Res.string.item_watering_can to Res.string.item_watering_can_desc
-                ShopCatalog.fertilizerBag -> Res.string.item_fertilizer to Res.string.item_fertilizer_desc
-                else -> Res.string.item_grow_lamp to Res.string.item_grow_lamp_desc
-            }
-            val descriptionText = if (item is ShopItem.GrowLamp && player.isLampActive(now)) {
-                stringResource(Res.string.item_grow_lamp_active, ((player.lampUntil - now) / 60_000).coerceAtLeast(1))
-            } else {
-                stringResource(description)
-            }
-            ItemRow(item.sprite(), stringResource(name), descriptionText) {
-                if (full) PixelButton(stringResource(Res.string.btn_full), enabled = false) {}
-                else PixelButton("${item.price}", enabled = player.coins >= item.price && !plant.dead, showCoin = true) { buy(item) }
-            }
-        }
+        Column(
+            Modifier
+                .weight(1f, fill = false)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        ) {
 
-        Spacer(Modifier.height(12.dp))
-        SectionTitle("${stringResource(Res.string.shop_plants)} (${player.plants.size}/${PlayerState.MAX_PLANTS})")
-        ShopCatalog.seeds.forEach { seed ->
-            val name = stringResource(Res.string.item_seed, speciesName(seed.species))
-            val description = stringResource(seed.species.descriptionRes())
-            ItemRow(
-                preview = { PlantPreview(seed.species, maturity = 1f, seed = seed.id.hashCode(), modifier = Modifier.size(48.dp)) },
-                name = name,
-                description = description,
-            ) {
-                PixelButton(
-                    "${seed.price}",
-                    enabled = player.coins >= seed.price && player.plants.size < PlayerState.MAX_PLANTS,
-                    showCoin = true,
-                ) { buy(seed) }
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-        SectionTitle(stringResource(Res.string.shop_scenery))
-        ShopCatalog.backdrops.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { item ->
-                    DecorCard(
-                        title = sceneryName(item.scenery),
-                        preview = { ScenePreview(item.scenery, player.ground, Modifier.fillMaxWidth().height(64.dp)) },
-                        owned = item.scenery in player.ownedScenery,
-                        selected = item.scenery == player.scenery,
-                        price = item.price,
-                        affordable = player.coins >= item.price,
-                        onBuy = { buy(item) },
-                        onSelect = { onSelectScenery(item.scenery) },
-                        modifier = Modifier.weight(1f),
-                    )
+            SectionTitle(stringResource(Res.string.shop_supplies))
+            if (plant.dead) {
+                ItemRow(tonic, stringResource(Res.string.item_revive), stringResource(Res.string.item_revive_desc)) {
+                    PixelButton("${ShopCatalog.revive.price}", enabled = player.coins >= ShopCatalog.revive.price, showCoin = true) {
+                        buy(ShopCatalog.revive)
+                    }
                 }
             }
-            Spacer(Modifier.height(8.dp))
-        }
-
-        Spacer(Modifier.height(12.dp))
-        SectionTitle(stringResource(Res.string.shop_ground))
-        ShopCatalog.floors.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { item ->
-                    DecorCard(
-                        title = groundName(item.ground),
-                        preview = { ScenePreview(player.scenery, item.ground, Modifier.fillMaxWidth().height(64.dp)) },
-                        owned = item.ground in player.ownedGrounds,
-                        selected = item.ground == player.ground,
-                        price = item.price,
-                        affordable = player.coins >= item.price,
-                        onBuy = { buy(item) },
-                        onSelect = { onSelectGround(item.ground) },
-                        modifier = Modifier.weight(1f),
-                    )
+            ShopCatalog.supplies.forEach { item ->
+                val full = item is ShopItem.Refill && plant.need(item.need) >= GameRules.MAX
+                val (name, description) = when (item) {
+                    ShopCatalog.wateringCan -> Res.string.item_watering_can to Res.string.item_watering_can_desc
+                    ShopCatalog.fertilizerBag -> Res.string.item_fertilizer to Res.string.item_fertilizer_desc
+                    else -> Res.string.item_grow_lamp to Res.string.item_grow_lamp_desc
                 }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(8.dp))
-        }
-
-        Spacer(Modifier.height(12.dp))
-        SectionTitle(stringResource(Res.string.shop_pots))
-        ShopCatalog.pots.chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { pot ->
-                    PotCard(
-                        pot = pot,
-                        painter = pots.getValue(pot.id),
-                        owned = pot.id in player.ownedPots,
-                        selected = pot.id == plant.pot,
-                        affordable = player.coins >= pot.price,
-                        onBuy = { buy(pot) },
-                        onSelect = { onSelectPot(pot.id) },
-                        modifier = Modifier.weight(1f),
-                    )
+                val descriptionText = if (item is ShopItem.GrowLamp && player.isLampActive(now)) {
+                    stringResource(Res.string.item_grow_lamp_active, ((player.lampUntil - now) / 60_000).coerceAtLeast(1))
+                } else {
+                    stringResource(description)
+                }
+                ItemRow(item.sprite(), stringResource(name), descriptionText) {
+                    if (full) PixelButton(stringResource(Res.string.btn_full), enabled = false) {}
+                    else PixelButton("${item.price}", enabled = player.coins >= item.price && !plant.dead, showCoin = true) { buy(item) }
                 }
             }
-            Spacer(Modifier.height(8.dp))
+
+            Spacer(Modifier.height(12.dp))
+            SectionTitle("${stringResource(Res.string.shop_plants)} (${player.plants.size}/${PlayerState.MAX_PLANTS})")
+            ShopCatalog.seeds.forEach { seed ->
+                val name = stringResource(Res.string.item_seed, speciesName(seed.species))
+                val description = stringResource(seed.species.descriptionRes())
+                ItemRow(
+                    preview = { PlantPreview(seed.species, maturity = 1f, seed = seed.id.hashCode(), modifier = Modifier.size(48.dp)) },
+                    name = name,
+                    description = description,
+                ) {
+                    PixelButton(
+                        "${seed.price}",
+                        enabled = player.coins >= seed.price && player.plants.size < PlayerState.MAX_PLANTS,
+                        showCoin = true,
+                    ) { buy(seed) }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            SectionTitle(stringResource(Res.string.shop_scenery))
+            ShopCatalog.backdrops.chunked(2).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { item ->
+                        DecorCard(
+                            title = sceneryName(item.scenery),
+                            preview = { ScenePreview(item.scenery, player.ground, Modifier.fillMaxWidth().height(64.dp)) },
+                            owned = item.scenery in player.ownedScenery,
+                            selected = item.scenery == player.scenery,
+                            price = item.price,
+                            affordable = player.coins >= item.price,
+                            onBuy = { buy(item) },
+                            onSelect = { onSelectScenery(item.scenery) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+
+            Spacer(Modifier.height(12.dp))
+            SectionTitle(stringResource(Res.string.shop_ground))
+            ShopCatalog.floors.chunked(2).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { item ->
+                        DecorCard(
+                            title = groundName(item.ground),
+                            preview = { ScenePreview(player.scenery, item.ground, Modifier.fillMaxWidth().height(64.dp)) },
+                            owned = item.ground in player.ownedGrounds,
+                            selected = item.ground == player.ground,
+                            price = item.price,
+                            affordable = player.coins >= item.price,
+                            onBuy = { buy(item) },
+                            onSelect = { onSelectGround(item.ground) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+
+            Spacer(Modifier.height(12.dp))
+            SectionTitle(stringResource(Res.string.shop_pots))
+            ShopCatalog.pots.chunked(3).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { pot ->
+                        PotCard(
+                            pot = pot,
+                            painter = pots.getValue(pot.id),
+                            owned = pot.id in player.ownedPots,
+                            selected = pot.id == plant.pot,
+                            affordable = player.coins >= pot.price,
+                            onBuy = { buy(pot) },
+                            onSelect = { onSelectPot(pot.id) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
         }
     }
 }

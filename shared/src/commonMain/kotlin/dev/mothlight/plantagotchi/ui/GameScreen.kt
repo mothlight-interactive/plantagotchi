@@ -308,7 +308,6 @@ fun GameContent(
                                 if (sheet == Sheet.REWARD) sheet = Sheet.NONE
                             }
                         },
-                        onClose = { sheet = Sheet.NONE },
                     )
                     Sheet.DISCARD -> DiscardSheet(
                         plant = state.player.activePlant,
