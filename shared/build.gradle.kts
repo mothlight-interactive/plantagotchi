@@ -8,6 +8,18 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
 }
 
+/** Classifier of the Compose desktop runtime for this machine, e.g. linux-x64 or macos-arm64. */
+val skikoHost: String = run {
+    val os = System.getProperty("os.name").lowercase()
+    val arch = if (System.getProperty("os.arch") in setOf("aarch64", "arm64")) "arm64" else "x64"
+    val name = when {
+        "mac" in os -> "macos"
+        "win" in os -> "windows"
+        else -> "linux"
+    }
+    "$name-$arch"
+}
+
 kotlin {
     android {
         namespace = "dev.mothlight.plantagotchi.shared"
@@ -16,6 +28,12 @@ kotlin {
         androidResources { enable = true }
         compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
         withHostTest {}
+    }
+
+    // JVM desktop target, used only to run Compose UI tests headless (:shared:desktopTest).
+    // Not shipped: there is no desktop app.
+    jvm("desktop") {
+        compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
     }
 
     listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
@@ -71,7 +89,20 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
+        val desktopTest by getting {
+            dependencies {
+                implementation(libs.compose.ui.test)
+                implementation(libs.kotlinx.coroutines.swing)
+                // Skiko native binaries for the machine running the tests.
+                implementation("org.jetbrains.compose.desktop:desktop-jvm-$skikoHost:${libs.versions.compose.multiplatform.get()}")
+            }
+        }
     }
+}
+
+tasks.withType<Test>().matching { it.name == "desktopTest" }.configureEach {
+    // Offscreen rendering with Skia, no display needed (CI runs on a plain Linux runner).
+    systemProperty("java.awt.headless", "true")
 }
 
 compose.resources {
