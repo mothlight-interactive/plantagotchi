@@ -45,11 +45,13 @@ import dev.mothlight.plantagotchi.resources.scenery_beach
 import dev.mothlight.plantagotchi.resources.scenery_forest
 import dev.mothlight.plantagotchi.resources.scenery_city
 import dev.mothlight.plantagotchi.resources.scenery_zen
+import dev.mothlight.plantagotchi.resources.scenery_window
 import dev.mothlight.plantagotchi.resources.ground_grass
 import dev.mothlight.plantagotchi.resources.ground_sand
 import dev.mothlight.plantagotchi.resources.ground_stone
 import dev.mothlight.plantagotchi.resources.ground_wood
 import dev.mothlight.plantagotchi.resources.ground_snow
+import dev.mothlight.plantagotchi.resources.ground_sill
 import dev.mothlight.plantagotchi.resources.pot_color_1
 import dev.mothlight.plantagotchi.resources.pot_color_2
 import dev.mothlight.plantagotchi.resources.pot_color_3
@@ -176,6 +178,7 @@ fun sceneryName(scenery: Scenery): String = stringResource(
         Scenery.FOREST -> Res.string.scenery_forest
         Scenery.CITY -> Res.string.scenery_city
         Scenery.ZEN -> Res.string.scenery_zen
+        Scenery.WINDOW -> Res.string.scenery_window
     }
 )
 
@@ -187,6 +190,7 @@ fun groundName(ground: Ground): String = stringResource(
         Ground.STONE -> Res.string.ground_stone
         Ground.WOOD -> Res.string.ground_wood
         Ground.SNOW -> Res.string.ground_snow
+        Ground.SILL -> Res.string.ground_sill
     }
 )
 

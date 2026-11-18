@@ -36,7 +36,7 @@
     <string name="item_fertilizer">Dünger</string>
     <string name="item_fertilizer_desc">+50 Dünger</string>
     <string name="item_grow_lamp">Pflanzenlampe</string>
-    <string name="item_grow_lamp_desc">30 Min volles Licht</string>
+    <string name="item_grow_lamp_desc">30 Min volles Licht für diese Pflanze</string>
     <string name="item_grow_lamp_active">Aktiv, noch %1$d Min. Kaufen verlängert.</string>
     <string name="item_revive">Lebenselixier</string>
     <string name="item_revive_desc">Belebt eine verwelkte Pflanze</string>
@@ -133,11 +133,13 @@
     <string name="scenery_forest">Wald</string>
     <string name="scenery_city">Stadt</string>
     <string name="scenery_zen">Zen-Garten</string>
+    <string name="scenery_window">Am Fenster</string>
     <string name="ground_grass">Gras</string>
     <string name="ground_sand">Sand</string>
     <string name="ground_stone">Stein</string>
     <string name="ground_wood">Holzdeck</string>
     <string name="ground_snow">Schnee</string>
+    <string name="ground_sill">Fensterbank</string>
     <string name="hint_select_plant">Tippe eine Pflanze an, um sie zu pflegen.</string>
     <string name="settings_music">Musik</string>
     <string name="settings_ambience">Umgebungsgeräusche</string>

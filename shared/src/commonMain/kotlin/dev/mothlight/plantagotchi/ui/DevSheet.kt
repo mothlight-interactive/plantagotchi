@@ -308,7 +308,7 @@ fun DevSheet(state: GameUiState, actions: DevActions, onClose: () -> Unit = {}) 
                 DevChip("0", false) { actions.updatePlayer { it.copy(streak = 0) } }
             }
             DevToggle(stringResource(Res.string.item_grow_lamp), null, state.lampActive) { on ->
-                actions.updatePlayer { it.copy(lampUntil = if (on) now + 30 * 60_000L else 0L) }
+                plantUpdate { it.copy(lampUntil = if (on) now + 30 * 60_000L else 0L) }
             }
             PixelButton(stringResource(Res.string.dev_unlock_all), color = PlantagotchiColors.Sunshine) {
                 actions.updatePlayer {

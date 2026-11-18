@@ -172,8 +172,8 @@ fun ShopSheet(
                     ShopCatalog.fertilizerBag -> Res.string.item_fertilizer to Res.string.item_fertilizer_desc
                     else -> Res.string.item_grow_lamp to Res.string.item_grow_lamp_desc
                 }
-                val descriptionText = if (item is ShopItem.GrowLamp && player.isLampActive(now)) {
-                    stringResource(Res.string.item_grow_lamp_active, ((player.lampUntil - now) / 60_000).coerceAtLeast(1))
+                val descriptionText = if (item is ShopItem.GrowLamp && plant.lampOn(now)) {
+                    stringResource(Res.string.item_grow_lamp_active, ((plant.lampUntil - now) / 60_000).coerceAtLeast(1))
                 } else {
                     stringResource(description)
                 }

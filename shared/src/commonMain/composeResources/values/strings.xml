@@ -36,7 +36,7 @@
     <string name="item_fertilizer">Fertilizer</string>
     <string name="item_fertilizer_desc">+50 fertilizer</string>
     <string name="item_grow_lamp">Grow lamp</string>
-    <string name="item_grow_lamp_desc">Full light for 30 min</string>
+    <string name="item_grow_lamp_desc">Full light for this plant, 30 min</string>
     <string name="item_grow_lamp_active">Active, %1$d min left. Buy to extend.</string>
     <string name="item_revive">Revival tonic</string>
     <string name="item_revive_desc">Brings a withered plant back</string>
@@ -133,11 +133,13 @@
     <string name="scenery_forest">Forest</string>
     <string name="scenery_city">City</string>
     <string name="scenery_zen">Zen garden</string>
+    <string name="scenery_window">By the window</string>
     <string name="ground_grass">Grass</string>
     <string name="ground_sand">Sand</string>
     <string name="ground_stone">Stone</string>
     <string name="ground_wood">Wood deck</string>
     <string name="ground_snow">Snow</string>
+    <string name="ground_sill">Windowsill</string>
     <string name="hint_select_plant">Tap a plant to look after it.</string>
     <string name="settings_music">Music</string>
     <string name="settings_ambience">Ambient sounds</string>

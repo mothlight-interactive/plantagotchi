@@ -16,7 +16,7 @@ data class PlayerState(
     val scenery: Scenery = Scenery.MOUNTAINS,
     val ownedGrounds: Set<Ground> = setOf(Ground.GRASS),
     val ground: Ground = Ground.GRASS,
-    /** Epoch millis until which the grow lamp booster is active (lights all plants). */
+    /** Before 2.2 the grow lamp lit all plants; now it is per plant ([PlantState.lampUntil]). */
     val lampUntil: Long = 0L,
     /** Local epoch day of the last claimed daily reward, -1 if never. */
     val lastRewardDay: Long = -1L,
@@ -34,7 +34,10 @@ data class PlayerState(
 
     val activeIndex: Int get() = plants.indexOf(activePlant)
 
-    fun isLampActive(nowMillis: Long) = nowMillis < lampUntil
+    /** Moves a lamp bought for all plants (older saves) onto every plant. */
+    fun withPerPlantLamps(): PlayerState =
+        if (lampUntil <= 0L) this
+        else copy(plants = plants.map { it.copy(lampUntil = maxOf(it.lampUntil, lampUntil)) }, lampUntil = 0L)
 
     fun updateActive(transform: (PlantState) -> PlantState): PlayerState {
         val active = activePlant

@@ -55,7 +55,11 @@ data class PlantState(
     val criticalSince: Long = 0L,
     val dead: Boolean = false,
     val plantedAt: Long = 0L,
+    /** Epoch millis until which this plant's grow lamp is on. */
+    val lampUntil: Long = 0L,
 ) {
+    fun lampOn(nowMillis: Long): Boolean = nowMillis < lampUntil
+
     /** Average of all needs, 0..100. */
     val health: Double get() = (lux + water + love + fertilizer) / 4.0
 

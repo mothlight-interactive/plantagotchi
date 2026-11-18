@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.lerp
 import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.Scenery
@@ -51,6 +52,106 @@ internal object SceneryRenderer {
             Scenery.FOREST -> forest(area, block, tint, time, wind)
             Scenery.CITY -> city(area, block, tint, time)
             Scenery.ZEN -> zen(area, block, tint, time, wind)
+            Scenery.WINDOW -> window(area, block, tint, time)
+        }
+    }
+
+    /** The glass of the [Scenery.WINDOW] scenery; the weather is clipped to it. */
+    fun windowGlass(area: Rect, block: Float): Rect {
+        val left = snap(area.left + area.width * 0.12f, block)
+        val right = snap(area.left + area.width * 0.88f, block)
+        val top = snap(area.bottom * 0.2f, block)
+        val bottom = snap(area.bottom - block * 3, block)
+        return Rect(left, top, right, bottom)
+    }
+
+    private val wallColor = Color(0xFFE9D8BC)
+    private val wallStripe = Color(0xFFE0CCAC)
+
+    /** Wallpaper from the top of the canvas down to [bottom], leaving out [hole]. */
+    private fun DrawScope.wall(left: Float, right: Float, bottom: Float, hole: Rect?, block: Float, tint: Float) {
+        fun paint(r: Rect) {
+            if (r.width <= 0f || r.height <= 0f) return
+            drawRect(shade(wallColor, tint), r.topLeft, r.size)
+            // Vertical stripes
+            var x = snap(left, block) + block * 4
+            while (x < right) {
+                if (x + block > r.left && x < r.right) {
+                    val sx = maxOf(x, r.left)
+                    drawRect(shade(wallStripe, tint), Offset(sx, r.top), Size(minOf(x + block * 2, r.right) - sx, r.height))
+                }
+                x += block * 10
+            }
+        }
+        if (hole == null) {
+            paint(Rect(left, 0f, right, bottom))
+        } else {
+            paint(Rect(left, 0f, right, hole.top))
+            paint(Rect(left, hole.bottom, right, bottom))
+            paint(Rect(left, hole.top, hole.left, hole.bottom))
+            paint(Rect(hole.right, hole.top, right, hole.bottom))
+        }
+    }
+
+    private fun DrawScope.window(area: Rect, block: Float, tint: Float, time: Float) {
+        val glass = windowGlass(area, block)
+        // Far hills behind the glass
+        clipRect(glass.left, glass.top, glass.right, glass.bottom) {
+            ridge(Rect(glass.left, glass.top, glass.right, glass.bottom), block, glass.height * 0.18f, glass.height * 0.06f, 0.02f, 2f, shade(Color(0xFF6F9A7A), tint))
+            ridge(Rect(glass.left, glass.top, glass.right, glass.bottom), block, glass.height * 0.1f, glass.height * 0.04f, 0.035f, 0.5f, shade(Color(0xFF557D62), tint))
+        }
+        val frame = Rect(glass.left - block * 3, glass.top - block * 3, glass.right + block * 3, glass.bottom + block * 2)
+        wall(area.left, area.right, area.bottom, frame, block, tint)
+
+        // Frame: white wood with a shadow edge and a cross of mullions
+        val wood = shade(Color(0xFFF2EEE4), tint)
+        val woodShadow = shade(Color(0xFFC9C1B0), tint)
+        drawRect(wood, frame.topLeft, Size(frame.width, block * 3))
+        drawRect(wood, Offset(frame.left, frame.top), Size(block * 3, frame.height))
+        drawRect(wood, Offset(frame.right - block * 3, frame.top), Size(block * 3, frame.height))
+        drawRect(wood, Offset(frame.left, glass.bottom), Size(frame.width, block * 2))
+        drawRect(woodShadow, Offset(glass.left, glass.top), Size(glass.width, block))
+        drawRect(woodShadow, Offset(glass.left, glass.top), Size(block, glass.height))
+        val midX = snap(glass.center.x, block) - block
+        val midY = snap(glass.top + glass.height * 0.45f, block)
+        drawRect(wood, Offset(midX, glass.top), Size(block * 2, glass.height))
+        drawRect(wood, Offset(glass.left, midY), Size(glass.width, block * 2))
+        drawRect(woodShadow, Offset(midX + block * 2, glass.top), Size(block, glass.height))
+        drawRect(woodShadow, Offset(glass.left, midY + block * 2), Size(glass.width, block))
+
+        // Reflections on the glass, two short diagonal streaks per upper pane
+        val shine = Color.White.copy(alpha = 0.18f * (1f - (tint / 0.4f).coerceIn(0f, 1f) * 0.7f))
+        listOf(glass.left + block * 4, midX + block * 6).forEach { x0 ->
+            for (i in 0 until 6) {
+                drawRect(shine, Offset(x0 + i * block, glass.top + block * (8 - i)), Size(block, block))
+                drawRect(shine, Offset(x0 + block * 3 + i * block, glass.top + block * (8 - i)), Size(block, block))
+            }
+        }
+
+        // Curtains on both sides, gently moving
+        val sway = snap(sin(time * 0.6f) * block, block)
+        val curtain = shade(Color(0xFFB5524A), tint)
+        val fold = shade(Color(0xFF8E3B36), tint)
+        val rod = shade(Color(0xFF5A3A2A), tint)
+        val curtainW = snap(glass.width * 0.1f, block)
+        drawRect(rod, Offset(frame.left - block * 4, frame.top - block * 3), Size(frame.width + block * 8, block * 2))
+        listOf(frame.left - block * 3 to 1f, frame.right + block * 3 - curtainW to -1f).forEach { (x, dir) ->
+            var y = frame.top - block
+            var row = 0
+            while (y < frame.bottom + block * 2) {
+                // Wider towards the bottom, like a tied curtain
+                val extra = block * minOf(row / 12, 3) + if (row > 10) sway * dir else 0f
+                val left = if (dir > 0) x else x - extra
+                val w = curtainW + extra
+                drawRect(curtain, Offset(left, y), Size(w, block))
+                var fx = left + block * 2
+                while (fx < left + w - block) {
+                    drawRect(fold, Offset(fx, y), Size(block, block))
+                    fx += block * 4
+                }
+                y += block
+                row++
+            }
         }
     }
 
@@ -323,6 +424,33 @@ internal object SceneryRenderer {
                     row++
                 }
                 drawRect(shade(Color(0xFFB08458), tint), area.topLeft, Size(area.width, block))
+            }
+            Ground.SILL -> {
+                // Wall with a radiator below the sill
+                drawRect(shade(Color(0xFFD9C6A8), tint), area.topLeft, area.size)
+                val radTop = area.top + block * 12
+                val radLeft = snap(area.left + area.width * 0.18f, block)
+                val radRight = snap(area.left + area.width * 0.82f, block)
+                if (radTop < area.bottom) {
+                    drawRect(shade(Color(0xFFE8E8E4), tint), Offset(radLeft, radTop), Size(radRight - radLeft, area.bottom - radTop))
+                    var fx = radLeft + block
+                    while (fx < radRight - block) {
+                        drawRect(shade(Color(0xFFC4C4BE), tint), Offset(fx, radTop + block), Size(block, area.bottom - radTop - block))
+                        fx += block * 3
+                    }
+                }
+                // Shadow under the board
+                drawRect(shade(Color(0xFFB8A27F), tint), Offset(area.left, area.top + block * 9), Size(area.width, block * 2))
+                // The board: top surface, grain and the front edge
+                drawRect(shade(Color(0xFFC9A274), tint), area.topLeft, Size(area.width, block * 7))
+                drawRect(shade(Color(0xFFDDBB8C), tint), area.topLeft, Size(area.width, block))
+                val random = Random(61)
+                repeat((area.width / (block * 9)).toInt()) {
+                    val x = snap(area.left + random.nextFloat() * area.width, block)
+                    val y = area.top + block * (2 + random.nextInt(4))
+                    drawRect(shade(Color(0xFFB08A5E), tint), Offset(x, y), Size(block * (3 + random.nextInt(5)), block))
+                }
+                drawRect(shade(Color(0xFF8D6744), tint), Offset(area.left, area.top + block * 7), Size(area.width, block * 2))
             }
             Ground.SNOW -> {
                 drawRect(shade(Color(0xFFF4F7FF), tint), area.topLeft, area.size)

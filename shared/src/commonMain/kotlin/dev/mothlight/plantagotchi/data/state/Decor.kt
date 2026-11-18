@@ -11,6 +11,9 @@ enum class Scenery(val price: Int) {
     FOREST(150),
     CITY(250),
     ZEN(300),
+
+    /** Indoors: a wall with a window; the sky and weather show through the glass. */
+    WINDOW(250),
 }
 
 /** What the pots stand on. */
@@ -21,4 +24,7 @@ enum class Ground(val price: Int) {
     STONE(100),
     WOOD(120),
     SNOW(100),
+
+    /** Wooden windowsill with a radiator below. */
+    SILL(100),
 }

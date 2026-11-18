@@ -26,6 +26,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
+import dev.mothlight.plantagotchi.data.state.Ground
+import dev.mothlight.plantagotchi.data.state.Scenery
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
@@ -66,6 +69,9 @@ enum class SceneTarget {
 
     /** The grow lamp was pushed and starts swinging. */
     LAMP,
+
+    /** Two lamps of the cradle "hit" each other. */
+    LAMP_CLICK,
 }
 
 /** Localized texts the canvas draws. */
@@ -112,7 +118,7 @@ fun GameCanvas(
     LaunchedEffect(Unit) {
         while (true) {
             withFrameNanos { frameNanos.longValue = it }
-            val idle = frameNanos.longValue - lastActivity.longValue > IDLE_AFTER_NANOS
+            val idle = frameNanos.longValue - lastActivity.longValue > IDLE_AFTER_NANOS && !scene.lampSwinging
             delay(if (idle) IDLE_FRAME_DELAY_MS else ACTIVE_FRAME_DELAY_MS)
         }
     }
@@ -147,8 +153,10 @@ fun GameCanvas(
                     },
                 ) { offset ->
                     val l = scene.layout
-                    if (currentState.lampActive && l != null && scene.lampHit(offset, l)) {
-                        if (scene.pushLamp()) currentOnTap(SceneTarget.LAMP)
+                    val lamp = if (l != null) scene.lampAt(offset, l, currentState) else null
+                    if (lamp != null) {
+                        val lit = currentState.litPlants.map { currentState.player.plants[it].id }
+                        if (scene.pushLamp(lamp, lit)) currentOnTap(SceneTarget.LAMP)
                         return@detectTapGestures
                     }
                     val selected = scene.plantAt(offset, currentState)
@@ -176,6 +184,7 @@ fun GameCanvas(
         )
         scene.layout = layout
         scene.advance(frameNanos.longValue, state)
+        if (scene.lampClicked()) currentOnTap(SceneTarget.LAMP_CLICK)
 
         val targetMinutes = state.weather.localTime.minutesOfDay()
         scene.shownMinutes = if (scene.shownMinutes < 0) targetMinutes
@@ -185,19 +194,27 @@ fun GameCanvas(
         drawSky(scene, sprites, state.weather, scene.shownMinutes)
         drawWeatherBack(scene)
         val wind = (state.weather.facts.windSpeed.toFloat() / 40f).coerceIn(0f, 1f)
+        val sceneryArea = Rect(0f, size.height * 0.3f, size.width, layout.ground.top)
         SceneryRenderer.drawScenery(
-            this, state.player.scenery,
-            Rect(0f, size.height * 0.3f, size.width, layout.ground.top),
+            this, state.player.scenery, sceneryArea,
             block = 4 * layout.dp, tint = tint, time = scene.time, wind = wind, sprites = sprites,
         )
-        drawWeatherFront(scene, sprites, tint)
-        drawButterflies(scene, state, layout)
-        drawFireflies(scene, state, layout)
+        val indoors = state.player.scenery == Scenery.WINDOW
+        if (indoors) {
+            // Weather only behind the glass
+            val glass = SceneryRenderer.windowGlass(sceneryArea, 4 * layout.dp)
+            clipRect(glass.left, glass.top, glass.right, glass.bottom) { drawWeatherFront(scene, sprites, tint) }
+        } else {
+            drawWeatherFront(scene, sprites, tint)
+            drawButterflies(scene, state, layout)
+            drawFireflies(scene, state, layout)
+        }
         SceneryRenderer.drawGround(this, state.player.ground, layout.ground, 4 * layout.dp, tint, scene.time, sprites)
-        if (state.player.ground != dev.mothlight.plantagotchi.data.state.Ground.SNOW) drawGroundSeason(state.season, layout)
-        if (state.lampActive) drawLampLight(scene, layout)
+        if (state.player.ground !in setOf(Ground.SNOW, Ground.SILL)) drawGroundSeason(state.season, layout)
+        val lit = state.litPlants
+        lit.forEach { drawLampLight(scene, layout, it, state.player.plants[it].id) }
         drawPlants(scene, state, sprites, layout)
-        if (state.lampActive) drawLamp(scene, layout)
+        lit.forEach { drawLamp(scene, layout, it, state.player.plants[it].id) }
         drawTools(scene, layout)
         drawTemperatureOverlay(scene, state, layout)
         drawEffects(scene, sprites, layout, textMeasurer, textStyle)
@@ -232,16 +249,19 @@ private fun SceneState.hitTest(offset: Offset, state: GameUiState): SceneTarget?
 }
 
 /** Whether [offset] touches the (swinging) lamp shade. */
-private fun SceneState.lampHit(offset: Offset, l: SceneLayout): Boolean {
-    val lamp = SceneState.lampPosition(l)
-    val angle = lampSwing() / 180f * kotlin.math.PI.toFloat()
-    // Rotate the lamp position around the suspension point at the top of the screen.
-    val x = lamp.x - sin(angle) * lamp.y
-    val y = cos(angle) * lamp.y
-    val dx = offset.x - x
-    val dy = offset.y - y
-    return dx * dx + dy * dy < (36 * l.dp) * (36 * l.dp)
-}
+/** Id of the plant whose (swinging) lamp is at [offset], if any. */
+private fun SceneState.lampAt(offset: Offset, l: SceneLayout, state: GameUiState): String? =
+    state.litPlants.firstOrNull { index ->
+        val id = state.player.plants[index].id
+        val lamp = SceneState.lampPosition(l, index)
+        val angle = lampSwing(id) / 180f * kotlin.math.PI.toFloat()
+        // Rotate the lamp position around the suspension point at the top of the screen.
+        val x = lamp.x - sin(angle) * lamp.y
+        val y = cos(angle) * lamp.y
+        val dx = offset.x - x
+        val dy = offset.y - y
+        dx * dx + dy * dy < (36 * l.dp) * (36 * l.dp)
+    }?.let { state.player.plants[it].id }
 
 /** Index of a plant other than the active one at [offset], to select it. */
 private fun SceneState.plantAt(offset: Offset, state: GameUiState): Int? {
@@ -319,19 +339,21 @@ private inline fun DrawScope.drawIntoLayer(filter: ColorFilter, crossinline bloc
     drawContext.canvas.restore()
 }
 
-private fun DrawScope.drawLampLight(scene: SceneState, l: SceneLayout) {
-    val lamp = SceneState.lampPosition(l)
-    val pulse = 0.85f + 0.15f * sin(scene.time * 3f)
-    val bottom = l.leaves.bottom
-    rotate(scene.lampSwing(), Offset(lamp.x, 0f)) {
+private fun DrawScope.drawLampLight(scene: SceneState, l: SceneLayout, index: Int, plantId: String) {
+    val lamp = SceneState.lampPosition(l, index)
+    val pulse = 0.85f + 0.15f * sin(scene.time * 3f + index)
+    val plant = l.slots[index].plant
+    val leaves = Rect(plant.left + plant.width * 0.25f, plant.top + plant.height * 0.35f, plant.right - plant.width * 0.25f, plant.bottom - plant.height * 0.1f)
+    val bottom = leaves.bottom
+    rotate(scene.lampSwing(plantId), Offset(lamp.x, 0f)) {
         // The shade (12 x 10 sprite pixels of 4 dp, centered on the lamp) ends 4 dp below its center:
         // the light starts right at its rim.
         val rim = lamp.y + 4 * l.dp
         val cone = Path().apply {
             moveTo(lamp.x - 22 * l.dp, rim)
             lineTo(lamp.x + 22 * l.dp, rim)
-            lineTo(l.leaves.right + 20 * l.dp, bottom)
-            lineTo(l.leaves.left - 20 * l.dp, bottom)
+            lineTo(leaves.right + 20 * l.dp, bottom)
+            lineTo(leaves.left - 20 * l.dp, bottom)
             close()
         }
         drawPath(
@@ -342,9 +364,9 @@ private fun DrawScope.drawLampLight(scene: SceneState, l: SceneLayout) {
     }
 }
 
-private fun DrawScope.drawLamp(scene: SceneState, l: SceneLayout) {
-    val lamp = SceneState.lampPosition(l)
-    rotate(scene.lampSwing(), Offset(lamp.x, 0f)) {
+private fun DrawScope.drawLamp(scene: SceneState, l: SceneLayout, index: Int, plantId: String) {
+    val lamp = SceneState.lampPosition(l, index)
+    rotate(scene.lampSwing(plantId), Offset(lamp.x, 0f)) {
         // Cord, glow and lamp all swing together.
         drawLine(Color(0xFF222034), Offset(lamp.x, 0f), lamp, strokeWidth = 2 * l.dp)
         val sprite = CodeSprites.growLamp
