@@ -3,6 +3,7 @@ package dev.mothlight.plantagotchi.ui.game
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import dev.mothlight.plantagotchi.data.state.RoomSpot
 
 /** One plant in its pot. The plant rect shares the pot's 296 px wide viewport width. */
 internal class PlantSlot(val pot: Rect, val plant: Rect) {
@@ -21,6 +22,8 @@ internal class SceneLayout(
     val ground: Rect,
     val slots: List<PlantSlot>,
     val activeIndex: Int,
+    /** Set in the cozy room. */
+    val room: RoomGeometry?,
     val coinHud: Rect,
     val weatherChip: Rect,
     val menuButton: Rect,
@@ -57,6 +60,8 @@ internal class SceneLayout(
             weights: List<Float>,
             potAspects: List<Float>,
             activeIndex: Int,
+            /** Spots per plant in the cozy room; null for the outdoor row. */
+            roomSpots: List<RoomSpot>? = null,
         ): SceneLayout {
             val w = size.width
             val h = size.height
@@ -65,7 +70,17 @@ internal class SceneLayout(
             val available = w * 0.96f
             val total = weights.sum().coerceAtLeast(0.01f)
             var x = (w - available) / 2
-            val slots = weights.mapIndexed { i, weight ->
+            val room = if (roomSpots != null) RoomGeometry(size, ground.top, 4 * dp) else null
+            val slots = if (room != null && roomSpots != null) roomSpots.mapIndexed { i, spot ->
+                val (anchor, baseWidth) = room.anchor(spot)
+                // The active plant stands out a little.
+                val potWidth = baseWidth * (if (i == activeIndex) 1.12f else 1f)
+                val potBottom = anchor.y + potWidth * 0.03f
+                val pot = Rect(anchor.x - potWidth / 2, potBottom - potWidth * potAspects[i], anchor.x + potWidth / 2, potBottom)
+                val plantBottom = pot.top + potWidth * 0.006f
+                val plantSize = potWidth * PLANT_TO_POT
+                PlantSlot(pot, Rect(anchor.x - plantSize / 2, plantBottom - plantSize, anchor.x + plantSize / 2, plantBottom))
+            } else weights.mapIndexed { i, weight ->
                 val slotWidth = available * weight / total
                 val potWidth = minOf(slotWidth * 0.9f, w * 0.62f * weight / ACTIVE_WEIGHT)
                 val potBottom = ground.top + potWidth * 0.14f
@@ -101,7 +116,7 @@ internal class SceneLayout(
             }
 
             return SceneLayout(
-                size, dp, ground, slots, activeIndex, coinHud, weatherChip, menuButton, chest, shopButton,
+                size, dp, ground, slots, activeIndex, room, coinHud, weatherChip, menuButton, chest, shopButton,
                 plantLabelY = weatherChip.bottom + 14 * dp,
                 replantButton = replant, compostButton = compost,
                 needsLabelBaseline = bubbleTop - 4 * dp, bubbles = bubbles,

@@ -1,8 +1,6 @@
 package dev.mothlight.plantagotchi.ui.game
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawing
@@ -26,6 +24,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import dev.mothlight.plantagotchi.data.state.RoomSpot
 import androidx.compose.ui.graphics.drawscope.clipRect
 import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.Scenery
@@ -72,6 +73,10 @@ enum class SceneTarget {
 
     /** Two lamps of the cradle "hit" each other. */
     LAMP_CLICK,
+
+    /** The cat in the cozy room, or its desk lamp. */
+    CAT,
+    DESK_LAMP,
 }
 
 /** Localized texts the canvas draws. */
@@ -95,6 +100,8 @@ fun GameCanvas(
     modifier: Modifier = Modifier,
     onSelectPlant: (Int) -> Unit = {},
     events: Flow<GameEvent> = emptyFlow(),
+    onMovePlant: (Int, RoomSpot) -> Unit = { _, _ -> },
+    onSwapPlants: (Int, Int) -> Unit = { _, _ -> },
 ) {
     val sprites = rememberSceneSprites()
     val scene = remember { SceneState() }
@@ -109,6 +116,8 @@ fun GameCanvas(
     val currentOnPet by rememberUpdatedState(onPet)
     val currentOnTap by rememberUpdatedState(onTap)
     val currentOnSelect by rememberUpdatedState(onSelectPlant)
+    val currentOnMove by rememberUpdatedState(onMovePlant)
+    val currentOnSwap by rememberUpdatedState(onSwapPlants)
     val currentState by rememberUpdatedState(state)
 
     val frameNanos = remember { mutableLongStateOf(0L) }
@@ -139,36 +148,67 @@ fun GameCanvas(
         modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = { active() },
-                    onLongPress = { offset ->
-                        val l = scene.layout ?: return@detectTapGestures
-                        val other = scene.plantAt(offset, currentState)
-                        if (other != null) {
-                            currentOnSelect(other)
-                            currentOnTap(SceneTarget.DISCARD)
-                        } else if (l.slots[l.activeIndex].touch.contains(offset)) {
-                            currentOnTap(SceneTarget.DISCARD)
-                        }
-                    },
-                ) { offset ->
-                    val l = scene.layout
-                    val lamp = if (l != null) scene.lampAt(offset, l, currentState) else null
-                    if (lamp != null) {
-                        val lit = currentState.litPlants.map { currentState.player.plants[it].id }
-                        if (scene.pushLamp(lamp, lit)) currentOnTap(SceneTarget.LAMP)
-                        return@detectTapGestures
-                    }
-                    val selected = scene.plantAt(offset, currentState)
-                    if (selected != null) currentOnSelect(selected)
-                    else scene.hitTest(offset, currentState)?.let { currentOnTap(it) }
-                }
-            }
-            .pointerInput(Unit) {
-                detectDragGestures { change, drag ->
+                // One handler for everything: tap, swipe to pet, long press (discard dialog) and
+                // long press + drag to move a plant.
+                val longPressMs = viewConfiguration.longPressTimeoutMillis
+                val slop = viewConfiguration.touchSlop
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
                     active()
-                    change.consume()
-                    currentOnPet(drag.y)
+                    val start = down.position
+                    val held = scene.plantIndexAt(start, currentState)
+                    var mode = GestureMode.UNDECIDED
+                    var lastUptime = down.uptimeMillis
+                    while (true) {
+                        val event = if (mode == GestureMode.UNDECIDED && held != null) {
+                            val left = longPressMs - (lastUptime - down.uptimeMillis)
+                            withTimeoutOrNull(left.coerceAtLeast(1L)) { awaitPointerEvent() }
+                        } else {
+                            awaitPointerEvent()
+                        }
+                        if (event == null) {
+                            // Long press on a plant: pick it up
+                            mode = GestureMode.HOLD
+                            scene.dragIndex = held
+                            scene.dragStart = start
+                            scene.dragPosition = start
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            continue
+                        }
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        lastUptime = change.uptimeMillis
+                        active()
+                        if (!change.pressed) {
+                            when (mode) {
+                                GestureMode.UNDECIDED -> handleTap(scene, change.position, currentState, currentOnTap, currentOnSelect)
+                                GestureMode.HOLD -> {
+                                    val index = scene.dragIndex
+                                    val moved = scene.dragOffset.getDistance() > slop * 2
+                                    scene.dragIndex = null
+                                    if (index != null && !moved) {
+                                        if (index != currentState.player.activeIndex) currentOnSelect(index)
+                                        currentOnTap(SceneTarget.DISCARD)
+                                    } else if (index != null) {
+                                        drop(scene, index, change.position - start, currentState, currentOnMove, currentOnSwap)
+                                    }
+                                }
+                                GestureMode.PET -> Unit
+                            }
+                            break
+                        }
+                        when (mode) {
+                            GestureMode.UNDECIDED -> if ((change.position - start).getDistance() > slop) mode = GestureMode.PET
+                            GestureMode.PET -> {
+                                currentOnPet(change.position.y - change.previousPosition.y)
+                                change.consume()
+                            }
+                            GestureMode.HOLD -> {
+                                scene.dragPosition = change.position
+                                change.consume()
+                            }
+                        }
+                    }
+                    if (mode == GestureMode.HOLD) scene.dragIndex = null
                 }
             }
     ) {
@@ -181,6 +221,7 @@ fun GameCanvas(
             weights = scene.weights(state),
             potAspects = state.player.plants.map { sprites.pot(it.pot).aspectRatioOrDefault(190f / 296f) },
             activeIndex = state.player.activeIndex,
+            roomSpots = if (state.player.scenery == Scenery.ROOM) RoomSpot.assign(state.player.plants) else null,
         )
         scene.layout = layout
         scene.advance(frameNanos.longValue, state)
@@ -194,23 +235,24 @@ fun GameCanvas(
         drawSky(scene, sprites, state.weather, scene.shownMinutes)
         drawWeatherBack(scene)
         val wind = (state.weather.facts.windSpeed.toFloat() / 40f).coerceIn(0f, 1f)
-        val sceneryArea = Rect(0f, size.height * 0.3f, size.width, layout.ground.top)
-        SceneryRenderer.drawScenery(
-            this, state.player.scenery, sceneryArea,
-            block = 4 * layout.dp, tint = tint, time = scene.time, wind = wind, sprites = sprites,
-        )
-        val indoors = state.player.scenery == Scenery.WINDOW
-        if (indoors) {
-            // Weather only behind the glass
-            val glass = SceneryRenderer.windowGlass(sceneryArea, 4 * layout.dp)
-            clipRect(glass.left, glass.top, glass.right, glass.bottom) { drawWeatherFront(scene, sprites, tint) }
+        val room = layout.room
+        if (room != null) {
+            // Weather only behind the glass, then the room in front of it
+            clipRect(room.glass.left, room.glass.top, room.glass.right, room.glass.bottom) { drawWeatherFront(scene, sprites, tint) }
+            RoomRenderer.draw(this, room, 4 * layout.dp, tint, scene.time, scene.deskLampOn, scene.catFlickAt)
+            if (scene.dragIndex != null) drawDropSpots(scene, state, layout, room)
         } else {
+            val sceneryArea = Rect(0f, size.height * 0.3f, size.width, layout.ground.top)
+            SceneryRenderer.drawScenery(
+                this, state.player.scenery, sceneryArea,
+                block = 4 * layout.dp, tint = tint, time = scene.time, wind = wind, sprites = sprites,
+            )
             drawWeatherFront(scene, sprites, tint)
             drawButterflies(scene, state, layout)
             drawFireflies(scene, state, layout)
+            SceneryRenderer.drawGround(this, state.player.ground, layout.ground, 4 * layout.dp, tint, scene.time, sprites)
+            if (state.player.ground != Ground.SNOW) drawGroundSeason(state.season, layout)
         }
-        SceneryRenderer.drawGround(this, state.player.ground, layout.ground, 4 * layout.dp, tint, scene.time, sprites)
-        if (state.player.ground !in setOf(Ground.SNOW, Ground.SILL)) drawGroundSeason(state.season, layout)
         val lit = state.litPlants
         lit.forEach { drawLampLight(scene, layout, it, state.player.plants[it].id) }
         drawPlants(scene, state, sprites, layout)
@@ -285,9 +327,18 @@ private fun DrawScope.drawPlants(scene: SceneState, state: GameUiState, sprites:
     val t = scene.time
     val noon = (state.weather.sunrise.minutesOfDay() + state.weather.sunset.minutesOfDay()) / 2
     val plants = state.player.plants
-    // Others first, the active plant on top.
-    val order = plants.indices.sortedBy { if (it == l.activeIndex) 1 else 0 }
+    // Others first, the active plant on top, a plant being moved above everything.
+    val order = plants.indices.sortedBy { if (it == scene.dragIndex) 2 else if (it == l.activeIndex) 1 else 0 }
     order.forEach { i ->
+        val dragged = i == scene.dragIndex
+        val lift = if (dragged) scene.dragOffset + Offset(0f, -6 * l.dp) else Offset.Zero
+        withTransform({ translate(lift.x, lift.y) }) { drawPlant(scene, state, sprites, l, i, t, noon) }
+    }
+}
+
+private fun DrawScope.drawPlant(scene: SceneState, state: GameUiState, sprites: SceneSprites, l: SceneLayout, i: Int, t: Float, noon: Float) {
+    run {
+        val plants = state.player.plants
         val plant = plants[i]
         val slot = l.slots[i]
         val active = i == l.activeIndex
@@ -683,3 +734,89 @@ private const val LOW_NEED = 20f
 private const val ACTIVE_FRAME_DELAY_MS = 22L
 private const val IDLE_FRAME_DELAY_MS = 55L
 private const val IDLE_AFTER_NANOS = 20_000_000_000L
+
+private enum class GestureMode { UNDECIDED, PET, HOLD }
+
+/** Index of the plant (active or not) under [offset], the active one first. */
+private fun SceneState.plantIndexAt(offset: Offset, state: GameUiState): Int? {
+    val l = layout ?: return null
+    if (state.player.activePlant.dead && (l.replantButton.contains(offset) || l.compostButton.contains(offset))) return null
+    if (l.slots[l.activeIndex].touch.contains(offset)) return l.activeIndex
+    return l.slots.indices.firstOrNull { it != l.activeIndex && l.slots[it].touch.contains(offset) }
+}
+
+private fun handleTap(
+    scene: SceneState,
+    offset: Offset,
+    state: GameUiState,
+    onTap: (SceneTarget) -> Unit,
+    onSelect: (Int) -> Unit,
+) {
+    val l = scene.layout ?: return
+    val lamp = scene.lampAt(offset, l, state)
+    if (lamp != null) {
+        val lit = state.litPlants.map { state.player.plants[it].id }
+        if (scene.pushLamp(lamp, lit)) onTap(SceneTarget.LAMP)
+        return
+    }
+    val room = l.room
+    if (room != null) {
+        if (room.deskLamp.inflate(6 * l.dp).contains(offset)) {
+            scene.deskLampOn = !scene.deskLampOn
+            onTap(SceneTarget.DESK_LAMP)
+            return
+        }
+        if (room.cat.inflate(6 * l.dp).contains(offset)) {
+            scene.catFlickAt = scene.time
+            onTap(SceneTarget.CAT)
+            return
+        }
+    }
+    val selected = scene.plantAt(offset, state)
+    if (selected != null) onSelect(selected)
+    else scene.hitTest(offset, state)?.let { onTap(it) }
+}
+
+/** Where a dragged pot would land: the spot (room) or plant slot (outdoors) nearest to it. */
+private fun dropTarget(scene: SceneState, index: Int, delta: Offset, state: GameUiState): Any? {
+    val l = scene.layout ?: return null
+    val pot = l.slots[index].pot
+    val dropped = Offset(pot.center.x, pot.bottom) + delta
+    val room = l.room
+    return if (room != null) {
+        RoomSpot.entries
+            .map { it to (room.anchor(it).first - dropped).getDistance() }
+            .filter { it.second < l.size.width * 0.22f }
+            .minByOrNull { it.second }?.first
+    } else {
+        l.slots.indices.minByOrNull { kotlin.math.abs(l.slots[it].pot.center.x - dropped.x) }?.takeIf { it != index }
+    }
+}
+
+private fun drop(
+    scene: SceneState,
+    index: Int,
+    delta: Offset,
+    state: GameUiState,
+    onMove: (Int, RoomSpot) -> Unit,
+    onSwap: (Int, Int) -> Unit,
+) {
+    when (val target = dropTarget(scene, index, delta, state)) {
+        is RoomSpot -> onMove(index, target)
+        is Int -> onSwap(index, target)
+    }
+}
+
+/** While a plant is carried in the room: the spots it can go to, the nearest one highlighted. */
+private fun DrawScope.drawDropSpots(scene: SceneState, state: GameUiState, l: SceneLayout, room: RoomGeometry) {
+    val index = scene.dragIndex ?: return
+    val target = dropTarget(scene, index, scene.dragOffset, state)
+    RoomSpot.entries.forEach { spot ->
+        val (anchor, width) = room.anchor(spot)
+        val highlight = spot == target
+        val color = if (highlight) Color(0xCCFFEB57) else Color(0x66FFFFFF)
+        val r = Rect(anchor.x - width / 2, anchor.y - 4 * l.dp, anchor.x + width / 2, anchor.y + 4 * l.dp)
+        drawOval(color, r.topLeft, r.size, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2 * l.dp))
+        if (highlight) drawOval(Color(0x33FFEB57), r.topLeft, r.size)
+    }
+}

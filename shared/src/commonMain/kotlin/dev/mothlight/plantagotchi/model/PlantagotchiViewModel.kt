@@ -25,6 +25,8 @@ import dev.mothlight.plantagotchi.audio.AudioAssets
 import dev.mothlight.plantagotchi.audio.AudioDirector
 import dev.mothlight.plantagotchi.data.shop.Need
 import dev.mothlight.plantagotchi.data.state.Species
+import dev.mothlight.plantagotchi.data.state.Arrangement
+import dev.mothlight.plantagotchi.data.state.RoomSpot
 import dev.mothlight.plantagotchi.platform.WidgetSnapshot
 import dev.mothlight.plantagotchi.platform.Reminder
 import dev.mothlight.plantagotchi.dev.AppEnv
@@ -224,6 +226,18 @@ class PlantagotchiViewModel(
     }
 
     fun compost() = updatePlayer { Shop.compost(it) }
+
+    /** Moves plant [index] to [spot] in the cozy room; a plant there swaps with it. */
+    fun movePlant(index: Int, spot: RoomSpot) {
+        updatePlayer { Arrangement.move(it, index, spot) }
+        sound(Sfx.DECOR)
+    }
+
+    /** Swaps two plants in the outdoor row. */
+    fun swapPlants(from: Int, to: Int) {
+        updatePlayer { Arrangement.swap(it, from, to) }
+        sound(Sfx.DECOR)
+    }
 
     /** Discards the active plant, also a living one (see [Shop.discard]). */
     fun discardPlant() {

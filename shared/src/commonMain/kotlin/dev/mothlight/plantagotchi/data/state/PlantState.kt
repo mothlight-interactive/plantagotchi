@@ -57,6 +57,8 @@ data class PlantState(
     val plantedAt: Long = 0L,
     /** Epoch millis until which this plant's grow lamp is on. */
     val lampUntil: Long = 0L,
+    /** Where the plant stands in the [Scenery.ROOM]; null = first free spot. */
+    val spot: RoomSpot? = null,
 ) {
     fun lampOn(nowMillis: Long): Boolean = nowMillis < lampUntil
 

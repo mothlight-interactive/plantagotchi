@@ -92,6 +92,16 @@ internal class SceneState {
     private var lastAmbientAt = 0f
     private var lastActiveIndex = -1
 
+    // Cozy room: the desk lamp can be switched, the cat flicks its tail when tapped.
+    var deskLampOn = true
+    var catFlickAt = -10f
+
+    /** Plant being moved with a long press and drag, where the drag started and the finger is. */
+    var dragIndex: Int? = null
+    var dragStart = Offset.Zero
+    var dragPosition = Offset.Zero
+    val dragOffset: Offset get() = dragPosition - dragStart
+
     // Grow lamps hang above every lit plant and stay still until tapped. A single lamp swings out
     // with damping. With two or more, the end lamps form a Newton's cradle: the tapped end swings
     // out and back, "hits" the row, and the lamp at the other end flies out, back and forth.
@@ -487,8 +497,12 @@ internal class SceneState {
         /** Lamp above the active plant. */
         fun lampPosition(l: SceneLayout) = lampPosition(l, l.activeIndex)
 
-        /** Lamp above plant [index]; all lamps hang at the same height, like a cradle. */
-        fun lampPosition(l: SceneLayout, index: Int) = Offset(l.slots[index].plant.center.x, l.plant.top + l.plant.height * 0.12f)
+        /** Lamp above plant [index]; outdoors all lamps hang at the same height, like a cradle. */
+        fun lampPosition(l: SceneLayout, index: Int): Offset {
+            val plant = l.slots[index].plant
+            val top = if (l.room != null) plant else l.plant
+            return Offset(plant.center.x, top.top + top.height * 0.12f)
+        }
     }
 }
 

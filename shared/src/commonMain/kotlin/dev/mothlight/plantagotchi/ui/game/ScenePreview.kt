@@ -32,6 +32,6 @@ fun ScenePreview(scenery: Scenery, ground: Ground, modifier: Modifier = Modifier
         drawRect(Brush.verticalGradient(listOf(Color(0xFF5DA9E9), Color(0xFFBFE3FF))))
         val groundTop = size.height * 0.72f
         SceneryRenderer.drawScenery(this, scenery, Rect(0f, 0f, size.width, groundTop), block, 0f, time, 0.4f, null)
-        SceneryRenderer.drawGround(this, ground, Rect(0f, groundTop, size.width, size.height), block, 0f, time, null)
+        if (scenery != Scenery.ROOM) SceneryRenderer.drawGround(this, ground, Rect(0f, groundTop, size.width, size.height), block, 0f, time, null)
     }
 }
