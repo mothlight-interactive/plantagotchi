@@ -27,7 +27,6 @@ import dev.mothlight.plantagotchi.data.state.DailyReward
 import dev.mothlight.plantagotchi.data.state.DayMark
 import dev.mothlight.plantagotchi.data.state.PlayerState
 import dev.mothlight.plantagotchi.resources.Res
-import dev.mothlight.plantagotchi.resources.btn_close
 import dev.mothlight.plantagotchi.resources.day_fri
 import dev.mothlight.plantagotchi.resources.day_mon
 import dev.mothlight.plantagotchi.resources.day_sat
@@ -37,36 +36,32 @@ import dev.mothlight.plantagotchi.resources.day_tue
 import dev.mothlight.plantagotchi.resources.day_wed
 import dev.mothlight.plantagotchi.resources.reward_claim
 import dev.mothlight.plantagotchi.resources.reward_claimed
-import dev.mothlight.plantagotchi.resources.reward_legend
 import dev.mothlight.plantagotchi.resources.reward_streak
 import dev.mothlight.plantagotchi.resources.reward_title
 import dev.mothlight.plantagotchi.resources.reward_today
 import dev.mothlight.plantagotchi.ui.theme.PlantagotchiColors
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** The daily chest: last 7 days (collected, missed, today), the streak and the claim button. */
 @Composable
-fun RewardSheet(player: PlayerState, today: Long, onClaim: () -> Unit, onClose: () -> Unit) {
+fun RewardSheet(player: PlayerState, today: Long, onClaim: () -> Unit) {
     val available = DailyReward.isAvailable(player, today)
     val streak = DailyReward.currentStreak(player, today)
     val days = DailyReward.recentDays(player, today)
 
     Column(Modifier.fillMaxWidth().background(Panel).navigationBarsPadding().padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                stringResource(Res.string.reward_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = PlantagotchiColors.Sunshine,
-                maxLines = 1,
-                modifier = Modifier.weight(1f),
-            )
-            PixelButton(stringResource(Res.string.btn_close), color = PlantagotchiColors.OffWhite, onClick = onClose)
-        }
+        Text(
+            stringResource(Res.string.reward_title),
+            style = MaterialTheme.typography.titleLarge,
+            color = PlantagotchiColors.Sunshine,
+            maxLines = 1,
+        )
         Spacer(Modifier.height(8.dp))
         Text(
-            stringResource(Res.string.reward_streak, streak),
+            pluralStringResource(Res.plurals.reward_streak, streak, streak),
             style = MaterialTheme.typography.titleMedium,
             color = PlantagotchiColors.Fertilizer,
         )
@@ -84,8 +79,6 @@ fun RewardSheet(player: PlayerState, today: Long, onClaim: () -> Unit, onClose: 
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Text(stringResource(Res.string.reward_legend), style = MaterialTheme.typography.bodySmall, color = Color(0xB3EDEDED))
         Spacer(Modifier.height(16.dp))
         if (available) {
             val next = DailyReward.amount(DailyReward.nextStreak(player, today))

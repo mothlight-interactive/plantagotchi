@@ -176,8 +176,10 @@
     <string name="dev_reset_game">Reset game</string>
     <string name="dev_reset_game_confirm">Tap again to delete the save game</string>
     <string name="reward_title">Daily chest</string>
-    <string name="reward_streak">Streak: %1$d days</string>
-    <string name="reward_legend">Green: collected, red: missed. A missed day ends the streak.</string>
+    <plurals name="reward_streak">
+        <item quantity="one">Streak: %1$d day</item>
+        <item quantity="other">Streak: %1$d days</item>
+    </plurals>
     <string name="reward_today">Today: +%1$d coins</string>
     <string name="reward_claim">Collect</string>
     <string name="reward_claimed">Collected today. Tomorrow: +%1$d coins</string>
