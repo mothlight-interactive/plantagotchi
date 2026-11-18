@@ -656,6 +656,8 @@ private fun DrawScope.drawNeeds(
 private const val LOW_NEED = 20f
 
 // Frame pacing: pixel art needs no 60/120 fps. ~30 fps while the player interacts, ~15 fps when idle.
+// iOS keeps CADisableMinimumFrameDurationOnPhone in Info.plist: Compose aborts at launch on ProMotion
+// devices without it; this pacing is what keeps the frame rate (and battery use) low.
 private const val ACTIVE_FRAME_DELAY_MS = 22L
 private const val IDLE_FRAME_DELAY_MS = 55L
 private const val IDLE_AFTER_NANOS = 20_000_000_000L
