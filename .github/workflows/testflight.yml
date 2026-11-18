@@ -38,7 +38,7 @@ permissions:
 jobs:
   testflight:
     # macos-latest (macos-26) queued without a runner for 15+ minutes; macos-15 has Xcode 26 too.
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
     env:
       BUNDLE_ID: dev.mothlight.plantagotchi
