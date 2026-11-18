@@ -33,7 +33,7 @@ class DecorAndSpeciesTest {
         assertTrue(tickHalfDay(Species.FLYTRAP).water < sprout.water, "flytrap is thirsty")
         assertTrue(tickHalfDay(Species.SUNFLOWER).lux < sprout.lux, "sunflower needs more light")
         assertTrue(tickHalfDay(Species.MONSTERA).lux > sprout.lux, "monstera likes shade")
-        assertEquals(8, ShopCatalog.seeds.size)
+        assertEquals(9, ShopCatalog.seeds.size)
     }
 
     @Test

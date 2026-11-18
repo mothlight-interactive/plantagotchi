@@ -31,6 +31,7 @@ import dev.mothlight.plantagotchi.resources.species_tulip
 import dev.mothlight.plantagotchi.resources.species_monstera
 import dev.mothlight.plantagotchi.resources.species_bonsai
 import dev.mothlight.plantagotchi.resources.species_flytrap
+import dev.mothlight.plantagotchi.resources.species_pothos
 import dev.mothlight.plantagotchi.resources.item_seed_desc_sprout
 import dev.mothlight.plantagotchi.resources.item_seed_desc_cactus
 import dev.mothlight.plantagotchi.resources.item_seed_desc_fern
@@ -39,6 +40,7 @@ import dev.mothlight.plantagotchi.resources.item_seed_desc_tulip
 import dev.mothlight.plantagotchi.resources.item_seed_desc_monstera
 import dev.mothlight.plantagotchi.resources.item_seed_desc_bonsai
 import dev.mothlight.plantagotchi.resources.item_seed_desc_flytrap
+import dev.mothlight.plantagotchi.resources.item_seed_desc_pothos
 import dev.mothlight.plantagotchi.resources.scenery_mountains
 import dev.mothlight.plantagotchi.resources.scenery_desert
 import dev.mothlight.plantagotchi.resources.scenery_beach
@@ -155,6 +157,7 @@ fun Species.nameRes(): StringResource = when (this) {
     Species.MONSTERA -> Res.string.species_monstera
     Species.BONSAI -> Res.string.species_bonsai
     Species.FLYTRAP -> Res.string.species_flytrap
+    Species.POTHOS -> Res.string.species_pothos
 }
 
 fun Species.descriptionRes(): StringResource = when (this) {
@@ -166,6 +169,7 @@ fun Species.descriptionRes(): StringResource = when (this) {
     Species.MONSTERA -> Res.string.item_seed_desc_monstera
     Species.BONSAI -> Res.string.item_seed_desc_bonsai
     Species.FLYTRAP -> Res.string.item_seed_desc_flytrap
+    Species.POTHOS -> Res.string.item_seed_desc_pothos
 }
 
 @Composable

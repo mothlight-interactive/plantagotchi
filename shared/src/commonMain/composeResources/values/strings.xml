@@ -120,11 +120,13 @@
     <string name="species_monstera">Monstera</string>
     <string name="species_bonsai">Bonsai</string>
     <string name="species_flytrap">Flytrap</string>
+    <string name="species_pothos">Pothos</string>
     <string name="item_seed_desc_sunflower">Follows the sun, needs lots of light</string>
     <string name="item_seed_desc_tulip">Opens by day, does not mind the cold</string>
     <string name="item_seed_desc_monstera">Big holey leaves, likes shade, hates frost</string>
     <string name="item_seed_desc_bonsai">Slow and wise, wants a lot of love</string>
     <string name="item_seed_desc_flytrap">Thirsty, catches its own food. Tap it!</string>
+    <string name="item_seed_desc_pothos">Trailing vines, happiest up high in a hanging planter.</string>
     <string name="shop_scenery">Scenery</string>
     <string name="shop_ground">Ground</string>
     <string name="scenery_mountains">Mountains</string>
