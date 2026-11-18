@@ -18,13 +18,14 @@ class LampCradleTest {
         assertFalse(s.pushLamp("c", lit), "taps while swinging add no energy")
 
         s.time = 10f + half / 2
-        assertTrue(s.lampSwing("a") < 0f, "the pulled left lamp swings out to the left")
+        // Positive degrees rotate clockwise: the hanging lamp moves to the left.
+        assertTrue(s.lampSwing("a") > 0f, "the pulled left lamp swings out to the left")
         assertEquals(0f, s.lampSwing("b"))
         assertEquals(0f, s.lampSwing("c"))
 
         s.time = 10f + half * 1.5f
         assertEquals(0f, s.lampSwing("a"))
-        assertTrue(s.lampSwing("c") > 0f, "then the right end flies out to the right")
+        assertTrue(s.lampSwing("c") < 0f, "then the right end flies out to the right")
         assertEquals(0f, s.lampSwing("b"))
     }
 
@@ -52,6 +53,16 @@ class LampCradleTest {
         s.time = half / 2
         assertTrue(s.lampSwing("b") != 0f)
         assertEquals(0f, s.lampSwing("a"))
+        assertFalse(s.lampClicked())
+    }
+
+    @Test
+    fun indoorLampsSwingAlone() {
+        val s = SceneState()
+        s.pushLamp("a", lit, cradle = false)
+        s.time = half * 1.5f
+        assertTrue(s.lampSwing("a") != 0f)
+        assertEquals(0f, s.lampSwing("c"), "no cradle indoors")
         assertFalse(s.lampClicked())
     }
 }

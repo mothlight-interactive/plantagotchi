@@ -128,24 +128,28 @@ internal class SceneState {
         val half = LAMP_PERIOD / 2
         val k = (t / half).toInt()
         val phase = sin((t - k * half) / half * PI.toFloat())
-        // Even half swings belong to the end that was pulled, odd ones to the other end.
+        // Even half swings belong to the end that was pulled, odd ones to the other end. The canvas
+        // rotates clockwise for positive degrees, which moves a hanging lamp to the left: the left
+        // end swings out with a positive angle, the right end with a negative one.
         val leftMoves = (k % 2 == 0) == cradleFromLeft
         return when (plantId) {
-            cradleLeft -> if (leftMoves) -amplitude * phase else 0f
-            cradleRight -> if (!leftMoves) amplitude * phase else 0f
+            cradleLeft -> if (leftMoves) amplitude * phase else 0f
+            cradleRight -> if (!leftMoves) -amplitude * phase else 0f
             else -> 0f
         }
     }
 
     /**
-     * Pushes the lamp above [plantId]; [lit] are the plants with a lamp, left to right. Taps while
-     * lamps swing add no energy. Returns true if pushed.
+     * Pushes the lamp above [plantId]; [lit] are the plants with a lamp, left to right. With
+     * [cradle] (outdoors, lamps in a row) the end lamps form a Newton's cradle; indoors the plants
+     * are spread around the room and every lamp swings alone. Taps while lamps swing add no
+     * energy. Returns true if pushed.
      */
-    fun pushLamp(plantId: String, lit: List<String>): Boolean {
+    fun pushLamp(plantId: String, lit: List<String>, cradle: Boolean = true): Boolean {
         if (lampSwinging) return false
         swingStart = time
         lastHalfSwing = 0
-        if (lit.size >= 2 && (plantId == lit.first() || plantId == lit.last())) {
+        if (cradle && lit.size >= 2 && (plantId == lit.first() || plantId == lit.last())) {
             soloLamp = null
             cradleLeft = lit.first()
             cradleRight = lit.last()

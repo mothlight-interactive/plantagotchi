@@ -770,7 +770,8 @@ private fun handleTap(
     val lamp = scene.lampAt(offset, l, state)
     if (lamp != null) {
         val lit = state.litPlants.map { state.player.plants[it].id }
-        if (scene.pushLamp(lamp, lit)) onTap(SceneTarget.LAMP)
+        // Lamps in a row outdoors form a Newton's cradle; indoors they hang apart and swing alone.
+        if (scene.pushLamp(lamp, lit, cradle = l.room == null)) onTap(SceneTarget.LAMP)
         return
     }
     val room = l.room
