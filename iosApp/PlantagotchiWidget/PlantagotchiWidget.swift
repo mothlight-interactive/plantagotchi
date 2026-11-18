@@ -62,16 +62,37 @@ enum BrowseState {
     static func set(_ config: String, _ plantId: String) { WidgetSnapshot.defaults?.set(plantId, forKey: key(config)) }
 }
 
-private var isGerman: Bool { Locale.current.language.languageCode?.identifier == "de" }
+private var languageCode: String { Locale.current.language.languageCode?.identifier ?? "en" }
+
+/// Picks the text for the device language (English fallback).
+private func tr(_ en: String, de: String, fr: String, es: String) -> String {
+    switch languageCode {
+    case "de": return de
+    case "fr": return fr
+    case "es": return es
+    default: return en
+    }
+}
 
 private enum Labels {
-    static var water: String { isGerman ? "Wasser" : "Water" }
-    static var light: String { isGerman ? "Licht" : "Light" }
-    static var love: String { isGerman ? "Liebe" : "Love" }
-    static var fertilizer: String { isGerman ? "Dünger" : "Fertilizer" }
-    static var withered: String { isGerman ? "Verwelkt" : "Withered" }
-    static var start: String { isGerman ? "Öffne Plantagotchi zum Starten" : "Open Plantagotchi to start" }
-    static var allTitle: String { isGerman ? "Meine Pflanzen" : "My plants" }
+    static var water: String { tr("Water", de: "Wasser", fr: "Eau", es: "Agua") }
+    static var light: String { tr("Light", de: "Licht", fr: "Lumière", es: "Luz") }
+    static var love: String { tr("Love", de: "Liebe", fr: "Amour", es: "Amor") }
+    static var fertilizer: String { tr("Fertilizer", de: "Dünger", fr: "Engrais", es: "Abono") }
+    static var withered: String { tr("Withered", de: "Verwelkt", fr: "Fanée", es: "Marchita") }
+    static var start: String {
+        tr("Open Plantagotchi to start", de: "Öffne Plantagotchi zum Starten",
+           fr: "Ouvre Plantagotchi pour commencer", es: "Abre Plantagotchi para empezar")
+    }
+    static var allTitle: String { tr("My plants", de: "Meine Pflanzen", fr: "Mes plantes", es: "Mis plantas") }
+    static var description: String {
+        tr("How your plant is doing", de: "Wie es deiner Pflanze geht",
+           fr: "Comment va ta plante", es: "Cómo está tu planta")
+    }
+    static var allDescription: String {
+        tr("All your plants at a glance", de: "Alle deine Pflanzen auf einen Blick",
+           fr: "Toutes tes plantes en un coup d’œil", es: "Todas tus plantas de un vistazo")
+    }
 }
 
 // MARK: - Intents
@@ -208,7 +229,7 @@ struct PlantagotchiWidget: Widget {
             PlantWidgetView(entry: entry)
         }
         .configurationDisplayName("Plantagotchi")
-        .description(Text(isGerman ? "Wie es deiner Pflanze geht" : "How your plant is doing"))
+        .description(Text(Labels.description))
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -289,7 +310,7 @@ struct AllPlantsWidget: Widget {
             AllPlantsView(entry: entry)
         }
         .configurationDisplayName(Text(Labels.allTitle))
-        .description(Text(isGerman ? "Alle deine Pflanzen auf einen Blick" : "All your plants at a glance"))
+        .description(Text(Labels.allDescription))
         .supportedFamilies([.systemMedium, .systemLarge])
     }
 }

@@ -1,0 +1,3 @@
+/* Permission prompts (English, mirrors Info.plist) */
+"NSCameraUsageDescription" = "Plantagotchi can use the camera as a light meter, so your plant knows how bright it is. No images are stored.";
+"NSLocationWhenInUseUsageDescription" = "Plantagotchi uses your location to let your plant feel the local weather.";

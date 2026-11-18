@@ -1,0 +1,3 @@
+/* Permission prompts (German) */
+"NSCameraUsageDescription" = "Plantagotchi kann die Kamera als Belichtungsmesser nutzen, damit deine Pflanze weiss, wie hell es ist. Es werden keine Bilder gespeichert.";
+"NSLocationWhenInUseUsageDescription" = "Plantagotchi nutzt deinen Standort, damit deine Pflanze das Wetter vor Ort spürt.";

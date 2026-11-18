@@ -1,0 +1,3 @@
+/* Permission prompts (French) */
+"NSCameraUsageDescription" = "Plantagotchi peut utiliser la caméra comme posemètre, pour que ta plante sache à quel point il fait clair. Aucune image n’est enregistrée.";
+"NSLocationWhenInUseUsageDescription" = "Plantagotchi utilise ta position pour que ta plante ressente la météo locale.";
