@@ -23,6 +23,9 @@ data class PlayerState(
     val streak: Int = 0,
     /** Local epoch days with a claimed daily reward, oldest first, at most [DailyReward.HISTORY_DAYS]. */
     val rewardDays: List<Long> = emptyList(),
+    /** Local epoch day of [petCoinsToday]; petting coins are capped per day across all plants. */
+    val petCoinsDay: Long = -1L,
+    val petCoinsToday: Int = 0,
     /** Epoch millis of the last game tick that was persisted. */
     val updatedAt: Long = 0L,
 ) {

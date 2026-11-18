@@ -123,15 +123,18 @@ internal fun DrawScope.drawWeatherBack(scene: SceneState) {
 /** Clouds and precipitation in front of the mountains. */
 internal fun DrawScope.drawWeatherFront(scene: SceneState, sprites: SceneSprites, tint: Float) {
     val dp = scene.layout?.dp ?: return
-    val cloudTint = ColorFilter.tint(Color.Black.copy(alpha = tint), BlendMode.SrcAtop)
+    val night = (tint / MOUNTAIN_TINT_ALPHA_MAX).coerceIn(0f, 1f)
     forEachWeather(scene) { state, alpha ->
         val clouds = cloudCount(state)
         if (clouds > 0) {
-            val system = scene.particleSystems.getOrPut("clouds-$state") {
-                ParticleSystem(cloudParameters(sprites.cloud, clouds, dp))
+            val storm = when (state) {
+                WeatherState.THUNDERSTORM, WeatherState.HEAVY_RAIN -> 1f
+                WeatherState.RAIN, WeatherState.MOSTLY_CLOUDY -> 0.6f
+                WeatherState.LIGHT_RAIN, WeatherState.SNOW, WeatherState.FOG -> 0.3f
+                else -> 0f
             }
             clipRect(bottom = size.height * 0.5f) {
-                drawParticles(system, scene.step, alpha, cloudTint)
+                drawDriftingClouds(clouds, scene.time, dp, alpha, storm, night)
             }
         }
         precipitation(state)?.let { params ->
@@ -160,29 +163,11 @@ private fun cloudCount(state: WeatherState) = when (state) {
 private fun precipitation(state: WeatherState) = when (state) {
     WeatherState.LIGHT_RAIN -> rainParameters.copy(particleCount = 150)
     WeatherState.RAIN -> rainParameters
-    WeatherState.HEAVY_RAIN -> rainParameters.copy(particleCount = 2000)
-    WeatherState.THUNDERSTORM -> rainParameters.copy(particleCount = 2000, minAngle = 265, maxAngle = 295)
+    WeatherState.HEAVY_RAIN -> rainParameters.copy(particleCount = 900)
+    WeatherState.THUNDERSTORM -> rainParameters.copy(particleCount = 900, minAngle = 265, maxAngle = 295)
     WeatherState.SNOW -> snowParameters
     else -> null
 }
-
-private fun cloudParameters(image: ImageBitmap, count: Int, dp: Float) = PrecipitationsParameters(
-    particleCount = count,
-    distancePerStep = 1,
-    minSpeed = 0.2f,
-    maxSpeed = 0.6f,
-    minAngle = 0,
-    maxAngle = 0,
-    shape = PrecipitationShape.Image(
-        image = image,
-        minWidth = (69 * dp).toInt(),
-        maxWidth = (138 * dp).toInt(),
-        minHeight = (31 * dp).toInt(),
-        maxHeight = (62 * dp).toInt(),
-        colorFilter = ColorFilter.tint(Color.Transparent),
-    ),
-    sourceEdge = PrecipitationSourceEdge.RIGHT,
-)
 
 private fun DrawScope.drawThunder(scene: SceneState, alpha: Float) {
     val step = scene.step
