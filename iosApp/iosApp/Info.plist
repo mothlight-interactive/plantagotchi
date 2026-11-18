@@ -29,6 +29,8 @@
 	<true/>
 	<key>AppEnv</key>
 	<string>$(PG_APP_ENV)</string>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
