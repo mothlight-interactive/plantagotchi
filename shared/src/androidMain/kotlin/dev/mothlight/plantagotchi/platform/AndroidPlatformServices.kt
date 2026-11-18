@@ -56,8 +56,8 @@ class AndroidLocationProvider(private val context: Context) : LocationProvider {
         return GeoPosition(location.latitude, location.longitude, location.altitude)
     }
 
-    private fun hasPermission() = listOf(
-        Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION,
-    ).any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+    // Weather needs only the approximate location, so the app never asks for fine location.
+    private fun hasPermission() =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
 }

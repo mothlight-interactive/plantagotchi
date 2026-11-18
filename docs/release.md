@@ -4,7 +4,7 @@ Ein Tag wie `v1.0.1` auf `master` veröffentlicht die App in beiden Stores:
 
 1. **verify**: Der Tag muss auf einen Commit von `master` zeigen. Die Version kommt aus dem Tag
    (`1.0.1`), die Build-Nummer ist zeitbasiert (`.github/scripts/build-number.sh`).
-2. **tests**: der `CI`-Workflow (Android-Build, iOS-Kompilierung und JVM-Tests).
+2. **tests**: der `CI`-Workflow (Android-Debug- und Release-Build mit R8, iOS-Kompilierung, JVM- und UI-Tests).
 3. **approve**: wartet im Environment `production`, bis du in Actions auf *Approve* klickst
    (eine Freigabe für beide Plattformen).
 4. **ios** (`testflight.yml`): Build, Upload, dann legt fastlane die App-Store-Version `1.0.1` an,
@@ -61,13 +61,118 @@ Secrets fehlen.
    und keine echten Käufe (der Shop nutzt nur Spielmünzen).
 3. **App Store Connect, nur beim ersten Release**: Die App-Store-Seite braucht einmal ihre
    Metadaten (Name, Beschreibung, Keywords, Screenshots, App-Datenschutz, Altersfreigabe, Preis,
-   Kontakt für die Prüfung), Standort und Kamera (optional) im App-Datenschutz angeben; die App speichert nur auf dem Gerät. Der Workflow
-   aktualisiert nur *Neuerungen*.
+   Kontakt für die Prüfung). App-Datenschutz siehe [Datenschutz-Angaben](#datenschutz-angaben-in-den-stores).
+   Der Workflow aktualisiert nur *Neuerungen*.
 4. **Google Play, erster Produktions-Release**:
-   - Store-Eintrag, Einstufung, Datensicherheit und Zielgruppe müssen vollständig sein;
+   - Store-Eintrag, Einstufung, Datensicherheit (siehe [Datenschutz-Angaben](#datenschutz-angaben-in-den-stores))
+     und Zielgruppe müssen vollständig sein;
    - neue *private* Entwicklerkonten brauchen zuerst einen **geschlossenen Test mit mindestens
      12 Testern über 14 Tage**, bevor Google den Produktionszugang freigibt;
    - das allererste AAB muss von Hand hochgeladen werden (siehe [play-store.md](play-store.md)).
+
+## Release-Build (Android)
+
+`release` läuft mit R8 (`isMinifyEnabled`, `isShrinkResources`), Regeln in
+`androidApp/proguard-rules.pro` (kotlinx.serialization, Ktor/OkHttp, Glance, WorkManager). Der
+`CI`-Workflow baut bei jedem PR auch `:androidApp:assembleRelease`, fehlende Keep-Regeln fallen also
+vor dem Release auf. Ohne `ANDROID_KEYSTORE_FILE` entsteht ein unsignierter Build
+(`androidApp-release-unsigned.apk`), signiert wird nur in `play-store.yml`. Die R8-Mapping-Datei
+steckt im AAB (`BUNDLE-METADATA`), Play deobfuskiert Absturzberichte damit selbst; lokal liegt sie
+unter `androidApp/build/outputs/mapping/release/mapping.txt`.
+
+## Datenschutz-Angaben in den Stores
+
+Grundlage für App Store Connect (*App-Datenschutz*) und Play Console (*Datensicherheit*). Bei jeder
+Änderung an Netzwerk, Berechtigungen oder SDKs prüfen und hier nachführen, ebenso
+`iosApp/iosApp/PrivacyInfo.xcprivacy` und `iosApp/PlantagotchiWidget/PrivacyInfo.xcprivacy`.
+
+### Was die App mit Daten macht
+
+- **Spielstand und Einstellungen** liegen nur auf dem Gerät (iOS `NSUserDefaults`, Android
+  `SharedPreferences`). Das Widget liest einen Auszug über die App Group
+  `group.dev.mothlight.plantagotchi` (iOS) bzw. den Glance-Zustand (Android). Kein Konto, kein Server.
+- **Wetter**: Die App fragt den *ungefähren* Standort ab (iOS `kCLLocationAccuracyKilometer`, Android
+  nur `ACCESS_COARSE_LOCATION`) und schickt Breite/Länge per HTTPS an `api.open-meteo.com`, um das
+  aktuelle Wetter zu laden. Ohne Erlaubnis nutzt sie einen festen Standardort. Die letzte Position
+  liegt lokal im Spielstand, an uns geht nichts.
+- **Kamera** (nur iOS, optional, standardmässig aus): Belichtungswerte der
+  Rückkamera dienen als Lichtmesser. Keine Bilder werden gespeichert oder übertragen.
+- **Lichtsensor** (Android): wird nur lokal gelesen.
+- **Benachrichtigungen**: nur lokal geplant (WorkManager bzw. `UNUserNotificationCenter`), kein Push-Server.
+- **Keine** Werbung, Analyse, Absturzberichte über Drittanbieter, Konten, Tracking oder Käufe mit
+  echtem Geld (der Shop nutzt nur Spielmünzen). Kein Logging im Release.
+- Android-Auto-Backup ist an (`allowBackup`): der Spielstand landet im Google-Backup des Nutzers. Das
+  zählt laut Google nicht als Datenerhebung durch den Entwickler.
+
+### App Store Connect → App-Datenschutz
+
+- *Erfassen Sie oder Ihre Drittanbieter Daten aus dieser App?* **Nein, wir erfassen keine Daten**
+  (Label "Keine Daten erfasst").
+  - Begründung: Apple zählt Daten nur als erfasst, wenn sie das Gerät so verlassen, dass Entwickler
+    oder Partner länger darauf zugreifen können, als für die Beantwortung der Anfrage in Echtzeit nötig.
+    Die Wetteranfrage an Open-Meteo wird in Echtzeit beantwortet, ohne Konto und ohne Kennung.
+  - **Entscheidung vor dem ersten Release**: die Datenschutzerklärung von Open-Meteo prüfen. Falls
+    Open-Meteo Koordinaten zusammen mit der IP-Adresse länger speichert, stattdessen angeben:
+    *Standort → Grober Standort*, Zweck *App-Funktionalität*, **nicht** mit der Identität verknüpft,
+    **nicht** für Tracking verwendet, und `NSPrivacyCollectedDataTypes` im Manifest entsprechend ergänzen.
+- Tracking: **Nein** (`NSPrivacyTracking = false`, keine Tracking-Domains).
+- Datenschutzrichtlinie-URL (Pflicht): `https://mothlight.dev/privacy`, muss Plantagotchi abdecken
+  (Standort an Open-Meteo, Kamera als Lichtmesser, lokale Speicherung).
+- Privacy Manifest (`PrivacyInfo.xcprivacy`, App und Widget, im Xcode-Projekt unter *Copy Bundle Resources*):
+
+  | API-Kategorie | Grund | Wofür |
+  |---|---|---|
+  | UserDefaults | `CA92.1` | Einstellungen und Spielstand (multiplatform-settings, Standard-Defaults), nur App |
+  | UserDefaults | `1C8F.1` | Widget-Snapshot in der App Group, App und Widget |
+  | File Timestamp | `C617.1` | Skia (Compose-Rendering, im `Shared`-Framework) ruft `stat`/`fstat` auf |
+  | System Boot Time | `35F9.1` | Skia misst Zeitabstände mit `mach_absolute_time` |
+
+  Disk Space und Active Keyboards werden nicht genutzt. Nach einem Update von Compose Multiplatform
+  bzw. Skiko die Symbole erneut prüfen, z. B. `llvm-nm -u` auf die `.a`-Dateien im Skiko-iOS-Klib.
+
+### Google Play → Datensicherheit
+
+Konservativ beantwortet, weil der ungefähre Standort das Gerät verlässt (Anfrage an Open-Meteo):
+
+- *Erhebt oder teilt Ihre App erforderliche Nutzerdatentypen?* **Ja**
+- *Werden alle erhobenen Nutzerdaten bei der Übertragung verschlüsselt?* **Ja** (HTTPS)
+- *Bieten Sie eine Möglichkeit, das Löschen der Daten anzufordern?* **Nein** (nichts wird auf einem
+  Server gespeichert; Deinstallieren löscht alles)
+- Konto-Erstellung: **Die App bietet keine Konten an**
+- Datentypen: nur **Standort → Ungefährer Standort**
+  - Erhoben: **Ja**, geteilt: **Nein** (Open-Meteo verarbeitet die Anfrage nur, um sie zu
+    beantworten, als Dienstleister)
+  - *Werden diese Daten sitzungsbezogen (ephemer) verarbeitet?* **Ja**
+  - *Erforderlich oder optional?* **Optional** (ohne Erlaubnis gilt ein Standardort)
+  - Zweck: **App-Funktionen** (Wetter in der Szene)
+- Alle anderen Datentypen (persönliche Infos, Fotos/Videos, App-Aktivität, Gerätekennungen usw.):
+  **nicht erhoben**. Den Kamera-Lichtmesser gibt es nur auf iOS, die Werte bleiben auf dem Gerät.
+- Werbung: **Nein**, Werbe-ID: **Nein** (keine `AD_ID`-Berechtigung).
+
+### Berechtigungen und Texte
+
+iOS (`iosApp/iosApp/Info.plist`):
+
+| Schlüssel | Text |
+|---|---|
+| `NSLocationWhenInUseUsageDescription` | Plantagotchi uses your location to let your plant feel the local weather. |
+| `NSCameraUsageDescription` | Plantagotchi can use the camera as a light meter, so your plant knows how bright it is. No images are stored. |
+
+Benachrichtigungen fragt iOS zur Laufzeit ab (kein Info.plist-Text nötig). Die Texte sind nur
+englisch; für deutsche Texte fehlt noch ein `de.lproj/InfoPlist.strings`.
+
+Android (`androidApp/src/main/AndroidManifest.xml` plus Bibliotheken, geprüft mit
+`aapt2 dump permissions` auf dem Release-APK):
+
+| Berechtigung | Wofür |
+|---|---|
+| `INTERNET`, `ACCESS_NETWORK_STATE` | Wetter von Open-Meteo |
+| `ACCESS_COARSE_LOCATION` | ungefährer Standort für das Wetter, zur Laufzeit abgefragt |
+| `POST_NOTIFICATIONS` | Erinnerungen (ab Android 13 zur Laufzeit abgefragt) |
+| `WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED`, `FOREGROUND_SERVICE` | von WorkManager (Erinnerungen überleben einen Neustart) |
+
+`ACCESS_FINE_LOCATION` wurde entfernt: Für das Wetter reicht der ungefähre Standort
+(`PRIORITY_BALANCED_POWER_ACCURACY`, Open-Meteo rechnet ohnehin auf einem Raster von einigen km).
 
 ## Version erhöhen
 
