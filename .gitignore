@@ -18,3 +18,5 @@ build/
 xcuserdata/
 *.xcworkspace/xcuserdata/
 iosApp/Configuration/Secrets.xcconfig
+/appstore/
+/.idea
