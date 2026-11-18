@@ -8,6 +8,8 @@
 	<array>
 		<string>en</string>
 		<string>de</string>
+		<string>fr</string>
+		<string>es</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Plantagotchi</string>

@@ -1,0 +1,3 @@
+/* Permission prompts (Spanish) */
+"NSCameraUsageDescription" = "Plantagotchi puede usar la cámara como fotómetro para que tu planta sepa cuánta luz hay. No se guarda ninguna imagen.";
+"NSLocationWhenInUseUsageDescription" = "Plantagotchi usa tu ubicación para que tu planta sienta el tiempo local.";
