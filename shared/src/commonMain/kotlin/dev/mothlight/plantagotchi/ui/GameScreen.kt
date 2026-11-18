@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -243,10 +242,7 @@ fun GameContent(
             }
 
             if (sheet == Sheet.DEV) {
-                // Upper half only: the plants and needs stay visible to see every change live.
-                Box(Modifier.fillMaxWidth().fillMaxHeight(0.55f).align(Alignment.TopCenter)) {
-                    DevSheet(state, devActions, onClose = { sheet = Sheet.NONE })
-                }
+                DevSheet(state, devActions, onClose = { sheet = Sheet.NONE })
             }
 
             if (about) MothlightAboutScreen(onClose = { about = false })
