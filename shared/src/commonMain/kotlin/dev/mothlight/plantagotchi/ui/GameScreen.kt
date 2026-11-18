@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -79,6 +78,7 @@ class GameActions(
     val replant: () -> Unit = {},
     val compost: () -> Unit = {},
     val claimReward: () -> Unit = {},
+    val discardPlant: () -> Unit = {},
     val updateSettings: ((AppSettingsState) -> AppSettingsState) -> Unit = {},
 )
 
@@ -99,6 +99,7 @@ fun GameScreen(viewModel: PlantagotchiViewModel) {
             replant = viewModel::replant,
             compost = viewModel::compost,
             claimReward = viewModel::claimReward,
+            discardPlant = viewModel::discardPlant,
             updateSettings = viewModel::updateSettings,
         )
     }
@@ -116,7 +117,7 @@ fun GameScreen(viewModel: PlantagotchiViewModel) {
     GameContent(state = state, events = viewModel.events, actions = actions, devActions = devActions)
 }
 
-enum class Sheet { NONE, SHOP, MENU, WEATHER, SETTINGS, DEV }
+enum class Sheet { NONE, SHOP, MENU, WEATHER, SETTINGS, DEV, REWARD, DISCARD }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,6 +151,16 @@ fun GameContent(
     LaunchedEffect(Unit) { splash.animateTo(0.9f, tween(1_600, easing = LinearEasing)) }
     LaunchedEffect(state.loading, splash.value >= 0.9f) {
         if (!state.loading && splash.value >= 0.9f) splash.animateTo(1f, tween(250))
+    }
+
+    // Not collected today: show the chest once per day after the splash.
+    var autoRewardDay by remember { mutableStateOf(-1L) }
+    val ready = !state.loading && splash.value >= 1f
+    LaunchedEffect(ready, state.today) {
+        if (ready && state.rewardAvailable && autoRewardDay != state.today && sheet == Sheet.NONE) {
+            autoRewardDay = state.today
+            sheet = Sheet.REWARD
+        }
     }
 
     LaunchedEffect(hint) {
@@ -206,7 +217,8 @@ fun GameContent(
                         SceneTarget.SHOP, SceneTarget.NEED_FERTILIZER, SceneTarget.NEED_WATER -> sheet = Sheet.SHOP
                         SceneTarget.MENU -> sheet = Sheet.MENU
                         SceneTarget.WEATHER -> sheet = Sheet.WEATHER
-                        SceneTarget.CHEST -> actions.claimReward()
+                        SceneTarget.CHEST -> sheet = Sheet.REWARD
+                        SceneTarget.DISCARD -> sheet = Sheet.DISCARD
                         SceneTarget.REPLANT -> actions.replant()
                         SceneTarget.COMPOST -> actions.compost()
                         SceneTarget.NEED_LIGHT -> scope.launch {
@@ -243,10 +255,7 @@ fun GameContent(
             }
 
             if (sheet == Sheet.DEV) {
-                // Upper half only: the plants and needs stay visible to see every change live.
-                Box(Modifier.fillMaxWidth().fillMaxHeight(0.55f).align(Alignment.TopCenter)) {
-                    DevSheet(state, devActions, onClose = { sheet = Sheet.NONE })
-                }
+                DevSheet(state, devActions, onClose = { sheet = Sheet.NONE })
             }
 
             if (about) MothlightAboutScreen(onClose = { about = false })
@@ -262,6 +271,7 @@ fun GameContent(
                 when (sheet) {
                     Sheet.SHOP -> ShopSheet(
                         player = state.player,
+                        onClose = { sheet = Sheet.NONE },
                         now = state.now,
                         onBuy = { item -> actions.buy(item).also { if (it is PurchaseResult.Success) sheet = Sheet.NONE } },
                         onSelectPot = {
@@ -280,12 +290,35 @@ fun GameContent(
                     Sheet.MENU -> MenuSheet { entry ->
                         sheet = when (entry) {
                             MenuEntry.SETTINGS -> Sheet.SETTINGS
+                            MenuEntry.DISCARD -> Sheet.DISCARD
                             MenuEntry.ABOUT -> {
                                 about = true
                                 Sheet.NONE
                             }
                         }
                     }
+                    Sheet.REWARD -> RewardSheet(
+                        player = state.player,
+                        today = state.today,
+                        onClaim = {
+                            actions.claimReward()
+                            // Show today's check mark, then close.
+                            scope.launch {
+                                delay(1_200)
+                                if (sheet == Sheet.REWARD) sheet = Sheet.NONE
+                            }
+                        },
+                        onClose = { sheet = Sheet.NONE },
+                    )
+                    Sheet.DISCARD -> DiscardSheet(
+                        plant = state.player.activePlant,
+                        onlyPlant = state.player.plants.size <= 1,
+                        onConfirm = {
+                            actions.discardPlant()
+                            sheet = Sheet.NONE
+                        },
+                        onCancel = { sheet = Sheet.NONE },
+                    )
                     Sheet.WEATHER -> WeatherSheet(state.weather, state.season)
                     Sheet.SETTINGS -> SettingsSheet(state.settings, state.cameraLightSupported, actions.updateSettings)
                     Sheet.NONE, Sheet.DEV -> Unit

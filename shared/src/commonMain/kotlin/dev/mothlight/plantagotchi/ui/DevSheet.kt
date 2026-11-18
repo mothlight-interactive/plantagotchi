@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -125,247 +127,256 @@ fun DevSheet(state: GameUiState, actions: DevActions, onClose: () -> Unit = {}) 
 
     Column(
         Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(Panel)
             .border(2.dp, Outline)
-            .verticalScroll(rememberScrollState())
-            .statusBarsPadding()
-            .padding(16.dp),
+            .statusBarsPadding(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                stringResource(Res.string.dev_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = PlantagotchiColors.Sunshine,
-                maxLines = 1,
-                modifier = Modifier.weight(1f),
-            )
-            EnvChip(state.env.label)
-            Spacer(Modifier.width(8.dp))
-            PixelButton(stringResource(Res.string.btn_close), color = PlantagotchiColors.OffWhite, onClick = onClose)
-        }
-        Spacer(Modifier.height(8.dp))
-        if (!dev.isEmpty) PixelButton(stringResource(Res.string.dev_back_to_live), color = PlantagotchiColors.Fertilizer) { actions.update { DevOverrides() } }
-
-        // Time
-        DevSection(stringResource(Res.string.dev_section_time))
-        DevLabel(stringResource(Res.string.dev_speed))
-        Chips {
-            DevOverrides.speeds.forEach { speed ->
-                DevChip("${speed.toInt()}x", dev.timeSpeed == speed) { actions.update { it.copy(timeSpeed = speed) } }
+        // Pinned header: title, env, close and "back to live" stay visible while the rest scrolls.
+        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(Res.string.dev_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = PlantagotchiColors.Sunshine,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                EnvChip(state.env.label)
+                Spacer(Modifier.width(8.dp))
+                PixelButton(stringResource(Res.string.btn_close), color = PlantagotchiColors.OffWhite, onClick = onClose)
             }
+            Spacer(Modifier.height(8.dp))
+            if (!dev.isEmpty) PixelButton(stringResource(Res.string.dev_back_to_live), color = PlantagotchiColors.Fertilizer) { actions.update { DevOverrides() } }
         }
-        DevToggle(stringResource(Res.string.dev_freeze), stringResource(Res.string.dev_freeze_desc), dev.freezeNeeds) { v ->
-            actions.update { it.copy(freezeNeeds = v) }
-        }
-        DevSlider(
-            label = stringResource(Res.string.dev_time_of_day),
-            value = dev.minutesOfDay?.toFloat(),
-            range = 0f..(24 * 60 - 1).toFloat(),
-            format = { "${(it / 60).toInt().toString().padStart(2, '0')}:${(it % 60).toInt().toString().padStart(2, '0')}" },
-            onLive = { actions.update { it.copy(minutesOfDay = null) } },
-            liveValue = state.weather.localTime.let { (it.hour * 60 + it.minute).toFloat() },
-        ) { v -> actions.update { it.copy(minutesOfDay = v.roundToInt()) } }
-        DevLabel(stringResource(Res.string.dev_skip))
-        Chips {
-            listOf("+1 h" to 3_600.0, "+6 h" to 21_600.0, "+1 d" to 86_400.0, "+3 d" to 259_200.0).forEach { (label, seconds) ->
-                DevChip(label, false) { actions.skip(seconds) }
-            }
-        }
-
-        // Weather
-        DevSection(stringResource(Res.string.dev_section_weather))
-        Chips {
-            DevChip(stringResource(Res.string.dev_live), dev.weather == null) { actions.update { it.copy(weather = null) } }
-            WeatherState.entries.forEach { ws ->
-                DevChip(weatherName(ws), dev.weather == ws) { actions.update { it.copy(weather = ws) } }
-            }
-        }
-        DevSlider(
-            label = stringResource(Res.string.dev_temperature),
-            value = dev.temperature?.toFloat(),
-            range = -20f..45f,
-            format = { "${it.roundToInt()} °C" },
-            onLive = { actions.update { it.copy(temperature = null) } },
-            liveValue = state.weather.facts.temperature.toFloat(),
-        ) { v -> actions.update { it.copy(temperature = v.roundToInt().toDouble()) } }
-        DevSlider(
-            label = stringResource(Res.string.dev_wind),
-            value = dev.windSpeed?.toFloat(),
-            range = 0f..80f,
-            format = { "${it.roundToInt()} km/h" },
-            onLive = { actions.update { it.copy(windSpeed = null) } },
-            liveValue = state.weather.facts.windSpeed.toFloat(),
-        ) { v -> actions.update { it.copy(windSpeed = v.roundToInt().toDouble()) } }
-        DevSlider(
-            label = stringResource(Res.string.dev_light),
-            value = dev.ambientLux,
-            range = 0f..10_000f,
-            format = { "${it.roundToInt()} lx" + if (it > GameRules.LUX_THRESHOLD) " ☀" else "" },
-            onLive = { actions.update { it.copy(ambientLux = null) } },
-            liveValue = state.ambientLux,
-        ) { v -> actions.update { it.copy(ambientLux = (v / 100).roundToInt() * 100f) } }
-        DevLabel(stringResource(Res.string.weather_season))
-        Chips {
-            DevChip(stringResource(Res.string.dev_live), dev.season == null) { actions.update { it.copy(season = null) } }
-            Season.entries.forEach { season ->
-                DevChip(seasonName(season), dev.season == season) { actions.update { it.copy(season = season) } }
-            }
-        }
-
-        // Location
-        DevSection(stringResource(Res.string.dev_section_location))
-        Chips {
-            DevChip(stringResource(Res.string.dev_gps), dev.locationId == null) { actions.update { it.copy(locationId = null) } }
-            DevLocations.all.forEach { location ->
-                DevChip(location.name, dev.locationId == location.id) { actions.update { it.copy(locationId = location.id) } }
-            }
-        }
-        val p = state.position
-        DevNote("${(p.latitude * 1000).roundToInt() / 1000.0}, ${(p.longitude * 1000).roundToInt() / 1000.0}")
-
-        // Active plant
-        DevSection("${stringResource(Res.string.dev_section_plant)}: ${speciesName(plant.species)} (${player.activeIndex + 1}/${player.plants.size})")
-        Chips {
-            Species.entries.forEach { species ->
-                DevChip(speciesName(species), plant.species == species) { plantUpdate { it.copy(species = species) } }
-            }
-        }
-        val stage = stageName(plant.stage)
-        DevSlider(
-            label = stringResource(Res.string.dev_growth),
-            value = (plant.growth / GameRules.STAGE_3_GROWTH * 100).toFloat().coerceIn(0f, 100f),
-            range = 0f..100f,
-            format = { "${it.roundToInt()} % · $stage" },
-        ) { v -> plantUpdate { it.copy(growth = v / 100.0 * GameRules.STAGE_3_GROWTH) } }
-        NeedSlider(stringResource(Res.string.need_water), plant.water) { v -> plantUpdate { it.copy(water = v) } }
-        NeedSlider(stringResource(Res.string.need_light), plant.lux) { v -> plantUpdate { it.copy(lux = v) } }
-        NeedSlider(stringResource(Res.string.need_love), plant.love) { v -> plantUpdate { it.copy(love = v) } }
-        NeedSlider(stringResource(Res.string.need_fertilizer), plant.fertilizer) { v -> plantUpdate { it.copy(fertilizer = v) } }
-        DevToggle(stringResource(Res.string.plant_withered), null, plant.dead) { v ->
-            plantUpdate { it.copy(dead = v, criticalSince = 0L) }
-        }
-        Chips {
-            DevChip(stringResource(Res.string.dev_all_full), false) {
-                plantUpdate { it.copy(water = 100.0, lux = 100.0, love = 100.0, fertilizer = 100.0, dead = false, criticalSince = 0L) }
-            }
-            DevChip(stringResource(Res.string.dev_all_low), false) {
-                plantUpdate { it.copy(water = 15.0, lux = 15.0, love = 15.0, fertilizer = 15.0) }
-            }
-            DevChip(stringResource(Res.string.dev_almost_dead), false) {
-                // Critical for 23 h 59 min: withers within the next game minute.
-                plantUpdate {
-                    it.copy(water = 2.0, lux = 2.0, love = 2.0, fertilizer = 2.0, dead = false,
-                        criticalSince = now - GameRules.DEAD_AFTER_MILLIS + 60_000)
-                }
-            }
-        }
-        Chips {
-            if (player.plants.size < PlayerState.MAX_PLANTS) {
-                DevChip(stringResource(Res.string.dev_add_plant), false) {
-                    actions.updatePlayer {
-                        val next = PlantState(species = Species.entries[it.plants.size % Species.entries.size], plantedAt = now)
-                        it.copy(plants = it.plants + next, activePlantId = next.id)
-                    }
-                }
-            }
-            if (player.plants.size > 1) {
-                DevChip(stringResource(Res.string.dev_remove_plant), false) {
-                    actions.updatePlayer {
-                        val rest = it.plants - it.activePlant
-                        it.copy(plants = rest, activePlantId = rest.first().id)
-                    }
-                }
-            }
-        }
-
-        // Player
-        DevSection(stringResource(Res.string.dev_section_player))
-        DevLabel("${stringResource(Res.string.dev_coins)}: ${player.coins}")
-        Chips {
-            listOf(10, 100, 1_000, 10_000).forEach { amount ->
-                DevChip("+$amount", false) { actions.updatePlayer { it.copy(coins = it.coins + amount) } }
-            }
-            DevChip("0", false) { actions.updatePlayer { it.copy(coins = 0) } }
-        }
-        DevLabel("${stringResource(Res.string.dev_streak)}: ${player.streak}")
-        Chips {
-            DevChip(stringResource(Res.string.dev_reward_again), !state.rewardAvailable) {
-                // Yesterday: the next claim continues the streak.
-                actions.updatePlayer { it.copy(lastRewardDay = state.today - 1) }
-            }
-            DevChip("+1", false) { actions.updatePlayer { it.copy(streak = it.streak + 1) } }
-            DevChip("0", false) { actions.updatePlayer { it.copy(streak = 0) } }
-        }
-        DevToggle(stringResource(Res.string.item_grow_lamp), null, state.lampActive) { on ->
-            actions.updatePlayer { it.copy(lampUntil = if (on) now + 30 * 60_000L else 0L) }
-        }
-        PixelButton(stringResource(Res.string.dev_unlock_all), color = PlantagotchiColors.Sunshine) {
-            actions.updatePlayer {
-                it.copy(ownedPots = PotId.all.toSet(), ownedScenery = Scenery.entries.toSet(), ownedGrounds = Ground.entries.toSet())
-            }
-        }
-        DevLabel(stringResource(Res.string.shop_scenery))
-        Chips {
-            Scenery.entries.forEach { scenery ->
-                DevChip(sceneryName(scenery), player.scenery == scenery) {
-                    actions.updatePlayer { it.copy(scenery = scenery, ownedScenery = it.ownedScenery + scenery) }
-                }
-            }
-        }
-        DevLabel(stringResource(Res.string.shop_ground))
-        Chips {
-            Ground.entries.forEach { ground ->
-                DevChip(groundName(ground), player.ground == ground) {
-                    actions.updatePlayer { it.copy(ground = ground, ownedGrounds = it.ownedGrounds + ground) }
-                }
-            }
-        }
-
-        // Animations
-        DevSection(stringResource(Res.string.dev_section_animations))
-        Chips {
-            DevChip("Water", false) { actions.emit(GameEvent.Purchased(ShopCatalog.wateringCan)) }
-            DevChip("Fertilizer", false) { actions.emit(GameEvent.Purchased(ShopCatalog.fertilizerBag)) }
-            DevChip("Lamp", false) { actions.emit(GameEvent.Purchased(ShopCatalog.growLamp)) }
-            DevChip("Pot", false) { actions.emit(GameEvent.Purchased(ShopCatalog.pots.first())) }
-            DevChip("Scenery", false) { actions.emit(GameEvent.Purchased(ShopCatalog.backdrops.first())) }
-            DevChip("Pet", false) { actions.emit(GameEvent.Petted) }
-            DevChip("Grow", false) { actions.emit(GameEvent.GrewUp(plant.id, plant.stage)) }
-            DevChip("Wither", false) { actions.emit(GameEvent.Withered(plant.id)) }
-            DevChip("Reward", false) { actions.emit(GameEvent.RewardClaimed(60, player.streak + 1)) }
-            plantActions.forEach { action ->
-                DevChip(action.lowercase().replaceFirstChar { it.uppercase() }, false) { actions.emit(GameEvent.DevPlantAction(action)) }
-            }
-        }
-
-        // Sounds
-        DevSection(stringResource(Res.string.dev_section_sounds))
-        Chips {
-            AudioAssets.all.filterNot { it.startsWith("music/") || it.startsWith("ambient/") }.forEach { asset ->
-                DevChip(asset.substringAfter('/'), false) { actions.play(asset) }
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-        val title = stringResource(Res.string.app_name)
-        val body = stringResource(Res.string.notif_water, speciesName(plant.species))
-        PixelButton(stringResource(Res.string.dev_test_notification)) { actions.testNotification(title, body) }
-        DevNote(stringResource(Res.string.dev_test_notification_hint))
-        Spacer(Modifier.height(12.dp))
-        var confirmReset by remember { mutableStateOf(false) }
-        PixelButton(
-            stringResource(if (confirmReset) Res.string.dev_reset_game_confirm else Res.string.dev_reset_game),
-            color = PlantagotchiColors.Love,
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         ) {
-            if (confirmReset) {
-                actions.resetGame()
-                confirmReset = false
-            } else {
-                confirmReset = true
+            // Time
+            DevSection(stringResource(Res.string.dev_section_time))
+            DevLabel(stringResource(Res.string.dev_speed))
+            Chips {
+                DevOverrides.speeds.forEach { speed ->
+                    DevChip("${speed.toInt()}x", dev.timeSpeed == speed) { actions.update { it.copy(timeSpeed = speed) } }
+                }
             }
+            DevToggle(stringResource(Res.string.dev_freeze), stringResource(Res.string.dev_freeze_desc), dev.freezeNeeds) { v ->
+                actions.update { it.copy(freezeNeeds = v) }
+            }
+            DevSlider(
+                label = stringResource(Res.string.dev_time_of_day),
+                value = dev.minutesOfDay?.toFloat(),
+                range = 0f..(24 * 60 - 1).toFloat(),
+                format = { "${(it / 60).toInt().toString().padStart(2, '0')}:${(it % 60).toInt().toString().padStart(2, '0')}" },
+                onLive = { actions.update { it.copy(minutesOfDay = null) } },
+                liveValue = state.weather.localTime.let { (it.hour * 60 + it.minute).toFloat() },
+            ) { v -> actions.update { it.copy(minutesOfDay = v.roundToInt()) } }
+            DevLabel(stringResource(Res.string.dev_skip))
+            Chips {
+                listOf("+1 h" to 3_600.0, "+6 h" to 21_600.0, "+1 d" to 86_400.0, "+3 d" to 259_200.0).forEach { (label, seconds) ->
+                    DevChip(label, false) { actions.skip(seconds) }
+                }
+            }
+
+            // Weather
+            DevSection(stringResource(Res.string.dev_section_weather))
+            Chips {
+                DevChip(stringResource(Res.string.dev_live), dev.weather == null) { actions.update { it.copy(weather = null) } }
+                WeatherState.entries.forEach { ws ->
+                    DevChip(weatherName(ws), dev.weather == ws) { actions.update { it.copy(weather = ws) } }
+                }
+            }
+            DevSlider(
+                label = stringResource(Res.string.dev_temperature),
+                value = dev.temperature?.toFloat(),
+                range = -20f..45f,
+                format = { "${it.roundToInt()} °C" },
+                onLive = { actions.update { it.copy(temperature = null) } },
+                liveValue = state.weather.facts.temperature.toFloat(),
+            ) { v -> actions.update { it.copy(temperature = v.roundToInt().toDouble()) } }
+            DevSlider(
+                label = stringResource(Res.string.dev_wind),
+                value = dev.windSpeed?.toFloat(),
+                range = 0f..80f,
+                format = { "${it.roundToInt()} km/h" },
+                onLive = { actions.update { it.copy(windSpeed = null) } },
+                liveValue = state.weather.facts.windSpeed.toFloat(),
+            ) { v -> actions.update { it.copy(windSpeed = v.roundToInt().toDouble()) } }
+            DevSlider(
+                label = stringResource(Res.string.dev_light),
+                value = dev.ambientLux,
+                range = 0f..10_000f,
+                format = { "${it.roundToInt()} lx" + if (it > GameRules.LUX_THRESHOLD) " ☀" else "" },
+                onLive = { actions.update { it.copy(ambientLux = null) } },
+                liveValue = state.ambientLux,
+            ) { v -> actions.update { it.copy(ambientLux = (v / 100).roundToInt() * 100f) } }
+            DevLabel(stringResource(Res.string.weather_season))
+            Chips {
+                DevChip(stringResource(Res.string.dev_live), dev.season == null) { actions.update { it.copy(season = null) } }
+                Season.entries.forEach { season ->
+                    DevChip(seasonName(season), dev.season == season) { actions.update { it.copy(season = season) } }
+                }
+            }
+
+            // Location
+            DevSection(stringResource(Res.string.dev_section_location))
+            Chips {
+                DevChip(stringResource(Res.string.dev_gps), dev.locationId == null) { actions.update { it.copy(locationId = null) } }
+                DevLocations.all.forEach { location ->
+                    DevChip(location.name, dev.locationId == location.id) { actions.update { it.copy(locationId = location.id) } }
+                }
+            }
+            val p = state.position
+            DevNote("${(p.latitude * 1000).roundToInt() / 1000.0}, ${(p.longitude * 1000).roundToInt() / 1000.0}")
+
+            // Active plant
+            DevSection("${stringResource(Res.string.dev_section_plant)}: ${speciesName(plant.species)} (${player.activeIndex + 1}/${player.plants.size})")
+            Chips {
+                Species.entries.forEach { species ->
+                    DevChip(speciesName(species), plant.species == species) { plantUpdate { it.copy(species = species) } }
+                }
+            }
+            val stage = stageName(plant.stage)
+            DevSlider(
+                label = stringResource(Res.string.dev_growth),
+                value = (plant.growth / GameRules.STAGE_3_GROWTH * 100).toFloat().coerceIn(0f, 100f),
+                range = 0f..100f,
+                format = { "${it.roundToInt()} % · $stage" },
+            ) { v -> plantUpdate { it.copy(growth = v / 100.0 * GameRules.STAGE_3_GROWTH) } }
+            NeedSlider(stringResource(Res.string.need_water), plant.water) { v -> plantUpdate { it.copy(water = v) } }
+            NeedSlider(stringResource(Res.string.need_light), plant.lux) { v -> plantUpdate { it.copy(lux = v) } }
+            NeedSlider(stringResource(Res.string.need_love), plant.love) { v -> plantUpdate { it.copy(love = v) } }
+            NeedSlider(stringResource(Res.string.need_fertilizer), plant.fertilizer) { v -> plantUpdate { it.copy(fertilizer = v) } }
+            DevToggle(stringResource(Res.string.plant_withered), null, plant.dead) { v ->
+                plantUpdate { it.copy(dead = v, criticalSince = 0L) }
+            }
+            Chips {
+                DevChip(stringResource(Res.string.dev_all_full), false) {
+                    plantUpdate { it.copy(water = 100.0, lux = 100.0, love = 100.0, fertilizer = 100.0, dead = false, criticalSince = 0L) }
+                }
+                DevChip(stringResource(Res.string.dev_all_low), false) {
+                    plantUpdate { it.copy(water = 15.0, lux = 15.0, love = 15.0, fertilizer = 15.0) }
+                }
+                DevChip(stringResource(Res.string.dev_almost_dead), false) {
+                    // Critical for 23 h 59 min: withers within the next game minute.
+                    plantUpdate {
+                        it.copy(water = 2.0, lux = 2.0, love = 2.0, fertilizer = 2.0, dead = false,
+                            criticalSince = now - GameRules.DEAD_AFTER_MILLIS + 60_000)
+                    }
+                }
+            }
+            Chips {
+                if (player.plants.size < PlayerState.MAX_PLANTS) {
+                    DevChip(stringResource(Res.string.dev_add_plant), false) {
+                        actions.updatePlayer {
+                            val next = PlantState(species = Species.entries[it.plants.size % Species.entries.size], plantedAt = now)
+                            it.copy(plants = it.plants + next, activePlantId = next.id)
+                        }
+                    }
+                }
+                if (player.plants.size > 1) {
+                    DevChip(stringResource(Res.string.dev_remove_plant), false) {
+                        actions.updatePlayer {
+                            val rest = it.plants - it.activePlant
+                            it.copy(plants = rest, activePlantId = rest.first().id)
+                        }
+                    }
+                }
+            }
+
+            // Player
+            DevSection(stringResource(Res.string.dev_section_player))
+            DevLabel("${stringResource(Res.string.dev_coins)}: ${player.coins}")
+            Chips {
+                listOf(10, 100, 1_000, 10_000).forEach { amount ->
+                    DevChip("+$amount", false) { actions.updatePlayer { it.copy(coins = it.coins + amount) } }
+                }
+                DevChip("0", false) { actions.updatePlayer { it.copy(coins = 0) } }
+            }
+            DevLabel("${stringResource(Res.string.dev_streak)}: ${player.streak}")
+            Chips {
+                DevChip(stringResource(Res.string.dev_reward_again), !state.rewardAvailable) {
+                    // Yesterday: the next claim continues the streak.
+                    actions.updatePlayer { p -> p.copy(lastRewardDay = state.today - 1, rewardDays = p.rewardDays - state.today) }
+                }
+                DevChip("+1", false) { actions.updatePlayer { it.copy(streak = it.streak + 1) } }
+                DevChip("0", false) { actions.updatePlayer { it.copy(streak = 0) } }
+            }
+            DevToggle(stringResource(Res.string.item_grow_lamp), null, state.lampActive) { on ->
+                actions.updatePlayer { it.copy(lampUntil = if (on) now + 30 * 60_000L else 0L) }
+            }
+            PixelButton(stringResource(Res.string.dev_unlock_all), color = PlantagotchiColors.Sunshine) {
+                actions.updatePlayer {
+                    it.copy(ownedPots = PotId.all.toSet(), ownedScenery = Scenery.entries.toSet(), ownedGrounds = Ground.entries.toSet())
+                }
+            }
+            DevLabel(stringResource(Res.string.shop_scenery))
+            Chips {
+                Scenery.entries.forEach { scenery ->
+                    DevChip(sceneryName(scenery), player.scenery == scenery) {
+                        actions.updatePlayer { it.copy(scenery = scenery, ownedScenery = it.ownedScenery + scenery) }
+                    }
+                }
+            }
+            DevLabel(stringResource(Res.string.shop_ground))
+            Chips {
+                Ground.entries.forEach { ground ->
+                    DevChip(groundName(ground), player.ground == ground) {
+                        actions.updatePlayer { it.copy(ground = ground, ownedGrounds = it.ownedGrounds + ground) }
+                    }
+                }
+            }
+
+            // Animations
+            DevSection(stringResource(Res.string.dev_section_animations))
+            Chips {
+                DevChip("Water", false) { actions.emit(GameEvent.Purchased(ShopCatalog.wateringCan)) }
+                DevChip("Fertilizer", false) { actions.emit(GameEvent.Purchased(ShopCatalog.fertilizerBag)) }
+                DevChip("Lamp", false) { actions.emit(GameEvent.Purchased(ShopCatalog.growLamp)) }
+                DevChip("Pot", false) { actions.emit(GameEvent.Purchased(ShopCatalog.pots.first())) }
+                DevChip("Scenery", false) { actions.emit(GameEvent.Purchased(ShopCatalog.backdrops.first())) }
+                DevChip("Pet", false) { actions.emit(GameEvent.Petted) }
+                DevChip("Grow", false) { actions.emit(GameEvent.GrewUp(plant.id, plant.stage)) }
+                DevChip("Wither", false) { actions.emit(GameEvent.Withered(plant.id)) }
+                DevChip("Reward", false) { actions.emit(GameEvent.RewardClaimed(60, player.streak + 1)) }
+                plantActions.forEach { action ->
+                    DevChip(action.lowercase().replaceFirstChar { it.uppercase() }, false) { actions.emit(GameEvent.DevPlantAction(action)) }
+                }
+            }
+
+            // Sounds
+            DevSection(stringResource(Res.string.dev_section_sounds))
+            Chips {
+                AudioAssets.all.filterNot { it.startsWith("music/") || it.startsWith("ambient/") }.forEach { asset ->
+                    DevChip(asset.substringAfter('/'), false) { actions.play(asset) }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            val title = stringResource(Res.string.app_name)
+            val body = stringResource(Res.string.notif_water, speciesName(plant.species))
+            PixelButton(stringResource(Res.string.dev_test_notification)) { actions.testNotification(title, body) }
+            DevNote(stringResource(Res.string.dev_test_notification_hint))
+            Spacer(Modifier.height(12.dp))
+            var confirmReset by remember { mutableStateOf(false) }
+            PixelButton(
+                stringResource(if (confirmReset) Res.string.dev_reset_game_confirm else Res.string.dev_reset_game),
+                color = PlantagotchiColors.Love,
+            ) {
+                if (confirmReset) {
+                    actions.resetGame()
+                    confirmReset = false
+                } else {
+                    confirmReset = true
+                }
+            }
+            Spacer(Modifier.height(24.dp))
         }
-        Spacer(Modifier.height(24.dp))
     }
 }
 

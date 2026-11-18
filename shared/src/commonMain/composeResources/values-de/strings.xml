@@ -175,4 +175,23 @@
     <string name="dev_test_notification_hint">App in den Hintergrund schicken, um sie zu sehen</string>
     <string name="dev_reset_game">Spiel zurücksetzen</string>
     <string name="dev_reset_game_confirm">Nochmals tippen löscht den Spielstand</string>
+    <string name="reward_title">Tägliche Truhe</string>
+    <string name="reward_streak">Serie: %1$d Tage</string>
+    <string name="reward_legend">Grün: abgeholt, rot: verpasst. Ein verpasster Tag beendet die Serie.</string>
+    <string name="reward_today">Heute: +%1$d Münzen</string>
+    <string name="reward_claim">Abholen</string>
+    <string name="reward_claimed">Heute abgeholt. Morgen: +%1$d Münzen</string>
+    <string name="day_mon">Mo</string>
+    <string name="day_tue">Di</string>
+    <string name="day_wed">Mi</string>
+    <string name="day_thu">Do</string>
+    <string name="day_fri">Fr</string>
+    <string name="day_sat">Sa</string>
+    <string name="day_sun">So</string>
+    <string name="menu_discard">Pflanze entsorgen</string>
+    <string name="discard_title">%1$s entsorgen?</string>
+    <string name="discard_text">Die Pflanze kommt auf den Kompost. Das lässt sich nicht rückgängig machen.</string>
+    <string name="discard_text_only">Es ist deine einzige Pflanze: In ihrem Topf wächst ein neuer Spross. Das lässt sich nicht rückgängig machen.</string>
+    <string name="discard_confirm">Entsorgen</string>
+    <string name="discard_cancel">Abbrechen</string>
 </resources>

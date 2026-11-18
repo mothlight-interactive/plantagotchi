@@ -1,7 +1,9 @@
 package dev.mothlight.plantagotchi.ui.game
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
@@ -68,3 +70,54 @@ internal fun Rect.scaled(factor: Float): Rect {
 }
 
 internal fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t
+
+/** 16x16 pixel ring of the round buttons: per row, the inclusive x ranges of the outline. */
+private val ringRows: List<List<IntRange>> = listOf(
+    listOf(6..9),
+    listOf(4..5, 10..11),
+    listOf(3..3, 12..12),
+    listOf(2..2, 13..13),
+    listOf(1..1, 14..14),
+    listOf(1..1, 14..14),
+    listOf(0..0, 15..15),
+    listOf(0..0, 15..15),
+    listOf(0..0, 15..15),
+    listOf(0..0, 15..15),
+    listOf(1..1, 14..14),
+    listOf(1..1, 14..14),
+    listOf(2..2, 13..13),
+    listOf(3..3, 12..12),
+    listOf(4..5, 10..11),
+    listOf(6..9),
+)
+
+/**
+ * Round pixel button drawn in code (crisp on every platform): filled disc, light rim on the upper
+ * left, dark outline. [fill] null draws only the outline.
+ */
+internal fun DrawScope.drawPixelButton(
+    dst: Rect,
+    fill: Color? = Color(0xFF3F282F),
+    outline: Color = Color(0xFF222034),
+    highlight: Color = Color(0x33FFFFFF),
+) {
+    val cw = dst.width / 16f
+    val ch = dst.height / 16f
+    // Slight overlap avoids hairline seams between cells.
+    fun cells(row: Int, from: Int, to: Int, color: Color) = drawRect(
+        color,
+        Offset(dst.left + from * cw, dst.top + row * ch),
+        Size((to - from + 1) * cw + 0.5f, ch + 0.5f),
+    )
+    ringRows.forEachIndexed { row, ranges ->
+        val left = ranges.first().last + 1
+        val right = ranges.last().first - 1
+        if (fill != null && ranges.size == 2 && left <= right) {
+            cells(row, left, right, fill)
+            // Rim light: first inner cell on the upper half, and the top inner row.
+            if (row < 8) cells(row, left, left, highlight)
+            if (row == 1 || row == 2) cells(row, left, right, highlight)
+        }
+        ranges.forEach { cells(row, it.first, it.last, outline) }
+    }
+}

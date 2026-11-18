@@ -37,10 +37,17 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import dev.mothlight.plantagotchi.data.AppSettingsState
 import dev.mothlight.plantagotchi.data.state.GameRules
+import dev.mothlight.plantagotchi.data.state.PlantState
 import dev.mothlight.plantagotchi.data.state.Season
 import dev.mothlight.plantagotchi.data.weather.CurrentWeather
 import dev.mothlight.plantagotchi.resources.Res
 import dev.mothlight.plantagotchi.resources.menu_about
+import dev.mothlight.plantagotchi.resources.discard_cancel
+import dev.mothlight.plantagotchi.resources.discard_confirm
+import dev.mothlight.plantagotchi.resources.discard_text
+import dev.mothlight.plantagotchi.resources.discard_text_only
+import dev.mothlight.plantagotchi.resources.discard_title
+import dev.mothlight.plantagotchi.resources.menu_discard
 import dev.mothlight.plantagotchi.resources.menu_settings
 import dev.mothlight.plantagotchi.resources.settings_ambience
 import dev.mothlight.plantagotchi.resources.settings_ambience_desc
@@ -73,13 +80,14 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
-enum class MenuEntry { SETTINGS, ABOUT }
+enum class MenuEntry { SETTINGS, DISCARD, ABOUT }
 
 @Composable
 fun MenuSheet(onSelect: (MenuEntry) -> Unit) {
     Column(Modifier.fillMaxWidth().background(Panel).navigationBarsPadding().padding(16.dp)) {
         listOf(
             MenuEntry.SETTINGS to stringResource(Res.string.menu_settings),
+            MenuEntry.DISCARD to stringResource(Res.string.menu_discard),
             MenuEntry.ABOUT to stringResource(Res.string.menu_about),
         ).forEach { (entry, label) ->
             Row(
@@ -190,5 +198,29 @@ private fun SettingRow(title: String, description: String?, checked: Boolean, on
             onCheckedChange = onChecked,
             colors = SwitchDefaults.colors(checkedTrackColor = PlantagotchiColors.Water, checkedThumbColor = Outline),
         )
+    }
+}
+
+/** Confirmation before discarding the active plant (long press on it, or the menu). */
+@Composable
+fun DiscardSheet(plant: PlantState, onlyPlant: Boolean, onConfirm: () -> Unit, onCancel: () -> Unit) {
+    Column(Modifier.fillMaxWidth().background(Panel).navigationBarsPadding().padding(16.dp)) {
+        Text(
+            stringResource(Res.string.discard_title, speciesName(plant.species)),
+            style = MaterialTheme.typography.titleLarge,
+            color = PlantagotchiColors.Sunshine,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(if (onlyPlant) Res.string.discard_text_only else Res.string.discard_text),
+            style = MaterialTheme.typography.bodyMedium,
+            color = PlantagotchiColors.OffWhite,
+        )
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PixelButton(stringResource(Res.string.discard_confirm), color = PlantagotchiColors.Love, onClick = onConfirm)
+            PixelButton(stringResource(Res.string.discard_cancel), color = PlantagotchiColors.OffWhite, onClick = onCancel)
+        }
+        Spacer(Modifier.height(8.dp))
     }
 }

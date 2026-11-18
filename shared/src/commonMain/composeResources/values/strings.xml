@@ -175,4 +175,23 @@
     <string name="dev_test_notification_hint">Send the app to the background to see it</string>
     <string name="dev_reset_game">Reset game</string>
     <string name="dev_reset_game_confirm">Tap again to delete the save game</string>
+    <string name="reward_title">Daily chest</string>
+    <string name="reward_streak">Streak: %1$d days</string>
+    <string name="reward_legend">Green: collected, red: missed. A missed day ends the streak.</string>
+    <string name="reward_today">Today: +%1$d coins</string>
+    <string name="reward_claim">Collect</string>
+    <string name="reward_claimed">Collected today. Tomorrow: +%1$d coins</string>
+    <string name="day_mon">Mo</string>
+    <string name="day_tue">Tu</string>
+    <string name="day_wed">We</string>
+    <string name="day_thu">Th</string>
+    <string name="day_fri">Fr</string>
+    <string name="day_sat">Sa</string>
+    <string name="day_sun">Su</string>
+    <string name="menu_discard">Discard plant</string>
+    <string name="discard_title">Discard %1$s?</string>
+    <string name="discard_text">The plant goes to the compost. This cannot be undone.</string>
+    <string name="discard_text_only">It is your only plant: a fresh sprout grows in its pot. This cannot be undone.</string>
+    <string name="discard_confirm">Discard</string>
+    <string name="discard_cancel">Cancel</string>
 </resources>
