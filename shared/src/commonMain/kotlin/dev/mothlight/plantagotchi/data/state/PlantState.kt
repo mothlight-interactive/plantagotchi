@@ -37,6 +37,9 @@ enum class Species(
 
     /** Bog plant: thirsty, but catches its own food. */
     FLYTRAP(waterDecay = 1.6, luxDecay = 1.1, frostSensitivity = 1.5, heatSensitivity = 1.0, seedPrice = 250, fertilizerDecay = 0.3),
+
+    /** Trailing vines, happiest up high in a hanging planter. */
+    POTHOS(waterDecay = 1.1, luxDecay = 0.7, frostSensitivity = 1.5, heatSensitivity = 1.5, seedPrice = 200),
 }
 
 /** All needs are percentages in the range 0..100. */

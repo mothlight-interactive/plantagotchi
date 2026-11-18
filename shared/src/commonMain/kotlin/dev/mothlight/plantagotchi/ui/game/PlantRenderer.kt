@@ -93,6 +93,7 @@ object PlantRenderer {
             Species.MONSTERA -> drawMonstera(canvas, m, seed, pose)
             Species.BONSAI -> drawBonsai(canvas, m, seed, pose)
             Species.FLYTRAP -> drawFlytrap(canvas, m, seed, pose)
+            Species.POTHOS -> drawFern(canvas, m, seed, pose) // placeholder until the new renderer lands
         }
     }
 

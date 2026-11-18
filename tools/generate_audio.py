@@ -226,6 +226,9 @@ def voices():
     gurgle = tone(vib(140, 0.25, 0.15, 18), 0.25, "square", 0.2, duty=0.3)
     v["flytrap_happy"] = seq(chomp, gurgle, gap=0.05)
     v["flytrap_sad"] = tone(vib(sweep(110, 80, 0.5), 0.5, 0.1, 12), 0.5, "square", 0.25, duty=0.3, release=0.2)
+    # Pothos: a soft swinging glide, like a vine swaying
+    v["pothos_happy"] = seq(tone(vib(sweep(520, 760, 0.16), 0.16, 0.02, 6), 0.16, "sine", 0.45), tone(vib(sweep(640, 900, 0.18), 0.18, 0.02, 6), 0.18, "sine", 0.4), gap=0.02)
+    v["pothos_sad"] = tone(vib(sweep(620, 360, 0.5), 0.5, 0.03, 4), 0.5, "sine", 0.4, release=0.2)
     for name, x in v.items():
         write("voice", name, x, 0.7)
 

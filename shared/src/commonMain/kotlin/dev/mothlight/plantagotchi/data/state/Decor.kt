@@ -34,7 +34,11 @@ enum class RoomSpot {
                 if (wanted != null && taken.add(wanted)) result[i] = wanted
             }
             plants.indices.forEach { i ->
-                if (result[i] == null) result[i] = entries.first { it !in taken }.also { taken += it }
+                if (result[i] == null) {
+                    // Trailing plants go into the hanging planter when it is free.
+                    val preferred = if (plants[i].species == Species.POTHOS && HANGING !in taken) HANGING else entries.first { it !in taken }
+                    result[i] = preferred.also { taken += it }
+                }
             }
             return result.map { it!! }
         }
