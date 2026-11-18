@@ -41,26 +41,6 @@ internal object SceneryRenderer {
         return (x and 0xFFFF) / 65535f
     }
 
-    // region Legacy entry points (block = old 4 dp pixel), kept until GameCanvas uses the new API
-
-    /** Old API: [block] was the 4 dp art pixel. Draws the new fine art at the same on-screen size. */
-    fun drawScenery(scope: DrawScope, scenery: Scenery, area: Rect, block: Float, tint: Float, time: Float, wind: Float, sprites: SceneSprites?) {
-        val pixel = block * PIXEL_DP / 4f
-        if (scenery.indoor) {
-            IndoorScenes.forScenery(scenery, scope.size, area.bottom, pixel)?.draw(scope, tint, time, legacyToys)
-        } else {
-            drawLandscape(scope, scenery, area, pixel, tint, time, wind, sprites?.mountains)
-        }
-    }
-
-    /** Old API, see [drawScenery]. */
-    fun drawGround(scope: DrawScope, ground: Ground, area: Rect, block: Float, tint: Float, time: Float, sprites: SceneSprites?) =
-        drawSceneGround(scope, ground, area, block * PIXEL_DP / 4f, tint, time, sprites?.ground)
-
-    private val legacyToys = IndoorToys()
-
-    // endregion
-
     /**
      * Draws the landscape of an outdoor [scenery] into [area] (the part above the ground line).
      * [mountains] is the bitmap of the original mountain art (null: drawn in code, e.g. previews);

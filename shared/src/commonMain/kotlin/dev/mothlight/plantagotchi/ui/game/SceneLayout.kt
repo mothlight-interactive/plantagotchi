@@ -5,11 +5,11 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import dev.mothlight.plantagotchi.data.state.RoomSpot
 
-/** One plant in its pot. The plant rect shares the pot's 296 px wide viewport width. */
+/** One plant in its pot. Plant and pot share the same art pixel size. */
 internal class PlantSlot(val pot: Rect, val plant: Rect) {
-    /** One pixel of the 25 px plant grid; plants may be wider than their pot. */
-    val pixel: Float get() = plant.width / 25f
-    val base: Offset get() = Offset(plant.center.x + pixel / 2, plant.bottom)
+    /** One pixel of the plant grid; plants may be wider than their pot. */
+    val pixel: Float get() = plant.width / PlantRenderer.GRID
+    val base: Offset get() = Offset(plant.center.x, plant.bottom)
     /** Area that counts as tapping this plant. */
     val touch: Rect get() = Rect(minOf(pot.left, plant.left + plant.width * 0.2f), plant.top + plant.height * 0.3f, maxOf(pot.right, plant.right - plant.width * 0.2f), pot.bottom)
 }
@@ -22,8 +22,8 @@ internal class SceneLayout(
     val ground: Rect,
     val slots: List<PlantSlot>,
     val activeIndex: Int,
-    /** Set in the cozy room. */
-    val room: RoomGeometry?,
+    /** Set in indoor scenes. */
+    val room: IndoorScene?,
     val coinHud: Rect,
     val weatherChip: Rect,
     val menuButton: Rect,
@@ -58,17 +58,19 @@ internal class SceneLayout(
             weights: List<Float>,
             potAspects: List<Float>,
             activeIndex: Int,
-            /** Spots per plant in the cozy room; null for the outdoor row. */
+            /** Spots per plant in an indoor scene; null for the outdoor row. */
             roomSpots: List<RoomSpot>? = null,
+            /** The indoor scene, built by [indoorScene]; required with [roomSpots]. */
+            indoor: IndoorScene? = null,
         ): SceneLayout {
             val w = size.width
             val h = size.height
-            val ground = Rect(0f, h - 128 * dp, w, h)
+            val ground = Rect(0f, floorTop(size, dp), w, h)
 
             val available = w * 0.96f
             val total = weights.sum().coerceAtLeast(0.01f)
             var x = (w - available) / 2
-            val room = if (roomSpots != null) RoomGeometry(size, ground.top, 4 * dp) else null
+            val room = if (roomSpots != null) indoor else null
             val slots = if (room != null && roomSpots != null) roomSpots.mapIndexed { i, spot ->
                 val (anchor, baseWidth) = room.anchor(spot)
                 // The selected plant grows towards a larger size (weight 1 = normal).
@@ -125,7 +127,14 @@ internal class SceneLayout(
         /** How much larger the selected plant is drawn in an indoor scene. */
         const val SELECTED_ZOOM = 1.3f
 
-        /** Plant grid size relative to the pot width (the original art used 1). */
-        const val PLANT_TO_POT = 25f / 19f
+        /** Plant rect width relative to the pot width: same art pixel for plant and pot. */
+        const val PLANT_TO_POT = PlantRenderer.GRID.toFloat() / PotRenderer.GRID
+
+        /** Where the floor of the scene starts. */
+        fun floorTop(size: Size, dp: Float) = size.height - 128 * dp
+
+        /** The indoor scene for [scenery] on a canvas of [size], or null outdoors. */
+        fun indoorScene(scenery: dev.mothlight.plantagotchi.data.state.Scenery, size: Size, dp: Float): IndoorScene? =
+            IndoorScenes.forScenery(scenery, size, floorTop(size, dp), PIXEL_DP * dp)
     }
 }

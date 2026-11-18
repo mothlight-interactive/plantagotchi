@@ -237,6 +237,8 @@ fun GameContent(
                         SceneTarget.LAMP_CLICK -> actions.playUi(Sfx.SNAP)
                         SceneTarget.DESK_LAMP -> actions.playUi(Sfx.TAP)
                         SceneTarget.CAT -> actions.playUi(Sfx.PET)
+                        SceneTarget.FIRE -> actions.playUi(Sfx.SNAP)
+                        SceneTarget.STRING_LIGHTS -> actions.playUi(Sfx.SWITCH)
                         SceneTarget.EMPTY -> actions.deselect()
                     }
                 },

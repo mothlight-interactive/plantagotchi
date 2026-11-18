@@ -92,9 +92,8 @@ internal class SceneState {
     private var lastAmbientAt = 0f
     private var lastActiveIndex = -1
 
-    // Cozy room: the desk lamp can be switched, the cat flicks its tail when tapped.
-    var deskLampOn = true
-    var catFlickAt = -10f
+    /** Toys of the indoor scenes (desk lamp, cat, fire, string lights). */
+    val toys = IndoorToys()
 
     /** Plant being moved with a long press and drag, where the drag started and the finger is. */
     var dragIndex: Int? = null

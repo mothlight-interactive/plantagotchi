@@ -4,7 +4,7 @@ import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.data.state.Species
 
-/** Pots are named after the bundled drawables `ic_pot<shape><color>`. */
+/** Pot ids are `pot<shape><color>`, drawn by `PotRenderer`. */
 object PotId {
     const val DEFAULT = "pot12"
 

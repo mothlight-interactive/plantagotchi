@@ -71,8 +71,7 @@ import dev.mothlight.plantagotchi.ui.game.SCENE_PREVIEW_ASPECT
 import dev.mothlight.plantagotchi.ui.game.ScenePreview
 import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.Scenery
-import dev.mothlight.plantagotchi.ui.game.aspectRatioOrDefault
-import dev.mothlight.plantagotchi.ui.game.rememberPotPainters
+import dev.mothlight.plantagotchi.ui.game.PotPreview
 import dev.mothlight.plantagotchi.ui.theme.PlantagotchiColors
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.getString
@@ -115,7 +114,6 @@ fun ShopSheet(
         }
     }
     val scope = rememberCoroutineScope()
-    val pots = rememberPotPainters()
     val plant = player.activePlant
 
     fun buy(item: ShopItem) {
@@ -232,7 +230,6 @@ fun ShopSheet(
                     row.forEach { pot ->
                         PotCard(
                             pot = pot,
-                            painter = pots.getValue(pot.id),
                             owned = pot.id in player.ownedPots,
                             selected = pot.id == plant.pot,
                             affordable = player.coins >= pot.price,
@@ -299,7 +296,6 @@ private fun DecorCard(
 @Composable
 private fun PotCard(
     pot: ShopItem.Pot,
-    painter: Painter,
     owned: Boolean,
     selected: Boolean,
     affordable: Boolean,
@@ -308,14 +304,7 @@ private fun PotCard(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.pixelPanel(selected).padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Canvas(Modifier.fillMaxWidth().height(56.dp)) {
-            val aspect = painter.aspectRatioOrDefault(190f / 296f)
-            val w = minOf(size.width, size.height / aspect)
-            val h = w * aspect
-            translate((size.width - w) / 2, size.height - h) {
-                with(painter) { draw(Size(w, h)) }
-            }
-        }
+        PotPreview(pot.id, Modifier.fillMaxWidth().height(56.dp))
         Text(
             potName(pot.id),
             style = MaterialTheme.typography.labelSmall,

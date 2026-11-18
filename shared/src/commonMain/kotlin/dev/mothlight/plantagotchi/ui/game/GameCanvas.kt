@@ -77,9 +77,11 @@ enum class SceneTarget {
     /** Two lamps of the cradle "hit" each other. */
     LAMP_CLICK,
 
-    /** The cat in the cozy room, or its desk lamp. */
+    /** Toys of the indoor scenes: the cat and desk lamp, the fire, the string lights. */
     CAT,
     DESK_LAMP,
+    FIRE,
+    STRING_LIGHTS,
 }
 
 /** Localized texts the canvas draws. */
@@ -221,15 +223,17 @@ fun GameCanvas(
             }
     ) {
         val plant = state.player.activePlant
+        val indoor = SceneLayout.indoorScene(state.player.scenery, size, density.density)
         val layout = SceneLayout.compute(
             size = size,
             dp = density.density,
             topInset = topInset,
             bottomInset = bottomInset,
             weights = scene.weights(state),
-            potAspects = state.player.plants.map { sprites.pot(it.pot).aspectRatioOrDefault(190f / 296f) },
+            potAspects = state.player.plants.map { PotRenderer.aspect(PotRenderer.potFor(it.species, it.pot)) },
             activeIndex = state.player.activeIndex,
-            roomSpots = if (state.player.scenery == Scenery.ROOM) RoomSpot.assign(state.player.plants) else null,
+            roomSpots = if (indoor != null) RoomSpot.assign(state.player.plants) else null,
+            indoor = indoor,
         )
         scene.layout = layout
         scene.advance(frameNanos.longValue, state)
@@ -246,20 +250,21 @@ fun GameCanvas(
         val room = layout.room
         if (room != null) {
             // Weather only behind the glass, then the room in front of it
-            clipRect(room.glass.left, room.glass.top, room.glass.right, room.glass.bottom) { drawWeatherFront(scene, sprites, tint) }
-            RoomRenderer.draw(this, room, 4 * layout.dp, tint, scene.time, scene.deskLampOn, scene.catFlickAt)
+            room.windows.forEach { glass ->
+                clipRect(glass.left, glass.top, glass.right, glass.bottom) { drawWeatherFront(scene, sprites, tint) }
+            }
+            room.draw(this, tint, scene.time, scene.toys)
             if (scene.dragIndex != null) drawDropSpots(scene, state, layout, room)
         } else {
             val sceneryArea = Rect(0f, size.height * 0.3f, size.width, layout.ground.top)
-            SceneryRenderer.drawScenery(
-                this, state.player.scenery, sceneryArea,
-                block = 4 * layout.dp, tint = tint, time = scene.time, wind = wind, sprites = sprites,
-            )
+            val pixel = PIXEL_DP * layout.dp
+            SceneryRenderer.drawLandscape(this, state.player.scenery, sceneryArea, pixel, tint, scene.time, wind, sprites.mountains)
             drawWeatherFront(scene, sprites, tint)
             drawButterflies(scene, state, layout)
             drawFireflies(scene, state, layout)
-            SceneryRenderer.drawGround(this, state.player.ground, layout.ground, 4 * layout.dp, tint, scene.time, sprites)
-            if (state.player.ground != Ground.SNOW) drawGroundSeason(state.season, layout)
+            val ground = state.player.scenery.ground ?: Ground.GRASS
+            SceneryRenderer.drawSceneGround(this, ground, layout.ground, pixel, tint, scene.time, sprites.ground)
+            if (ground != Ground.SNOW) drawGroundSeason(state.season, layout)
         }
         val lit = state.litPlants
         lit.forEach { drawLampLight(scene, layout, it, state.player.plants[it].id) }
@@ -365,8 +370,9 @@ private fun DrawScope.drawPlant(scene: SceneState, state: GameUiState, sprites: 
             pose.droop > 0f -> ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(1f - pose.droop * 0.75f) })
             else -> null
         }
+        val seed = plant.id.hashCode()
         val draw: DrawScope.() -> Unit = {
-            PlantRenderer.draw(this, plant.species, maturity, plant.id.hashCode(), pose, slot.base, slot.pixel)
+            PlantRenderer.draw(this, plant.species, maturity, seed, pose, slot.base, slot.pixel)
         }
         if (filter == null) draw() else drawIntoLayer(filter) { draw() }
 
@@ -374,8 +380,13 @@ private fun DrawScope.drawPlant(scene: SceneState, state: GameUiState, sprites: 
         withTransform({
             scale(1f - potBounce * 0.06f, 1f + potBounce * 0.08f, Offset(slot.pot.center.x, slot.pot.bottom))
         }) {
-            drawPainter(sprites.pot(plant.pot), slot.pot)
+            PotRenderer.draw(this, PotRenderer.potFor(plant.species, plant.pot), slot.pot)
         }
+        // Parts of the plant in front of the pot (hanging vines)
+        val front: DrawScope.() -> Unit = {
+            PlantRenderer.drawFront(this, plant.species, maturity, seed, pose, slot.base, slot.pixel)
+        }
+        if (filter == null) front() else drawIntoLayer(filter) { front() }
 
         // Plants without visible bubbles call for attention when something is low.
         if ((!active || !state.plantSelected) && (plant.dead || listOf(plant.water, plant.lux, plant.love, plant.fertilizer).any { it < 20 })) {
@@ -774,18 +785,18 @@ private fun handleTap(
         if (scene.pushLamp(lamp, lit, cradle = l.room == null)) onTap(SceneTarget.LAMP)
         return
     }
-    val room = l.room
-    if (room != null) {
-        if (room.deskLamp.inflate(6 * l.dp).contains(offset)) {
-            scene.deskLampOn = !scene.deskLampOn
-            onTap(SceneTarget.DESK_LAMP)
-            return
-        }
-        if (room.cat.inflate(6 * l.dp).contains(offset)) {
-            scene.catFlickAt = scene.time
-            onTap(SceneTarget.CAT)
-            return
-        }
+    val toy = l.room?.toyAt(offset)
+    if (toy != null) {
+        scene.toys.tap(toy, scene.time)
+        onTap(
+            when (toy) {
+                IndoorToy.CAT -> SceneTarget.CAT
+                IndoorToy.FIRE -> SceneTarget.FIRE
+                IndoorToy.STRING_LIGHTS -> SceneTarget.STRING_LIGHTS
+                else -> SceneTarget.DESK_LAMP
+            }
+        )
+        return
     }
     val selected = scene.plantAt(offset, state)
     if (selected != null) onSelect(selected)
@@ -823,7 +834,7 @@ private fun drop(
 }
 
 /** While a plant is carried in the room: the spots it can go to, the nearest one highlighted. */
-private fun DrawScope.drawDropSpots(scene: SceneState, state: GameUiState, l: SceneLayout, room: RoomGeometry) {
+private fun DrawScope.drawDropSpots(scene: SceneState, state: GameUiState, l: SceneLayout, room: IndoorScene) {
     val index = scene.dragIndex ?: return
     val target = dropTarget(scene, index, scene.dragOffset, state)
     RoomSpot.entries.forEach { spot ->
