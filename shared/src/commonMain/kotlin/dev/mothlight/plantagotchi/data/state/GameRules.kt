@@ -54,17 +54,18 @@ object GameRules {
         else -> 0.0
     }
 
-    /** Light the plants actually receive, taking an active grow lamp into account. */
-    fun effectiveLux(state: PlayerState, ambientLux: Float, nowMillis: Long): Float =
-        if (state.isLampActive(nowMillis)) maxOf(ambientLux, LAMP_LUX) else ambientLux
+    /** Light [plant] actually receives, taking its grow lamp into account. */
+    fun effectiveLux(plant: PlantState, ambientLux: Float, nowMillis: Long): Float =
+        if (plant.lampOn(nowMillis)) maxOf(ambientLux, LAMP_LUX) else ambientLux
 
     /** One game loop step of [seconds] (normally 1) for all plants. */
     fun tick(state: PlayerState, env: Environment, seconds: Double = 1.0): PlayerState {
         var coins = state.coins
         val plants = state.plants.map { plant ->
             if (plant.dead) return@map plant
-            if (env.ambientLux > LUX_THRESHOLD && plant.lux < MAX) coins++
-            tickPlant(plant, env, seconds)
+            val lux = effectiveLux(plant, env.ambientLux, env.nowMillis)
+            if (lux > LUX_THRESHOLD && plant.lux < MAX) coins++
+            tickPlant(plant, env.copy(ambientLux = lux), seconds)
         }
         return state.copy(plants = plants, coins = coins)
     }

@@ -4,10 +4,12 @@ import dev.mothlight.plantagotchi.data.shop.PotId
 import dev.mothlight.plantagotchi.data.shop.PurchaseResult
 import dev.mothlight.plantagotchi.data.shop.Shop
 import dev.mothlight.plantagotchi.data.shop.ShopCatalog
+import dev.mothlight.plantagotchi.data.state.Environment
 import dev.mothlight.plantagotchi.data.state.GameRules
 import dev.mothlight.plantagotchi.data.state.PlantState
 import dev.mothlight.plantagotchi.data.state.PlayerState
 import dev.mothlight.plantagotchi.data.state.Species
+import dev.mothlight.plantagotchi.data.weather.WeatherState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -39,12 +41,33 @@ class ShopTest {
     fun growLampStacksAndProvidesLight() {
         val lamp = ShopCatalog.growLamp
         val first = assertIs<PurchaseResult.Success>(Shop.purchase(player(coins = 200), lamp, nowMillis = 1_000)).state
-        assertEquals(1_000 + lamp.durationMillis, first.lampUntil)
+        assertEquals(1_000 + lamp.durationMillis, first.activePlant.lampUntil)
         val second = assertIs<PurchaseResult.Success>(Shop.purchase(first, lamp, nowMillis = 2_000)).state
-        assertEquals(1_000 + 2 * lamp.durationMillis, second.lampUntil)
+        assertEquals(1_000 + 2 * lamp.durationMillis, second.activePlant.lampUntil)
 
-        assertEquals(GameRules.LAMP_LUX, GameRules.effectiveLux(second, 0f, nowMillis = 5_000))
-        assertEquals(0f, GameRules.effectiveLux(second, 0f, nowMillis = second.lampUntil))
+        assertEquals(GameRules.LAMP_LUX, GameRules.effectiveLux(second.activePlant, 0f, nowMillis = 5_000))
+        assertEquals(0f, GameRules.effectiveLux(second.activePlant, 0f, nowMillis = second.activePlant.lampUntil))
+    }
+
+    @Test
+    fun growLampLightsOnlyItsPlant() {
+        val lit = PlantState(id = "lit", lux = 50.0, lampUntil = 10_000)
+        val dark = PlantState(id = "dark", lux = 50.0)
+        val state = PlayerState(plants = listOf(lit, dark), activePlantId = "lit")
+        val after = GameRules.tick(state, Environment(0f, WeatherState.CLEAR_SKY, 15.0, 5_000), seconds = 10.0)
+        assertTrue(after.plants[0].lux > 50.0, "the lamp lights its plant")
+        assertTrue(after.plants[1].lux < 50.0, "the neighbour stays in the dark")
+        val bought = assertIs<PurchaseResult.Success>(Shop.purchase(state.copy(activePlantId = "dark", coins = 200), ShopCatalog.growLamp, 0)).state
+        assertTrue(bought.plants[1].lampOn(1), "a lamp is bought for the active plant")
+        assertEquals(PurchaseResult.PlantIsWithered, Shop.purchase(state.copy(plants = listOf(dark.copy(dead = true)), coins = 200), ShopCatalog.growLamp, 0))
+    }
+
+    @Test
+    fun oldSavesGetTheirLampOnEveryPlant() {
+        val old = PlayerState(plants = listOf(PlantState(id = "a"), PlantState(id = "b")), lampUntil = 9_000)
+        val migrated = old.withPerPlantLamps()
+        assertEquals(listOf(9_000L, 9_000L), migrated.plants.map { it.lampUntil })
+        assertEquals(0L, migrated.lampUntil)
     }
 
     @Test

@@ -30,14 +30,14 @@ object Shop {
             }
             is ShopItem.Revive -> if (!plant.dead) return PurchaseResult.NotNeeded
             is ShopItem.Seed -> if (state.plants.size >= PlayerState.MAX_PLANTS) return PurchaseResult.NoFreeSlot
-            is ShopItem.GrowLamp -> Unit
+            is ShopItem.GrowLamp -> if (plant.dead) return PurchaseResult.PlantIsWithered
         }
         if (state.coins < item.price) return PurchaseResult.NotEnoughCoins
 
         val paid = state.copy(coins = state.coins - item.price)
         val result = when (item) {
             is ShopItem.Refill -> paid.updateActive { it.refill(item.need, item.amount) }
-            is ShopItem.GrowLamp -> paid.copy(lampUntil = maxOf(nowMillis, state.lampUntil) + item.durationMillis)
+            is ShopItem.GrowLamp -> paid.updateActive { it.copy(lampUntil = maxOf(nowMillis, it.lampUntil) + item.durationMillis) }
             is ShopItem.Pot -> paid.copy(ownedPots = state.ownedPots + item.id).updateActive { it.copy(pot = item.id) }
             is ShopItem.Backdrop -> paid.copy(ownedScenery = state.ownedScenery + item.scenery, scenery = item.scenery)
             is ShopItem.Floor -> paid.copy(ownedGrounds = state.ownedGrounds + item.ground, ground = item.ground)

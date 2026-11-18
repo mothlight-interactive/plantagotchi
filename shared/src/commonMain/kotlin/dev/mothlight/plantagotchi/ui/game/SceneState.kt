@@ -54,7 +54,7 @@ internal class ThunderPath(var id: Long = -1, var points: List<Offset> = emptyLi
 internal class SceneState {
     /** Seconds since the scene started. */
     var time = 0f
-        private set
+        internal set // tests drive the clock
     private var lastNanos = 0L
 
     /** 60 Hz step counter, independent of the display refresh rate. */
@@ -92,22 +92,76 @@ internal class SceneState {
     private var lastAmbientAt = 0f
     private var lastActiveIndex = -1
 
-    // Grow lamp pendulum: hangs still until tapped, then swings out with damping.
-    private var lampPushedAt = -100f
+    // Cozy room: the desk lamp can be switched, the cat flicks its tail when tapped.
+    var deskLampOn = true
+    var catFlickAt = -10f
 
-    /** Current lamp angle in degrees. */
-    fun lampSwing(): Float {
-        val t = time - lampPushedAt
-        return LAMP_AMPLITUDE * kotlin.math.exp(-LAMP_DAMPING * t) * sin(t * 2 * PI.toFloat() / LAMP_PERIOD)
+    /** Plant being moved with a long press and drag, where the drag started and the finger is. */
+    var dragIndex: Int? = null
+    var dragStart = Offset.Zero
+    var dragPosition = Offset.Zero
+    val dragOffset: Offset get() = dragPosition - dragStart
+
+    // Grow lamps hang above every lit plant and stay still until tapped. A single lamp swings out
+    // with damping. With two or more, the end lamps form a Newton's cradle: the tapped end swings
+    // out and back, "hits" the row, and the lamp at the other end flies out, back and forth.
+    private var swingStart = -100f
+    private var soloLamp: String? = null
+    private var cradleLeft: String? = null
+    private var cradleRight: String? = null
+    private var cradleFromLeft = true
+    private var lastHalfSwing = 0
+
+    private val swingAmplitude: Float get() = LAMP_AMPLITUDE * kotlin.math.exp(-LAMP_DAMPING * (time - swingStart))
+
+    /** True while any lamp still visibly moves. */
+    val lampSwinging: Boolean get() = swingAmplitude > LAMP_REST
+
+    /** Current angle in degrees of the lamp above [plantId]. */
+    fun lampSwing(plantId: String): Float {
+        if (!lampSwinging) return 0f
+        val t = time - swingStart
+        val amplitude = swingAmplitude
+        if (soloLamp != null) {
+            return if (plantId == soloLamp) amplitude * sin(t * 2 * PI.toFloat() / LAMP_PERIOD) else 0f
+        }
+        val half = LAMP_PERIOD / 2
+        val k = (t / half).toInt()
+        val phase = sin((t - k * half) / half * PI.toFloat())
+        // Even half swings belong to the end that was pulled, odd ones to the other end.
+        val leftMoves = (k % 2 == 0) == cradleFromLeft
+        return when (plantId) {
+            cradleLeft -> if (leftMoves) -amplitude * phase else 0f
+            cradleRight -> if (!leftMoves) amplitude * phase else 0f
+            else -> 0f
+        }
     }
 
-    /** True while the lamp still visibly moves. */
-    val lampSwinging: Boolean get() = LAMP_AMPLITUDE * kotlin.math.exp(-LAMP_DAMPING * (time - lampPushedAt)) > LAMP_REST
-
-    /** Pushes the lamp if it is at rest. Taps while it swings add no energy. Returns true if pushed. */
-    fun pushLamp(): Boolean {
+    /**
+     * Pushes the lamp above [plantId]; [lit] are the plants with a lamp, left to right. Taps while
+     * lamps swing add no energy. Returns true if pushed.
+     */
+    fun pushLamp(plantId: String, lit: List<String>): Boolean {
         if (lampSwinging) return false
-        lampPushedAt = time
+        swingStart = time
+        lastHalfSwing = 0
+        if (lit.size >= 2 && (plantId == lit.first() || plantId == lit.last())) {
+            soloLamp = null
+            cradleLeft = lit.first()
+            cradleRight = lit.last()
+            cradleFromLeft = plantId == lit.first()
+        } else {
+            soloLamp = plantId
+        }
+        return true
+    }
+
+    /** True once per collision of the cradle (the moment the energy passes through the row). */
+    fun lampClicked(): Boolean {
+        if (soloLamp != null || !lampSwinging) return false
+        val k = ((time - swingStart) / (LAMP_PERIOD / 2)).toInt()
+        if (k <= lastHalfSwing) return false
+        lastHalfSwing = k
         return true
     }
 
@@ -440,7 +494,15 @@ internal class SceneState {
         /** Below this amplitude (degrees) the lamp counts as standing still. */
         const val LAMP_REST = 0.4f
 
-        fun lampPosition(l: SceneLayout) = Offset(l.plant.center.x, l.plant.top + l.plant.height * 0.12f)
+        /** Lamp above the active plant. */
+        fun lampPosition(l: SceneLayout) = lampPosition(l, l.activeIndex)
+
+        /** Lamp above plant [index]; outdoors all lamps hang at the same height, like a cradle. */
+        fun lampPosition(l: SceneLayout, index: Int): Offset {
+            val plant = l.slots[index].plant
+            val top = if (l.room != null) plant else l.plant
+            return Offset(plant.center.x, top.top + top.height * 0.12f)
+        }
     }
 }
 

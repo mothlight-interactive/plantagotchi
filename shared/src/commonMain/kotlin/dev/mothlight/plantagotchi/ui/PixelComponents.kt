@@ -45,6 +45,7 @@ import dev.mothlight.plantagotchi.resources.scenery_beach
 import dev.mothlight.plantagotchi.resources.scenery_forest
 import dev.mothlight.plantagotchi.resources.scenery_city
 import dev.mothlight.plantagotchi.resources.scenery_zen
+import dev.mothlight.plantagotchi.resources.scenery_room
 import dev.mothlight.plantagotchi.resources.ground_grass
 import dev.mothlight.plantagotchi.resources.ground_sand
 import dev.mothlight.plantagotchi.resources.ground_stone
@@ -176,6 +177,7 @@ fun sceneryName(scenery: Scenery): String = stringResource(
         Scenery.FOREST -> Res.string.scenery_forest
         Scenery.CITY -> Res.string.scenery_city
         Scenery.ZEN -> Res.string.scenery_zen
+        Scenery.ROOM -> Res.string.scenery_room
     }
 )
 

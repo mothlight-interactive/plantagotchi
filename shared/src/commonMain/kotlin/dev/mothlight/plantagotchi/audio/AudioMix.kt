@@ -51,6 +51,11 @@ object AudioMix {
             val calm = !wet && weather.state != WeatherState.FOG
             result["ambient/birds"] = if (day && calm && scenery != Scenery.CITY && state.season != Season.WINTER) 0.3f else 0f
             result["ambient/crickets"] = if (!day && calm && state.season != Season.WINTER) 0.3f else 0f
+            if (scenery == Scenery.ROOM) {
+                // Indoors: the outside comes muffled through the window, a bit of city at night
+                AudioAssets.ambient.forEach { key -> result[key]?.let { result[key] = it * 0.4f } }
+                result["ambient/city"] = if (day) 0.06f else 0.12f
+            }
         }
         return result
     }

@@ -25,6 +25,8 @@ import dev.mothlight.plantagotchi.audio.AudioAssets
 import dev.mothlight.plantagotchi.audio.AudioDirector
 import dev.mothlight.plantagotchi.data.shop.Need
 import dev.mothlight.plantagotchi.data.state.Species
+import dev.mothlight.plantagotchi.data.state.Arrangement
+import dev.mothlight.plantagotchi.data.state.RoomSpot
 import dev.mothlight.plantagotchi.platform.WidgetSnapshot
 import dev.mothlight.plantagotchi.platform.Reminder
 import dev.mothlight.plantagotchi.dev.AppEnv
@@ -69,7 +71,11 @@ data class GameUiState(
     /** Test mode overrides, always empty in prod. */
     val dev: DevOverrides = DevOverrides(),
 ) {
-    val lampActive: Boolean get() = player.isLampActive(now)
+    /** Whether the active plant's grow lamp is on. */
+    val lampActive: Boolean get() = player.activePlant.lampOn(now)
+
+    /** Indices of the plants whose grow lamp is on. */
+    val litPlants: List<Int> get() = player.plants.indices.filter { player.plants[it].lampOn(now) }
     val rewardAvailable: Boolean get() = !loading && DailyReward.isAvailable(player, today)
 }
 
@@ -132,7 +138,7 @@ class PlantagotchiViewModel(
     internal suspend fun start(loops: Boolean = true) {
         val now = clock.now().toEpochMilliseconds()
         val loaded = runCatching { repository.load() }.getOrNull()
-        val player = (loaded?.let { GameRules.applyOfflineDecay(it, now) } ?: PlayerState(updatedAt = now))
+        val player = (loaded?.withPerPlantLamps()?.let { GameRules.applyOfflineDecay(it, now) } ?: PlayerState(updatedAt = now))
             .let { if (it.activePlantId.isEmpty()) it.copy(activePlantId = it.plants.first().id) else it }
         _state.update {
             it.copy(
@@ -220,6 +226,18 @@ class PlantagotchiViewModel(
     }
 
     fun compost() = updatePlayer { Shop.compost(it) }
+
+    /** Moves plant [index] to [spot] in the cozy room; a plant there swaps with it. */
+    fun movePlant(index: Int, spot: RoomSpot) {
+        updatePlayer { Arrangement.move(it, index, spot) }
+        sound(Sfx.DECOR)
+    }
+
+    /** Swaps two plants in the outdoor row. */
+    fun swapPlants(from: Int, to: Int) {
+        updatePlayer { Arrangement.swap(it, from, to) }
+        sound(Sfx.DECOR)
+    }
 
     /** Discards the active plant, also a living one (see [Shop.discard]). */
     fun discardPlant() {
@@ -328,8 +346,9 @@ class PlantagotchiViewModel(
             val dev = s.dev
             val sensorLux = platform.lightSensor.lux.value
             val baseLux = dev.ambientLux ?: sensorLux ?: s.weather.estimatedLux()
-            val lux = GameRules.effectiveLux(s.player, baseLux, now)
-            val environment = Environment(lux, s.weather.facts.state, s.weather.facts.temperature, now)
+            // Lamps are per plant: the tick adds them; the UI shows the active plant's light.
+            val lux = GameRules.effectiveLux(s.player.activePlant, baseLux, now)
+            val environment = Environment(baseLux, s.weather.facts.state, s.weather.facts.temperature, now)
             val seconds = gameTick.inWholeMilliseconds / 1000.0 * dev.timeSpeed
             val player = if (dev.freezeNeeds) s.player else GameRules.tick(s.player, environment, seconds)
             val date = kotlin.time.Instant.fromEpochMilliseconds(now).toLocalDateTime(timeZone).date

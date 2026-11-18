@@ -22,10 +22,10 @@ import kotlin.random.Random
 internal object SceneryRenderer {
     private val nightColor = Color(0xFF0B0B1E)
 
-    private fun shade(c: Color, tint: Float) = lerp(c, nightColor, (tint * 1.5f).coerceIn(0f, 0.7f))
+    internal fun shade(c: Color, tint: Float) = lerp(c, nightColor, (tint * 1.5f).coerceIn(0f, 0.7f))
 
     /** Snaps to the pixel grid. */
-    private fun snap(v: Float, block: Float) = floor(v / block) * block
+    internal fun snap(v: Float, block: Float) = floor(v / block) * block
 
     /** Draws [scenery] into [area] (the part above the ground). */
     fun drawScenery(scope: DrawScope, scenery: Scenery, area: Rect, block: Float, tint: Float, time: Float, wind: Float, sprites: SceneSprites?) = with(scope) {
@@ -51,11 +51,12 @@ internal object SceneryRenderer {
             Scenery.FOREST -> forest(area, block, tint, time, wind)
             Scenery.CITY -> city(area, block, tint, time)
             Scenery.ZEN -> zen(area, block, tint, time, wind)
+            Scenery.ROOM -> RoomRenderer.draw(this, RoomGeometry(size, area.bottom, block), block, tint, time, deskLampOn = true, catFlickAt = -10f)
         }
     }
 
     /** A sine ridge from the bottom of [area] up to [base] + amplitude, filled down to the bottom. */
-    private fun DrawScope.ridge(area: Rect, block: Float, base: Float, amplitude: Float, frequency: Float, phase: Float, color: Color) {
+    internal fun DrawScope.ridge(area: Rect, block: Float, base: Float, amplitude: Float, frequency: Float, phase: Float, color: Color) {
         var x = area.left
         while (x < area.right) {
             val wave = sin(x * frequency / block * 4f + phase) * 0.6f + sin(x * frequency / block * 9f + phase * 2) * 0.4f
@@ -178,7 +179,7 @@ internal object SceneryRenderer {
         }
     }
 
-    private fun DrawScope.city(area: Rect, block: Float, tint: Float, time: Float) {
+    internal fun DrawScope.city(area: Rect, block: Float, tint: Float, time: Float) {
         val night = (tint / 0.4f).coerceIn(0f, 1f)
         listOf(Color(0xFF6A6F9E) to 0.55f, Color(0xFF3C4070) to 0.42f).forEachIndexed { layer, (color, maxHeight) ->
             val random = Random(20 + layer)

@@ -33,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.mothlight.plantagotchi.data.AppSettingsState
 import dev.mothlight.plantagotchi.data.shop.PurchaseResult
 import dev.mothlight.plantagotchi.data.shop.ShopItem
+import dev.mothlight.plantagotchi.data.state.RoomSpot
 import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.model.GameEvent
@@ -79,6 +80,8 @@ class GameActions(
     val compost: () -> Unit = {},
     val claimReward: () -> Unit = {},
     val discardPlant: () -> Unit = {},
+    val movePlant: (Int, RoomSpot) -> Unit = { _, _ -> },
+    val swapPlants: (Int, Int) -> Unit = { _, _ -> },
     val updateSettings: ((AppSettingsState) -> AppSettingsState) -> Unit = {},
 )
 
@@ -100,6 +103,8 @@ fun GameScreen(viewModel: PlantagotchiViewModel) {
             compost = viewModel::compost,
             claimReward = viewModel::claimReward,
             discardPlant = viewModel::discardPlant,
+            movePlant = viewModel::movePlant,
+            swapPlants = viewModel::swapPlants,
             updateSettings = viewModel::updateSettings,
         )
     }
@@ -212,6 +217,8 @@ fun GameContent(
                 events = events,
                 onPet = actions.pet,
                 onSelectPlant = actions.selectPlant,
+                onMovePlant = actions.movePlant,
+                onSwapPlants = actions.swapPlants,
                 onTap = { target ->
                     when (target) {
                         SceneTarget.SHOP, SceneTarget.NEED_FERTILIZER, SceneTarget.NEED_WATER -> sheet = Sheet.SHOP
@@ -227,6 +234,9 @@ fun GameContent(
                         SceneTarget.NEED_LOVE -> scope.launch { hint = getString(Res.string.hint_love) }
                         SceneTarget.PLANT -> actions.tapPlant()
                         SceneTarget.LAMP -> actions.playUi(Sfx.TAP)
+                        SceneTarget.LAMP_CLICK -> actions.playUi(Sfx.SNAP)
+                        SceneTarget.DESK_LAMP -> actions.playUi(Sfx.TAP)
+                        SceneTarget.CAT -> actions.playUi(Sfx.PET)
                     }
                 },
             )
