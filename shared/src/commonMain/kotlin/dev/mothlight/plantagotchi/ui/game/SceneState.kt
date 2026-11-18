@@ -275,18 +275,9 @@ internal class SceneState {
                 }
             }
             GameEvent.RewardAlreadyClaimed -> chestOpenAt = time - 0.5f
-            is GameEvent.WaterReceived -> repeat(40) {
-                if (it == 0) activeAnimator.trigger(PlantAction.SHAKE, time, delay = 1.2f)
-                val leaves = l.leaves
-                effects += Fx(
-                    FxKind.WATER,
-                    x = leaves.left + Random.nextFloat() * leaves.width,
-                    y = leaves.top - 100 * l.dp - Random.nextFloat() * 120 * l.dp,
-                    vx = 0f, vy = 80 * l.dp,
-                    life = 1.4f, size = 3 * l.dp, color = Color(0xFF5FCDE4),
-                )
-            }
             GameEvent.PlantSwitched -> Unit
+            is GameEvent.DevPlantAction -> PlantAction.entries.firstOrNull { it.name == event.action }
+                ?.let { activeAnimator.trigger(it, time) }
         }
     }
 

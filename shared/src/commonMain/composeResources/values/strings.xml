@@ -13,7 +13,6 @@
     <string name="hint_light_estimated">Your plant gets light during the day. Buy a grow lamp for more.</string>
     <string name="hint_reward">+%1$d coins! Day %2$d of your streak.</string>
     <string name="hint_reward_tomorrow">Come back tomorrow for the next chest.</string>
-    <string name="hint_water_received">Your friends watered your plant (+%1$d).</string>
     <string name="hint_grew">Your %1$s grew!</string>
     <string name="hint_withered">Your %1$s withered. Revive it in the shop or replant it.</string>
 
@@ -63,7 +62,6 @@
     <string name="err_withered">Your plant is withered. Revive or replant it first.</string>
     <string name="err_slots">All %1$d plant spots are taken.</string>
 
-    <string name="menu_friends">Friends</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_about">About</string>
 
@@ -96,21 +94,6 @@
     <string name="ws_snow">Snow</string>
     <string name="ws_fog">Fog</string>
 
-    <string name="friends_title">Friends</string>
-    <string name="friends_your_code">Your friend code</string>
-    <string name="friends_code_hint">Friend code</string>
-    <string name="friends_add">Add</string>
-    <string name="friends_send_water">Water</string>
-    <string name="friends_remove">Remove</string>
-    <string name="friends_empty">No friends yet. Share your code!</string>
-    <string name="friends_health">Health %1$d%%</string>
-    <string name="friends_unknown_plant">Not found</string>
-    <string name="friends_sent">Water sent!</string>
-    <string name="friends_already">You already watered this friend today.</string>
-    <string name="friends_unknown">No player with this code.</string>
-    <string name="friends_own">That is your own code.</string>
-    <string name="friends_invalid">A code has 6 letters or digits.</string>
-    <string name="friends_offline">Friends need cloud save. Set up Supabase to use them.</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_sound">Sound effects</string>
@@ -160,4 +143,37 @@
     <string name="settings_music">Music</string>
     <string name="settings_ambience">Ambient sounds</string>
     <string name="settings_ambience_desc">Rain, wind, waves, birds and crickets</string>
+    <string name="dev_title">Test mode</string>
+    <string name="dev_back_to_live">Back to live</string>
+    <string name="dev_live">Live</string>
+    <string name="dev_section_time">Time</string>
+    <string name="dev_speed">Speed</string>
+    <string name="dev_freeze">Freeze needs</string>
+    <string name="dev_freeze_desc">Needs, growth and withering stand still</string>
+    <string name="dev_time_of_day">Time of day</string>
+    <string name="dev_skip">Skip ahead</string>
+    <string name="dev_section_weather">Weather</string>
+    <string name="dev_temperature">Temperature</string>
+    <string name="dev_wind">Wind</string>
+    <string name="dev_light">Light</string>
+    <string name="dev_section_location">Location</string>
+    <string name="dev_gps">GPS</string>
+    <string name="dev_section_plant">Active plant</string>
+    <string name="dev_growth">Growth</string>
+    <string name="dev_all_full">All full</string>
+    <string name="dev_all_low">All low</string>
+    <string name="dev_almost_dead">About to wither</string>
+    <string name="dev_add_plant">Add plant</string>
+    <string name="dev_remove_plant">Remove plant</string>
+    <string name="dev_section_player">Player</string>
+    <string name="dev_coins">Coins</string>
+    <string name="dev_streak">Streak</string>
+    <string name="dev_reward_again">Chest available again</string>
+    <string name="dev_unlock_all">Unlock everything</string>
+    <string name="dev_section_animations">Animations</string>
+    <string name="dev_section_sounds">Sounds</string>
+    <string name="dev_test_notification">Test reminder in 5 s</string>
+    <string name="dev_test_notification_hint">Send the app to the background to see it</string>
+    <string name="dev_reset_game">Reset game</string>
+    <string name="dev_reset_game_confirm">Tap again to delete the save game</string>
 </resources>

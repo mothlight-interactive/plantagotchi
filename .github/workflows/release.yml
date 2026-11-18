@@ -75,6 +75,7 @@ jobs:
       build_number: ${{ needs.verify.outputs.build_number }}
       submit_for_review: true
       release_notes: ${{ needs.verify.outputs.notes }}
+      app_env: prod
     secrets: inherit
 
   android:
@@ -86,4 +87,5 @@ jobs:
       version_name: ${{ needs.verify.outputs.version }}
       version_code: ${{ needs.verify.outputs.build_number }}
       release_notes: ${{ needs.verify.outputs.notes }}
+      app_env: prod
     secrets: inherit

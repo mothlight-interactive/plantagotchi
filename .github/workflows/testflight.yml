@@ -23,6 +23,10 @@ on:
         description: "What's New text for the App Store version"
         type: string
         default: ""
+      app_env:
+        description: "Build environment baked into the app: test (TestFlight) or prod (App Store, release.yml)"
+        type: string
+        default: test
 
 concurrency:
   group: testflight
@@ -39,9 +43,8 @@ jobs:
     env:
       BUNDLE_ID: dev.mothlight.plantagotchi
       TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      # Cloud save (optional): read by the Gradle build phase that builds the Kotlin framework.
-      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      # Manual runs and ios-v* tags have no inputs: TestFlight builds are "test" (with test mode).
+      APP_ENV: ${{ inputs.app_env || 'test' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -55,6 +58,21 @@ jobs:
           echo "BUILD_NUMBER=${INPUT_BUILD:-$(.github/scripts/build-number.sh)}" >> "$GITHUB_ENV"
           version="${INPUT_VERSION:-$(sed -nE 's/^[[:space:]]*MARKETING_VERSION[[:space:]]*=[[:space:]]*([0-9][0-9A-Za-z.-]*).*/\1/p' iosApp/Configuration/Config.xcconfig | head -n 1)}"
           echo "MARKETING_VERSION=$version" >> "$GITHUB_ENV"
+
+      # Only the app's Info.plist reads PG_APP_ENV. Rewritten in the xcconfig instead of passed to
+      # xcodebuild, so no extra global build setting is needed.
+      - name: Set build environment
+        env:
+          SUBMIT: ${{ inputs.submit_for_review }}
+        run: |
+          case "$APP_ENV" in test|prod) ;; *) echo "::error::app_env must be test or prod, got '$APP_ENV'"; exit 1 ;; esac
+          if [ "$SUBMIT" = "true" ] && [ "$APP_ENV" != "prod" ]; then
+            echo "::error::App Store submissions must be built with app_env=prod"
+            exit 1
+          fi
+          sed -i.bak -E "s/^[[:space:]]*PG_APP_ENV[[:space:]]*=.*/PG_APP_ENV = $APP_ENV/" iosApp/Configuration/Config.xcconfig
+          rm -f iosApp/Configuration/Config.xcconfig.bak
+          grep -qE "^PG_APP_ENV = $APP_ENV\$" iosApp/Configuration/Config.xcconfig || { echo "::error::PG_APP_ENV not set"; exit 1; }
 
       - uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -127,6 +145,13 @@ jobs:
             OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
             MARKETING_VERSION="$MARKETING_VERSION" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+          # The environment must have made it into the app.
+          plist=$(ls "$ARCHIVE_PATH"/Products/Applications/*.app/Info.plist | head -n 1)
+          baked=$(plutil -extract AppEnv raw "$plist")
+          if [ "$baked" != "$APP_ENV" ]; then
+            echo "::error::Archive has AppEnv '$baked', expected '$APP_ENV'"
+            exit 1
+          fi
 
       - name: Export and upload to TestFlight
         env:
@@ -158,7 +183,7 @@ jobs:
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-          echo "### TestFlight: $MARKETING_VERSION ($BUILD_NUMBER) uploaded" >> "$GITHUB_STEP_SUMMARY"
+          echo "### TestFlight: $MARKETING_VERSION ($BUILD_NUMBER, $APP_ENV) uploaded" >> "$GITHUB_STEP_SUMMARY"
           echo "It shows up in App Store Connect > TestFlight after processing (~5-15 min)." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Submit for App Review

@@ -13,6 +13,11 @@ val marketingVersion: String = rootProject.file("iosApp/Configuration/Config.xcc
     .firstNotNullOfOrNull { Regex("""^\s*MARKETING_VERSION\s*=\s*(\S+)""").find(it)?.groupValues?.get(1) }
     ?: "1.0"
 
+// Build environment: dev for local builds, test for Play internal (and TestFlight), prod for store
+// releases (release.yml). The test mode exists in dev and test only.
+val appEnv: String = releaseProp("appEnv")?.trim()?.lowercase().orEmpty().ifEmpty { "dev" }
+require(appEnv in setOf("dev", "test", "prod")) { "appEnv must be dev, test or prod, got '$appEnv'" }
+
 val releaseKeystore = releaseProp("ANDROID_KEYSTORE_FILE")?.let { file(it) }?.takeIf { it.exists() }
 
 android {
@@ -26,6 +31,8 @@ android {
         // CI passes a time based versionCode (.github/scripts/build-number.sh).
         versionCode = releaseProp("versionCode")?.toInt() ?: 1
         versionName = releaseProp("versionName") ?: marketingVersion
+
+        buildConfigField("String", "APP_ENV", "\"$appEnv\"")
     }
 
     signingConfigs {
@@ -55,6 +62,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

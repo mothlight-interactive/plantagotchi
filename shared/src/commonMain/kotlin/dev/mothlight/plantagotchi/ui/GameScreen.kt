@@ -9,6 +9,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,7 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.mothlight.plantagotchi.data.AppSettingsState
-import dev.mothlight.plantagotchi.data.repository.SendWaterResult
 import dev.mothlight.plantagotchi.data.shop.PurchaseResult
 import dev.mothlight.plantagotchi.data.shop.ShopItem
 import dev.mothlight.plantagotchi.data.state.Ground
@@ -47,7 +48,6 @@ import dev.mothlight.plantagotchi.resources.hint_light_sensor
 import dev.mothlight.plantagotchi.resources.hint_love
 import dev.mothlight.plantagotchi.resources.hint_reward
 import dev.mothlight.plantagotchi.resources.hint_reward_tomorrow
-import dev.mothlight.plantagotchi.resources.hint_water_received
 import dev.mothlight.plantagotchi.resources.hint_withered
 import dev.mothlight.plantagotchi.resources.needs_label
 import dev.mothlight.plantagotchi.resources.plant_counter
@@ -79,10 +79,6 @@ class GameActions(
     val replant: () -> Unit = {},
     val compost: () -> Unit = {},
     val claimReward: () -> Unit = {},
-    val addFriend: (String) -> Boolean = { false },
-    val removeFriend: (String) -> Unit = {},
-    val sendWater: suspend (String) -> SendWaterResult = { SendWaterResult.OFFLINE },
-    val refreshFriends: suspend () -> Unit = {},
     val updateSettings: ((AppSettingsState) -> AppSettingsState) -> Unit = {},
 )
 
@@ -103,17 +99,24 @@ fun GameScreen(viewModel: PlantagotchiViewModel) {
             replant = viewModel::replant,
             compost = viewModel::compost,
             claimReward = viewModel::claimReward,
-            addFriend = viewModel::addFriend,
-            removeFriend = viewModel::removeFriend,
-            sendWater = viewModel::sendWater,
-            refreshFriends = viewModel::refreshFriends,
             updateSettings = viewModel::updateSettings,
         )
     }
-    GameContent(state = state, events = viewModel.events, actions = actions)
+    val devActions = remember(viewModel) {
+        DevActions(
+            update = viewModel::devUpdate,
+            updatePlayer = viewModel::devUpdatePlayer,
+            emit = viewModel::devEmit,
+            play = viewModel::devPlay,
+            skip = viewModel::devSkip,
+            testNotification = viewModel::devTestNotification,
+            resetGame = viewModel::devResetGame,
+        )
+    }
+    GameContent(state = state, events = viewModel.events, actions = actions, devActions = devActions)
 }
 
-enum class Sheet { NONE, SHOP, MENU, WEATHER, FRIENDS, SETTINGS }
+enum class Sheet { NONE, SHOP, MENU, WEATHER, SETTINGS, DEV }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,6 +124,7 @@ fun GameContent(
     state: GameUiState,
     events: Flow<GameEvent> = emptyFlow(),
     actions: GameActions = GameActions(),
+    devActions: DevActions = DevActions(),
     initialSheet: Sheet = Sheet.NONE,
     showSplash: Boolean = true,
     initialAbout: Boolean = false,
@@ -162,7 +166,6 @@ fun GameContent(
                 is GameEvent.Withered -> getString(Res.string.hint_withered, plantName)
                 is GameEvent.RewardClaimed -> getString(Res.string.hint_reward, event.coins, event.streak)
                 GameEvent.RewardAlreadyClaimed -> getString(Res.string.hint_reward_tomorrow)
-                is GameEvent.WaterReceived -> getString(Res.string.hint_water_received, event.amount)
                 else -> hint
             }
         }
@@ -231,10 +234,25 @@ fun GameContent(
                 )
             }
 
+            if (state.env.testModeAvailable) {
+                DevBadge(
+                    state = state,
+                    onClick = { sheet = Sheet.DEV },
+                    modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 2.dp),
+                )
+            }
+
+            if (sheet == Sheet.DEV) {
+                // Upper half only: the plants and needs stay visible to see every change live.
+                Box(Modifier.fillMaxWidth().fillMaxHeight(0.55f).align(Alignment.TopCenter)) {
+                    DevSheet(state, devActions, onClose = { sheet = Sheet.NONE })
+                }
+            }
+
             if (about) MothlightAboutScreen(onClose = { about = false })
         }
 
-        if (sheet != Sheet.NONE) {
+        if (sheet != Sheet.NONE && sheet != Sheet.DEV) {
             ModalBottomSheet(
                 onDismissRequest = { sheet = Sheet.NONE },
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -261,7 +279,6 @@ fun GameContent(
                     )
                     Sheet.MENU -> MenuSheet { entry ->
                         sheet = when (entry) {
-                            MenuEntry.FRIENDS -> Sheet.FRIENDS
                             MenuEntry.SETTINGS -> Sheet.SETTINGS
                             MenuEntry.ABOUT -> {
                                 about = true
@@ -270,18 +287,8 @@ fun GameContent(
                         }
                     }
                     Sheet.WEATHER -> WeatherSheet(state.weather, state.season)
-                    Sheet.FRIENDS -> FriendsSheet(
-                        available = state.friendsAvailable,
-                        ownCode = state.player.friendCode,
-                        friends = state.player.friends,
-                        infos = state.friends,
-                        onAdd = actions.addFriend,
-                        onRemove = actions.removeFriend,
-                        onSendWater = actions.sendWater,
-                        onRefresh = actions.refreshFriends,
-                    )
                     Sheet.SETTINGS -> SettingsSheet(state.settings, state.cameraLightSupported, actions.updateSettings)
-                    Sheet.NONE -> Unit
+                    Sheet.NONE, Sheet.DEV -> Unit
                 }
             }
         }

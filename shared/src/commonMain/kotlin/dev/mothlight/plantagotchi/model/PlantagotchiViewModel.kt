@@ -5,16 +5,12 @@ import androidx.lifecycle.viewModelScope
 import dev.mothlight.plantagotchi.data.AppSettings
 import dev.mothlight.plantagotchi.data.AppSettingsState
 import dev.mothlight.plantagotchi.data.GeoPosition
-import dev.mothlight.plantagotchi.data.repository.FriendInfo
-import dev.mothlight.plantagotchi.data.repository.FriendsService
 import dev.mothlight.plantagotchi.data.repository.GameStateRepository
-import dev.mothlight.plantagotchi.data.repository.SendWaterResult
 import dev.mothlight.plantagotchi.data.shop.PurchaseResult
 import dev.mothlight.plantagotchi.data.shop.Shop
 import dev.mothlight.plantagotchi.data.shop.ShopItem
 import dev.mothlight.plantagotchi.data.state.DailyReward
 import dev.mothlight.plantagotchi.data.state.Environment
-import dev.mothlight.plantagotchi.data.state.FriendCode
 import dev.mothlight.plantagotchi.data.state.GameRules
 import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.Scenery
@@ -30,6 +26,10 @@ import dev.mothlight.plantagotchi.audio.AudioDirector
 import dev.mothlight.plantagotchi.data.shop.Need
 import dev.mothlight.plantagotchi.data.state.Species
 import dev.mothlight.plantagotchi.platform.WidgetSnapshot
+import dev.mothlight.plantagotchi.platform.Reminder
+import dev.mothlight.plantagotchi.dev.AppEnv
+import dev.mothlight.plantagotchi.dev.DevOverrides
+import dev.mothlight.plantagotchi.dev.DevStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
@@ -63,9 +63,11 @@ data class GameUiState(
     val today: Long = 0L,
     val season: Season = Season.SUMMER,
     val settings: AppSettingsState = AppSettingsState(),
-    val friendsAvailable: Boolean = false,
-    val friends: List<FriendInfo> = emptyList(),
     val cameraLightSupported: Boolean = false,
+    /** Build environment; the test mode exists in dev and test. */
+    val env: AppEnv = AppEnv.PROD,
+    /** Test mode overrides, always empty in prod. */
+    val dev: DevOverrides = DevOverrides(),
 ) {
     val lampActive: Boolean get() = player.isLampActive(now)
     val rewardAvailable: Boolean get() = !loading && DailyReward.isAvailable(player, today)
@@ -79,17 +81,19 @@ sealed interface GameEvent {
     data class Withered(val plantId: String) : GameEvent
     data class RewardClaimed(val coins: Int, val streak: Int) : GameEvent
     data object RewardAlreadyClaimed : GameEvent
-    data class WaterReceived(val amount: Int) : GameEvent
     data object PlantSwitched : GameEvent
     data object Replanted : GameEvent
+    /** Test mode: make the active plant do an idle action, by `PlantAction` name. */
+    data class DevPlantAction(val action: String) : GameEvent
 }
 
 class PlantagotchiViewModel(
     private val platform: PlatformServices,
     private val repository: GameStateRepository,
     private val weatherClient: OpenMeteoClient,
-    private val friendsService: FriendsService? = null,
     private val appSettings: AppSettings? = null,
+    private val env: AppEnv = AppEnv.PROD,
+    private val devStore: DevStore? = null,
     private val reminders: ReminderPlanner = ReminderPlanner(),
     private val clock: Clock = Clock.System,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
@@ -102,10 +106,14 @@ class PlantagotchiViewModel(
     private val _state = MutableStateFlow(
         GameUiState(
             settings = appSettings?.load() ?: AppSettingsState(),
-            friendsAvailable = friendsService != null,
             cameraLightSupported = platform.lightSensor.supportsCamera,
+            env = env,
+            dev = if (env.testModeAvailable) devStore?.load() ?: DevOverrides() else DevOverrides(),
         )
     )
+
+    /** Weather as fetched (or the default), before test mode overrides. */
+    private var liveWeather: CurrentWeather = CurrentWeather.Default
     val state: StateFlow<GameUiState> = _state.asStateFlow()
 
     private val _events = MutableSharedFlow<GameEvent>(extraBufferCapacity = 32, onBufferOverflow = BufferOverflow.DROP_OLDEST)
@@ -127,7 +135,10 @@ class PlantagotchiViewModel(
         val player = (loaded?.let { GameRules.applyOfflineDecay(it, now) } ?: PlayerState(updatedAt = now))
             .let { if (it.activePlantId.isEmpty()) it.copy(activePlantId = it.plants.first().id) else it }
         _state.update {
-            it.copy(loading = false, player = player, position = player.lastPosition, now = now, today = today(now))
+            it.copy(
+                loading = false, player = player, position = player.lastPosition, now = now, today = today(now),
+                weather = it.dev.applyTo(liveWeather),
+            )
         }
         audio.update(_state.value)
         if (!loops) return
@@ -274,45 +285,6 @@ class PlantagotchiViewModel(
 
     // endregion
 
-    // region Friends
-
-    /** Returns false if [code] is not a valid friend code. */
-    fun addFriend(code: String): Boolean {
-        val normalized = FriendCode.normalize(code) ?: return false
-        if (normalized == _state.value.player.friendCode) return false
-        updatePlayer { if (normalized in it.friends) it else it.copy(friends = it.friends + normalized) }
-        viewModelScope.launch { refreshFriends() }
-        return true
-    }
-
-    fun removeFriend(code: String) = updatePlayer { it.copy(friends = it.friends - code) }
-
-    suspend fun sendWater(code: String): SendWaterResult {
-        val service = friendsService ?: return SendWaterResult.OFFLINE
-        return runCatchingCancellable { service.sendWater(code) }
-            ?.also { if (it == SendWaterResult.SENT) sound(Sfx.WATER) }
-            ?: SendWaterResult.OFFLINE
-    }
-
-    suspend fun refreshFriends() {
-        val service = friendsService ?: return
-        val codes = _state.value.player.friends
-        runCatchingCancellable { service.friends(codes) }?.let { friends ->
-            _state.update { it.copy(friends = friends) }
-        }
-    }
-
-    private suspend fun claimGifts() {
-        val service = friendsService ?: return
-        val amount = runCatchingCancellable { service.claimGifts() } ?: return
-        if (amount <= 0) return
-        updatePlayer { p -> p.copy(plants = p.plants.map { if (it.dead) it else it.copy(water = (it.water + amount).coerceAtMost(GameRules.MAX)) }) }
-        _events.tryEmit(GameEvent.WaterReceived(amount.toInt()))
-        sound(Sfx.WATER)
-    }
-
-    // endregion
-
     // region Settings
 
     fun updateSettings(transform: (AppSettingsState) -> AppSettingsState) {
@@ -345,22 +317,28 @@ class PlantagotchiViewModel(
         val now = clock.now().toEpochMilliseconds()
         val before = _state.value.player
         _state.update { s ->
+            val dev = s.dev
             val sensorLux = platform.lightSensor.lux.value
-            val lux = GameRules.effectiveLux(s.player, sensorLux ?: s.weather.estimatedLux(), now)
-            val env = Environment(lux, s.weather.facts.state, s.weather.facts.temperature, now)
-            val player = GameRules.tick(s.player, env, gameTick.inWholeMilliseconds / 1000.0)
+            val baseLux = dev.ambientLux ?: sensorLux ?: s.weather.estimatedLux()
+            val lux = GameRules.effectiveLux(s.player, baseLux, now)
+            val environment = Environment(lux, s.weather.facts.state, s.weather.facts.temperature, now)
+            val seconds = gameTick.inWholeMilliseconds / 1000.0 * dev.timeSpeed
+            val player = if (dev.freezeNeeds) s.player else GameRules.tick(s.player, environment, seconds)
             val date = kotlin.time.Instant.fromEpochMilliseconds(now).toLocalDateTime(timeZone).date
             s.copy(
                 now = now,
                 today = date.toEpochDays(),
-                season = Season.of(date.month.ordinal + 1, s.position.latitude),
+                season = dev.season ?: Season.of(date.month.ordinal + 1, s.position.latitude),
                 player = player.copy(updatedAt = now),
                 ambientLux = lux,
-                luxFromSensor = sensorLux != null,
+                luxFromSensor = dev.ambientLux == null && sensorLux != null,
             )
         }
         audio.update(_state.value)
-        val after = _state.value.player
+        emitTransitions(before, _state.value.player)
+    }
+
+    private fun emitTransitions(before: PlayerState, after: PlayerState) {
         before.plants.forEach { old ->
             val new = after.plants.firstOrNull { it.id == old.id } ?: return@forEach
             if (new.stage > old.stage) {
@@ -383,23 +361,95 @@ class PlantagotchiViewModel(
     }
 
     private suspend fun dataLoop() {
-        var iteration = 0
         while (viewModelScope.isActive) {
             refreshWeather()
-            claimGifts()
-            if (iteration++ % 5 == 0) refreshFriends()
             delay(dataInterval)
         }
     }
 
     private suspend fun refreshWeather() {
-        val position = runCatchingCancellable { platform.locationProvider.currentPosition() }
+        val position = _state.value.dev.location?.position
+            ?: runCatchingCancellable { platform.locationProvider.currentPosition() }
             ?: _state.value.position
         _state.update { it.copy(position = position, player = it.player.copy(lastPosition = position)) }
         runCatchingCancellable { weatherClient.currentWeather(position) }?.let { weather ->
-            _state.update { it.copy(weather = weather) }
+            liveWeather = weather
+            _state.update { it.copy(weather = it.dev.applyTo(weather)) }
         }
     }
+
+    // region Test mode (no effect in prod)
+
+    private val testMode: Boolean get() = env.testModeAvailable
+
+    fun devUpdate(transform: (DevOverrides) -> DevOverrides) {
+        if (!testMode) return
+        val before = _state.value.dev
+        val next = transform(before)
+        _state.update { it.copy(dev = next, weather = next.applyTo(liveWeather)) }
+        devStore?.save(next)
+        if (next.locationId != before.locationId) viewModelScope.launch { refreshWeather() }
+        if (next.season != before.season) tick()
+    }
+
+    /** Edits the save game directly: coins, plants, needs, unlocks. */
+    fun devUpdatePlayer(transform: (PlayerState) -> PlayerState) {
+        if (!testMode || _state.value.loading) return
+        _state.update { it.copy(player = transform(it.player)) }
+        viewModelScope.launch { save() }
+    }
+
+    /** Plays an animation or reaction without the game logic behind it. */
+    fun devEmit(event: GameEvent) {
+        if (testMode) _events.tryEmit(event)
+    }
+
+    fun devPlay(asset: String) {
+        if (testMode) platform.sound.play(asset)
+    }
+
+    /** Schedules a reminder a few seconds from now; send the app to the background to see it. */
+    fun devTestNotification(title: String, body: String) {
+        if (!testMode) return
+        viewModelScope.launch {
+            platform.notifications.requestPermission()
+            platform.notifications.schedule(listOf(Reminder(id = 99, delaySeconds = 5, title = title, body = body)))
+        }
+    }
+
+    /** Starts over with a fresh save game (test mode overrides stay). */
+    fun devResetGame() {
+        if (!testMode) return
+        val now = clock.now().toEpochMilliseconds()
+        val fresh = PlayerState(updatedAt = now).let { it.copy(activePlantId = it.plants.first().id) }
+        _state.update { it.copy(player = fresh) }
+        viewModelScope.launch { save() }
+    }
+
+    /** Runs [seconds] of game time at once, e.g. to see what a night away does. */
+    fun devSkip(seconds: Double) {
+        if (!testMode || _state.value.loading) return
+        val now = clock.now().toEpochMilliseconds()
+        val s = _state.value
+        val before = s.player
+        var player = s.player
+        var cursor = now
+        var left = seconds
+        while (left > 0) {
+            val step = minOf(left, 600.0)
+            cursor += (step * 1000).toLong()
+            val environment = Environment(s.ambientLux, s.weather.facts.state, s.weather.facts.temperature, cursor)
+            player = GameRules.tick(player, environment, step)
+            left -= step
+        }
+        // The simulation ran ahead of the real clock: move "critical since" back by the skipped time.
+        val skipped = cursor - now
+        player = player.copy(plants = player.plants.map { if (it.criticalSince > 0) it.copy(criticalSince = it.criticalSince - skipped) else it })
+        _state.update { it.copy(player = player) }
+        emitTransitions(before, player)
+    }
+
+    // endregion
 
     private suspend fun saveLoop() {
         while (viewModelScope.isActive) {

@@ -13,7 +13,7 @@ import dev.mothlight.plantagotchi.data.state.Species
 import kotlin.math.floor
 import kotlin.math.sin
 
-/** A small, gently swaying plant for lists (shop, friends). */
+/** A small, gently swaying plant for lists (shop). */
 @Composable
 fun PlantPreview(species: Species, maturity: Float, seed: Int, modifier: Modifier = Modifier, withered: Boolean = false) {
     val frame = remember { mutableLongStateOf(0L) }

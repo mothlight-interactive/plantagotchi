@@ -79,8 +79,6 @@ Repo → Settings → Secrets and variables → Actions → **New repository sec
 
 - **Einen TestFlight-Build nie von Hand in App Store Connect einer App-Store-Version zuordnen.**
   Store-Releases immer über `release.yml` ([release.md](release.md)).
-- Damit TestFlight-Builds den Cloud-Speicher nutzen, die Variablen `SUPABASE_URL` und
-  `SUPABASE_PUBLISHABLE_KEY` setzen (siehe [release.md](release.md)).
 - Das Widget braucht ein eigenes Extension-Target und eine App Group
   ([iosApp/PlantagotchiWidget/README.md](../iosApp/PlantagotchiWidget/README.md)). Solange es fehlt,
   reicht das Profil für `dev.mothlight.plantagotchi` allein.
