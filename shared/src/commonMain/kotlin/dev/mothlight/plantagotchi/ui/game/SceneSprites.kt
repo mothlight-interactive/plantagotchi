@@ -13,7 +13,6 @@ import dev.mothlight.plantagotchi.resources.coint_counter
 import dev.mothlight.plantagotchi.resources.day
 import dev.mothlight.plantagotchi.resources.fertilizer
 import dev.mothlight.plantagotchi.resources.heart
-import dev.mothlight.plantagotchi.resources.ic_button_bg
 import dev.mothlight.plantagotchi.resources.ic_ground
 import dev.mothlight.plantagotchi.resources.ic_pot11
 import dev.mothlight.plantagotchi.resources.ic_pot12
@@ -58,7 +57,6 @@ class SceneSprites(
     val water: ImageBitmap,
     val sunshine: ImageBitmap,
     val ground: Painter,
-    val buttonFrame: Painter,
     val pots: Map<String, Painter>,
 ) {
     fun pot(id: String): Painter = pots[id] ?: pots.getValue(PotId.DEFAULT)
@@ -95,6 +93,5 @@ fun rememberSceneSprites(): SceneSprites = SceneSprites(
     water = imageResource(Res.drawable.water),
     sunshine = imageResource(Res.drawable.sunshine),
     ground = painterResource(Res.drawable.ic_ground),
-    buttonFrame = painterResource(Res.drawable.ic_button_bg),
     pots = rememberPotPainters(),
 )

@@ -21,6 +21,8 @@ data class PlayerState(
     /** Local epoch day of the last claimed daily reward, -1 if never. */
     val lastRewardDay: Long = -1L,
     val streak: Int = 0,
+    /** Local epoch days with a claimed daily reward, oldest first, at most [DailyReward.HISTORY_DAYS]. */
+    val rewardDays: List<Long> = emptyList(),
     /** Epoch millis of the last game tick that was persisted. */
     val updatedAt: Long = 0L,
 ) {

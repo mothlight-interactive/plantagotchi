@@ -131,18 +131,26 @@ object CodeSprites {
         ),
     )
 
+    /** Menu button: a leaf. */
     val menu = PixelSprite(
         listOf(
-            "wwwwwwwww",
-            "wwwwwwwww",
-            ".........",
-            "wwwwwwwww",
-            "wwwwwwwww",
-            ".........",
-            "wwwwwwwww",
-            "wwwwwwwww",
+            "......oooo",
+            "....oollgo",
+            "...ollggdo",
+            "..olgggdgo",
+            ".olggddggo",
+            ".olgdgggo.",
+            ".ogdggoo..",
+            "odoooo....",
+            "do........",
+            "o.........",
         ),
-        mapOf('w' to Color(0xFFEDEDED)),
+        mapOf(
+            'o' to Color(0xFF1E3A24),
+            'g' to Color(0xFF71AA34),
+            'l' to Color(0xFFA7D86D),
+            'd' to Color(0xFF3B7D4F),
+        ),
     )
 
     val arrowRight = PixelSprite(

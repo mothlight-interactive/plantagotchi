@@ -302,7 +302,7 @@ fun DevSheet(state: GameUiState, actions: DevActions, onClose: () -> Unit = {}) 
             Chips {
                 DevChip(stringResource(Res.string.dev_reward_again), !state.rewardAvailable) {
                     // Yesterday: the next claim continues the streak.
-                    actions.updatePlayer { it.copy(lastRewardDay = state.today - 1) }
+                    actions.updatePlayer { p -> p.copy(lastRewardDay = state.today - 1, rewardDays = p.rewardDays - state.today) }
                 }
                 DevChip("+1", false) { actions.updatePlayer { it.copy(streak = it.streak + 1) } }
                 DevChip("0", false) { actions.updatePlayer { it.copy(streak = 0) } }

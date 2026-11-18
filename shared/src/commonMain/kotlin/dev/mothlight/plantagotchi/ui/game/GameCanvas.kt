@@ -505,7 +505,7 @@ private fun DrawScope.drawHud(
     // Shop button: gentle bob.
     val bob = sin(t * 2.2f) * 2 * l.dp
     val shop = l.shopButton.translate(0f, bob)
-    drawPainter(sprites.buttonFrame, shop)
+    drawPixelButton(shop)
     CodeSprites.shopBag.drawFit(this, Size(shop.width * 0.62f, shop.height * 0.62f), Offset(shop.left + shop.width * 0.19f, shop.top + shop.height * 0.17f))
 
     // Daily chest: glows and hops while a reward is waiting.
@@ -526,7 +526,7 @@ private fun DrawScope.drawHud(
     drawBitmap(sprites.chest, chest)
 
     // Menu
-    drawPainter(sprites.buttonFrame, l.menuButton)
+    drawPixelButton(l.menuButton)
     CodeSprites.menu.drawFit(this, Size(l.menuButton.width * 0.45f, l.menuButton.height * 0.45f), Offset(l.menuButton.left + l.menuButton.width * 0.275f, l.menuButton.top + l.menuButton.height * 0.275f))
 }
 
@@ -619,7 +619,7 @@ private fun DrawScope.drawNeeds(
             val iconSize = 25 * l.dp
             val iconBob = sin(scene.time * 2f + i) * 1.2f * l.dp
             drawBitmap(icon, Rect(Offset(center.x - iconSize / 2, center.y - iconSize / 2 + iconBob), Size(iconSize, iconSize)))
-            drawPainter(sprites.buttonFrame, Rect(center - Offset(box.width / 2, box.height / 2), box.size))
+            drawPixelButton(Rect(center - Offset(box.width / 2, box.height / 2), box.size), fill = null)
         }
         if (i == 3 && state.lampActive && Random.nextFloat() < 0.05f) {
             scene.sparkleBurst(center, 1, l.dp, spread = radius)

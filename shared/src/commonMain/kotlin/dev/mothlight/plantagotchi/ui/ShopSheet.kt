@@ -39,6 +39,7 @@ import dev.mothlight.plantagotchi.data.state.GameRules
 import dev.mothlight.plantagotchi.data.state.PlayerState
 import dev.mothlight.plantagotchi.data.state.Species
 import dev.mothlight.plantagotchi.resources.Res
+import dev.mothlight.plantagotchi.resources.btn_close
 import dev.mothlight.plantagotchi.resources.btn_full
 import dev.mothlight.plantagotchi.resources.btn_in_use
 import dev.mothlight.plantagotchi.resources.btn_use
@@ -102,6 +103,7 @@ fun ShopSheet(
     modifier: Modifier = Modifier,
     onSelectScenery: (Scenery) -> Unit = {},
     onSelectGround: (Ground) -> Unit = {},
+    onClose: (() -> Unit)? = null,
 ) {
     var message by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(message) {
@@ -139,6 +141,10 @@ fun ShopSheet(
         Row(verticalAlignment = Alignment.CenterVertically) {
             SheetTitle(stringResource(Res.string.shop_title), Modifier.weight(1f))
             CoinAmount(player.coins)
+            if (onClose != null) {
+                Spacer(Modifier.width(12.dp))
+                PixelButton(stringResource(Res.string.btn_close), color = PlantagotchiColors.OffWhite, onClick = onClose)
+            }
         }
         Text(
             text = message ?: " ",
