@@ -26,6 +26,12 @@ object GameRules {
     const val LAMP_LUX = 5_000f
     const val LUX_GAIN = 0.1
     const val LOVE_GAIN = 1.0
+
+    /**
+     * Coins from petting per day, across all plants. Without the cap, discarding a plant (or buying
+     * one) and petting the fresh seedling to full love would farm coins without limit.
+     */
+    const val PET_COINS_PER_DAY = 30
     const val MIN_PET_DRAG_PX = 25f
 
     const val HEAT_TEMPERATURE = 30.0
@@ -97,13 +103,14 @@ object GameRules {
         else -> plant
     }
 
-    /** Petting the active plant with a vertical swipe. */
-    fun pet(state: PlayerState, dragY: Float): PlayerState {
+    /** Petting the active plant with a vertical swipe: more love, and a coin while today's cap allows. */
+    fun pet(state: PlayerState, dragY: Float, today: Long): PlayerState {
         val plant = state.activePlant
         if (abs(dragY) <= MIN_PET_DRAG_PX || plant.dead || plant.love >= MAX) return state
-        return state
-            .updateActive { it.copy(love = (it.love + LOVE_GAIN).clampNeed()) }
-            .copy(coins = state.coins + 1)
+        val earned = if (state.petCoinsDay == today) state.petCoinsToday else 0
+        val loved = state.updateActive { it.copy(love = (it.love + LOVE_GAIN).clampNeed()) }
+        if (earned >= PET_COINS_PER_DAY) return loved.copy(petCoinsDay = today, petCoinsToday = earned)
+        return loved.copy(coins = state.coins + 1, petCoinsDay = today, petCoinsToday = earned + 1)
     }
 
     /**

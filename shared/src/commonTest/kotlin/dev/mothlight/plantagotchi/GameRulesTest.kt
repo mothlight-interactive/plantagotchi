@@ -105,13 +105,13 @@ class GameRulesTest {
     @Test
     fun pettingRequiresARealSwipeAndALivingPlant() {
         val start = player(PlantState(love = 10.0))
-        assertEquals(start, GameRules.pet(start, 5f))
-        val petted = GameRules.pet(start, -40f)
+        assertEquals(start, GameRules.pet(start, 5f, 1))
+        val petted = GameRules.pet(start, -40f, 1)
         assertEquals(11.0, petted.activePlant.love)
         assertEquals(1, petted.coins)
 
         val dead = player(PlantState(dead = true))
-        assertEquals(dead, GameRules.pet(dead, 100f))
+        assertEquals(dead, GameRules.pet(dead, 100f, 1))
     }
 
     @Test
@@ -148,5 +148,18 @@ class GameRulesTest {
         assertEquals(Season.SUMMER, Season.of(1, -33.0))
         assertEquals(Season.AUTUMN, Season.of(10, 47.0))
         assertEquals(Season.SPRING, Season.of(10, -33.0))
+    }
+
+    @Test
+    fun pettingCoinsAreCappedPerDayAcrossPlants() {
+        var p = player(PlantState(love = 0.0))
+        repeat(GameRules.PET_COINS_PER_DAY + 20) { p = GameRules.pet(p, 40f, 7) }
+        assertEquals(GameRules.PET_COINS_PER_DAY, p.coins)
+        assertEquals(GameRules.PET_COINS_PER_DAY + 20.0, p.activePlant.love, "love still grows after the cap")
+        // A fresh plant does not reset the cap (no farming by discarding and replanting)
+        val fresh = dev.mothlight.plantagotchi.data.shop.Shop.discard(p, 0)
+        assertEquals(p.coins, GameRules.pet(fresh, 40f, 7).coins)
+        // The next day pays again
+        assertEquals(p.coins + 1, GameRules.pet(fresh, 40f, 8).coins)
     }
 }

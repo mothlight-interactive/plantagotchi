@@ -171,7 +171,7 @@ class PlantagotchiViewModel(
     fun pet(dragY: Float) {
         if (_state.value.loading) return
         val before = _state.value.player
-        val after = GameRules.pet(before, dragY)
+        val after = GameRules.pet(before, dragY, _state.value.today)
         if (after != before) {
             _state.update { it.copy(player = after) }
             _events.tryEmit(GameEvent.Petted)
