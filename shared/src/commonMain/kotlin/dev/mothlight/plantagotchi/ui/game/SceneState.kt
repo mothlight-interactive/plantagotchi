@@ -177,12 +177,19 @@ internal class SceneState {
     private val slotWeights = HashMap<String, Float>()
 
     /** Animated layout weights: the active plant grows, the others shrink. */
+    /** 0 = need bubbles hidden below the screen, 1 = shown; follows the plant selection. */
+    var needsShown = 0f
+        private set
+
     fun weights(state: GameUiState): List<Float> {
         val activeId = state.player.activePlant.id
         val dt = 1f / 60f
         activeAnimator = animator(activeId)
+        needsShown += ((if (state.plantSelected) 1f else 0f) - needsShown) * min(1f, dt * 9f)
+        if (kotlin.math.abs(needsShown - (if (state.plantSelected) 1f else 0f)) < 0.002f) needsShown = if (state.plantSelected) 1f else 0f
         return state.player.plants.map { plant ->
-            val target = if (plant.id == activeId) SceneLayout.ACTIVE_WEIGHT else 1f
+            // The selected plant is shown larger.
+            val target = if (plant.id == activeId && state.plantSelected) SceneLayout.ACTIVE_WEIGHT else 1f
             val current = slotWeights[plant.id] ?: target
             val next = current + (target - current) * min(1f, dt * 8f)
             slotWeights[plant.id] = next

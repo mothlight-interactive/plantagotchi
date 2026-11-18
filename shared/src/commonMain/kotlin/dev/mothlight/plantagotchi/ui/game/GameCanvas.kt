@@ -63,6 +63,9 @@ import kotlin.random.Random
 /** Elements of the scene that react to taps. */
 enum class SceneTarget {
     SHOP, MENU, CHEST, WEATHER, NEED_FERTILIZER, NEED_WATER, NEED_LIGHT, NEED_LOVE,
+
+    /** Tap on nothing in particular: ends the plant selection. */
+    EMPTY,
     PLANT, REPLANT, COMPOST,
 
     /** Long press on a plant: offer to discard it. */
@@ -81,7 +84,7 @@ enum class SceneTarget {
 
 /** Localized texts the canvas draws. */
 data class SceneTexts(
-    val needsLabel: String,
+    /** Species, growth stage and position, shown above the need bubbles. */
     val plantLabel: String,
     val replant: String,
     val compost: String,
@@ -192,12 +195,16 @@ fun GameCanvas(
                                         drop(scene, index, change.position - start, currentState, currentOnMove, currentOnSwap)
                                     }
                                 }
-                                GestureMode.PET -> Unit
+                                GestureMode.PET, GestureMode.IGNORE -> Unit
                             }
                             break
                         }
                         when (mode) {
-                            GestureMode.UNDECIDED -> if ((change.position - start).getDistance() > slop) mode = GestureMode.PET
+                            GestureMode.UNDECIDED -> if ((change.position - start).getDistance() > slop) {
+                                // Only a swipe that starts on a plant pets it (and selects it)
+                                mode = if (held != null) GestureMode.PET else GestureMode.IGNORE
+                                if (held != null && held != currentState.player.activeIndex) currentOnSelect(held)
+                            }
                             GestureMode.PET -> {
                                 currentOnPet(change.position.y - change.previousPosition.y)
                                 change.consume()
@@ -206,6 +213,7 @@ fun GameCanvas(
                                 scene.dragPosition = change.position
                                 change.consume()
                             }
+                            GestureMode.IGNORE -> Unit
                         }
                     }
                     if (mode == GestureMode.HOLD) scene.dragIndex = null
@@ -274,14 +282,14 @@ private fun SceneState.hitTest(offset: Offset, state: GameUiState): SceneTarget?
     return when {
         l.menuButton.hit() -> SceneTarget.MENU
         l.chest.hit() -> SceneTarget.CHEST
-        l.shopButton.hit() || l.coinHud.hit(0f) -> SceneTarget.SHOP
+        l.coinHud.hit(4f) -> SceneTarget.SHOP
         l.weatherChip.hit(4f) -> SceneTarget.WEATHER
         plant.dead && l.replantButton.hit(4f) -> SceneTarget.REPLANT
         plant.dead && multiple && l.compostButton.hit(4f) -> SceneTarget.COMPOST
-        l.bubbles[0].contains(offset) -> SceneTarget.NEED_LOVE
-        l.bubbles[1].contains(offset) -> SceneTarget.NEED_FERTILIZER
-        l.bubbles[2].contains(offset) -> SceneTarget.NEED_WATER
-        l.bubbles[3].contains(offset) -> SceneTarget.NEED_LIGHT
+        needsShown > 0.9f && l.bubbles[0].contains(offset) -> SceneTarget.NEED_LOVE
+        needsShown > 0.9f && l.bubbles[1].contains(offset) -> SceneTarget.NEED_FERTILIZER
+        needsShown > 0.9f && l.bubbles[2].contains(offset) -> SceneTarget.NEED_WATER
+        needsShown > 0.9f && l.bubbles[3].contains(offset) -> SceneTarget.NEED_LIGHT
         l.slots[l.activeIndex].touch.contains(offset) -> SceneTarget.PLANT.also {
             petBounceAt = time
             if (plant.species == dev.mothlight.plantagotchi.data.state.Species.FLYTRAP && !plant.dead) activeAnimator.trigger(PlantAction.SNAP, time)
@@ -369,8 +377,8 @@ private fun DrawScope.drawPlant(scene: SceneState, state: GameUiState, sprites: 
             drawPainter(sprites.pot(plant.pot), slot.pot)
         }
 
-        // Inactive plants call for attention when something is low.
-        if (!active && (plant.dead || listOf(plant.water, plant.lux, plant.love, plant.fertilizer).any { it < 20 })) {
+        // Plants without visible bubbles call for attention when something is low.
+        if ((!active || !state.plantSelected) && (plant.dead || listOf(plant.water, plant.lux, plant.love, plant.fertilizer).any { it < 20 })) {
             val bob = sin(t * 4f + i) * 2 * l.dp
             val center = Offset(slot.pot.right - 4 * l.dp, slot.pot.top - 14 * l.dp + bob)
             drawCircle(Color(0xFF222034), 9 * l.dp, center)
@@ -600,12 +608,6 @@ private fun DrawScope.drawHud(
     val temperature = textMeasurer.measure("${state.weather.facts.temperature.roundToInt()}°", style.copy(color = PlantagotchiColors.OffWhite, fontSize = 15.sp))
     drawText(temperature, topLeft = Offset(icon.right + 8 * l.dp, chip.center.y - temperature.size.height / 2))
 
-    // Shop button: gentle bob.
-    val bob = sin(t * 2.2f) * 2 * l.dp
-    val shop = l.shopButton.translate(0f, bob)
-    drawPixelButton(shop)
-    CodeSprites.shopBag.drawFit(this, Size(shop.width * 0.62f, shop.height * 0.62f), Offset(shop.left + shop.width * 0.19f, shop.top + shop.height * 0.17f))
-
     // Daily chest: glows and hops while a reward is waiting.
     val available = state.rewardAvailable
     val hop = if (available) abs(sin(t * 3f)) * 4 * l.dp * (if ((t % 3f) < 1f) 1f else 0f) else 0f
@@ -637,11 +639,6 @@ private fun DrawScope.drawPlantControls(
     textMeasurer: TextMeasurer,
     style: TextStyle,
 ) {
-    val label = textMeasurer.measure(texts.plantLabel, style.copy(color = PlantagotchiColors.OffWhite, fontSize = 14.sp))
-    val labelPos = Offset((size.width - label.size.width) / 2, l.plantLabelY)
-    drawText(label, color = Color(0xFF222034), topLeft = labelPos + Offset(l.dp, l.dp))
-    drawText(label, topLeft = labelPos)
-
     if (plant.dead) {
         pixelButton(l.replantButton, texts.replant, PlantagotchiColors.Water, l, textMeasurer, style)
         if (state.player.plants.size > 1) {
@@ -668,15 +665,32 @@ private fun DrawScope.drawNeeds(
     textMeasurer: TextMeasurer,
     style: TextStyle,
 ) {
-    // Darken the bottom so the label and bubbles stay readable on bright grounds (sand, snow).
+    // The bubbles and the plant label slide in from below while a plant is selected.
+    val shown = easeOut(scene.needsShown)
+    if (shown <= 0.001f) return
     val bandTop = l.needsLabelBaseline - 40 * l.dp
+    translate(0f, (1f - shown) * (size.height - bandTop)) { drawNeedsBand(scene, sprites, state, plant, texts, l, textMeasurer, style, bandTop) }
+}
+
+private fun DrawScope.drawNeedsBand(
+    scene: SceneState,
+    sprites: SceneSprites,
+    state: GameUiState,
+    plant: PlantState,
+    texts: SceneTexts,
+    l: SceneLayout,
+    textMeasurer: TextMeasurer,
+    style: TextStyle,
+    bandTop: Float,
+) {
+    // Darken the bottom so the label and bubbles stay readable on bright scenes.
     drawRect(
         Brush.verticalGradient(listOf(Color.Transparent, Color(0x88000000)), startY = bandTop, endY = l.needsLabelBaseline),
         topLeft = Offset(0f, bandTop),
         size = Size(size.width, size.height - bandTop),
     )
     drawRect(Color(0x88000000), Offset(0f, l.needsLabelBaseline), Size(size.width, size.height - l.needsLabelBaseline))
-    val label = textMeasurer.measure(texts.needsLabel, style.copy(color = Color.White))
+    val label = textMeasurer.measure(texts.plantLabel, style.copy(color = Color.White))
     val labelPos = Offset((size.width - label.size.width) / 2, l.needsLabelBaseline - label.size.height)
     drawText(label, color = Color(0xFF222034), topLeft = labelPos + Offset(l.dp, l.dp))
     drawText(label, topLeft = labelPos)
@@ -735,7 +749,7 @@ private const val ACTIVE_FRAME_DELAY_MS = 22L
 private const val IDLE_FRAME_DELAY_MS = 55L
 private const val IDLE_AFTER_NANOS = 20_000_000_000L
 
-private enum class GestureMode { UNDECIDED, PET, HOLD }
+private enum class GestureMode { UNDECIDED, PET, HOLD, IGNORE }
 
 /** Index of the plant (active or not) under [offset], the active one first. */
 private fun SceneState.plantIndexAt(offset: Offset, state: GameUiState): Int? {
@@ -774,7 +788,7 @@ private fun handleTap(
     }
     val selected = scene.plantAt(offset, state)
     if (selected != null) onSelect(selected)
-    else scene.hitTest(offset, state)?.let { onTap(it) }
+    else onTap(scene.hitTest(offset, state) ?: SceneTarget.EMPTY)
 }
 
 /** Where a dragged pot would land: the spot (room) or plant slot (outdoors) nearest to it. */

@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Plantagotchi</string>
     <string name="loading">Loading</string>
-    <string name="needs_label">What does your plant need?</string>
     <string name="need_love">Love</string>
     <string name="need_fertilizer">Fertilizer</string>
     <string name="need_water">Water</string>

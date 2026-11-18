@@ -70,6 +70,8 @@ data class GameUiState(
     val env: AppEnv = AppEnv.PROD,
     /** Test mode overrides, always empty in prod. */
     val dev: DevOverrides = DevOverrides(),
+    /** A plant was tapped: it is shown larger and the need bubbles are visible. */
+    val plantSelected: Boolean = false
 ) {
     /** Whether the active plant's grow lamp is on. */
     val lampActive: Boolean get() = player.activePlant.lampOn(now)
@@ -179,7 +181,7 @@ class PlantagotchiViewModel(
         val before = _state.value.player
         val after = GameRules.pet(before, dragY, _state.value.today)
         if (after != before) {
-            _state.update { it.copy(player = after) }
+            _state.update { it.copy(player = after, plantSelected = true) }
             _events.tryEmit(GameEvent.Petted)
             val now = clock.now().toEpochMilliseconds()
             when {
@@ -259,7 +261,12 @@ class PlantagotchiViewModel(
 
     fun selectPlant(index: Int) {
         val player = _state.value.player
-        if (index !in player.plants.indices || index == player.activeIndex) return
+        if (index !in player.plants.indices) return
+        if (index == player.activeIndex) {
+            _state.update { it.copy(plantSelected = true) }
+            return
+        }
+        _state.update { it.copy(plantSelected = true) }
         updatePlayer { it.copy(activePlantId = it.plants[index].id) }
         _events.tryEmit(GameEvent.PlantSwitched)
         sound(Sfx.SWITCH)
@@ -267,7 +274,11 @@ class PlantagotchiViewModel(
     }
 
     /** Tapping the active plant: the flytrap snaps, the others say hello. */
+    /** Tapping next to the plants: the selection ends and the need bubbles slide away. */
+    fun deselect() = _state.update { it.copy(plantSelected = false) }
+
     fun tapPlant() {
+        _state.update { it.copy(plantSelected = true) }
         val plant = _state.value.player.activePlant
         if (plant.dead) return
         if (plant.species == Species.FLYTRAP) {

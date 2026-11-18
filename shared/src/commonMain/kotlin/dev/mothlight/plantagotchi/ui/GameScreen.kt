@@ -49,7 +49,6 @@ import dev.mothlight.plantagotchi.resources.hint_love
 import dev.mothlight.plantagotchi.resources.hint_reward
 import dev.mothlight.plantagotchi.resources.hint_reward_tomorrow
 import dev.mothlight.plantagotchi.resources.hint_withered
-import dev.mothlight.plantagotchi.resources.needs_label
 import dev.mothlight.plantagotchi.resources.plant_counter
 import dev.mothlight.plantagotchi.resources.plant_withered
 import dev.mothlight.plantagotchi.resources.replant
@@ -80,6 +79,7 @@ class GameActions(
     val compost: () -> Unit = {},
     val claimReward: () -> Unit = {},
     val discardPlant: () -> Unit = {},
+    val deselect: () -> Unit = {},
     val movePlant: (Int, RoomSpot) -> Unit = { _, _ -> },
     val swapPlants: (Int, Int) -> Unit = { _, _ -> },
     val updateSettings: ((AppSettingsState) -> AppSettingsState) -> Unit = {},
@@ -103,6 +103,7 @@ fun GameScreen(viewModel: PlantagotchiViewModel) {
             compost = viewModel::compost,
             claimReward = viewModel::claimReward,
             discardPlant = viewModel::discardPlant,
+            deselect = viewModel::deselect,
             movePlant = viewModel::movePlant,
             swapPlants = viewModel::swapPlants,
             updateSettings = viewModel::updateSettings,
@@ -204,7 +205,6 @@ fun GameContent(
             }
         }
         val texts = SceneTexts(
-            needsLabel = stringResource(Res.string.needs_label),
             plantLabel = label,
             replant = stringResource(Res.string.replant),
             compost = stringResource(Res.string.compost),
@@ -237,6 +237,7 @@ fun GameContent(
                         SceneTarget.LAMP_CLICK -> actions.playUi(Sfx.SNAP)
                         SceneTarget.DESK_LAMP -> actions.playUi(Sfx.TAP)
                         SceneTarget.CAT -> actions.playUi(Sfx.PET)
+                        SceneTarget.EMPTY -> actions.deselect()
                     }
                 },
             )

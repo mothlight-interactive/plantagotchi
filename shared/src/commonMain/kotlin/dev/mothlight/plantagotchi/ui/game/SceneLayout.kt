@@ -28,8 +28,6 @@ internal class SceneLayout(
     val weatherChip: Rect,
     val menuButton: Rect,
     val chest: Rect,
-    val shopButton: Rect,
-    val plantLabelY: Float,
     val replantButton: Rect,
     val compostButton: Rect,
     val needsLabelBaseline: Float,
@@ -73,8 +71,9 @@ internal class SceneLayout(
             val room = if (roomSpots != null) RoomGeometry(size, ground.top, 4 * dp) else null
             val slots = if (room != null && roomSpots != null) roomSpots.mapIndexed { i, spot ->
                 val (anchor, baseWidth) = room.anchor(spot)
-                // The active plant stands out a little.
-                val potWidth = baseWidth * (if (i == activeIndex) 1.12f else 1f)
+                // The selected plant grows towards a larger size (weight 1 = normal).
+                val zoom = 1f + (weights[i] - 1f) / (ACTIVE_WEIGHT - 1f) * (SELECTED_ZOOM - 1f)
+                val potWidth = baseWidth * zoom
                 val potBottom = anchor.y + potWidth * 0.03f
                 val pot = Rect(anchor.x - potWidth / 2, potBottom - potWidth * potAspects[i], anchor.x + potWidth / 2, potBottom)
                 val plantBottom = pot.top + potWidth * 0.006f
@@ -97,7 +96,6 @@ internal class SceneLayout(
             val weatherChip = Rect(16 * dp, coinHud.bottom + 8 * dp, 112 * dp, coinHud.bottom + 40 * dp)
             val menuButton = Rect(w - 52 * dp, top - 2 * dp, w - 12 * dp, top + 38 * dp)
             val chest = Rect(menuButton.left - 50 * dp, top, menuButton.left - 10 * dp, top + 38 * dp)
-            val shopButton = Rect(chest.left - 52 * dp, top - 3 * dp, chest.left - 8 * dp, top + 41 * dp)
 
             val activePot = slots[activeIndex].pot
             val buttonW = 150 * dp
@@ -116,14 +114,16 @@ internal class SceneLayout(
             }
 
             return SceneLayout(
-                size, dp, ground, slots, activeIndex, room, coinHud, weatherChip, menuButton, chest, shopButton,
-                plantLabelY = weatherChip.bottom + 14 * dp,
+                size, dp, ground, slots, activeIndex, room, coinHud, weatherChip, menuButton, chest,
                 replantButton = replant, compostButton = compost,
                 needsLabelBaseline = bubbleTop - 4 * dp, bubbles = bubbles,
             )
         }
 
         const val ACTIVE_WEIGHT = 2.2f
+
+        /** How much larger the selected plant is drawn in an indoor scene. */
+        const val SELECTED_ZOOM = 1.3f
 
         /** Plant grid size relative to the pot width (the original art used 1). */
         const val PLANT_TO_POT = 25f / 19f
