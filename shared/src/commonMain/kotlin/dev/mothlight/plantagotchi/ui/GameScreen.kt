@@ -78,6 +78,7 @@ class GameActions(
     val replant: () -> Unit = {},
     val compost: () -> Unit = {},
     val claimReward: () -> Unit = {},
+    val discardPlant: () -> Unit = {},
     val updateSettings: ((AppSettingsState) -> AppSettingsState) -> Unit = {},
 )
 
@@ -98,6 +99,7 @@ fun GameScreen(viewModel: PlantagotchiViewModel) {
             replant = viewModel::replant,
             compost = viewModel::compost,
             claimReward = viewModel::claimReward,
+            discardPlant = viewModel::discardPlant,
             updateSettings = viewModel::updateSettings,
         )
     }
@@ -115,7 +117,7 @@ fun GameScreen(viewModel: PlantagotchiViewModel) {
     GameContent(state = state, events = viewModel.events, actions = actions, devActions = devActions)
 }
 
-enum class Sheet { NONE, SHOP, MENU, WEATHER, SETTINGS, DEV, REWARD }
+enum class Sheet { NONE, SHOP, MENU, WEATHER, SETTINGS, DEV, REWARD, DISCARD }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -216,6 +218,7 @@ fun GameContent(
                         SceneTarget.MENU -> sheet = Sheet.MENU
                         SceneTarget.WEATHER -> sheet = Sheet.WEATHER
                         SceneTarget.CHEST -> sheet = Sheet.REWARD
+                        SceneTarget.DISCARD -> sheet = Sheet.DISCARD
                         SceneTarget.REPLANT -> actions.replant()
                         SceneTarget.COMPOST -> actions.compost()
                         SceneTarget.NEED_LIGHT -> scope.launch {
@@ -287,6 +290,7 @@ fun GameContent(
                     Sheet.MENU -> MenuSheet { entry ->
                         sheet = when (entry) {
                             MenuEntry.SETTINGS -> Sheet.SETTINGS
+                            MenuEntry.DISCARD -> Sheet.DISCARD
                             MenuEntry.ABOUT -> {
                                 about = true
                                 Sheet.NONE
@@ -305,6 +309,15 @@ fun GameContent(
                             }
                         },
                         onClose = { sheet = Sheet.NONE },
+                    )
+                    Sheet.DISCARD -> DiscardSheet(
+                        plant = state.player.activePlant,
+                        onlyPlant = state.player.plants.size <= 1,
+                        onConfirm = {
+                            actions.discardPlant()
+                            sheet = Sheet.NONE
+                        },
+                        onCancel = { sheet = Sheet.NONE },
                     )
                     Sheet.WEATHER -> WeatherSheet(state.weather, state.season)
                     Sheet.SETTINGS -> SettingsSheet(state.settings, state.cameraLightSupported, actions.updateSettings)

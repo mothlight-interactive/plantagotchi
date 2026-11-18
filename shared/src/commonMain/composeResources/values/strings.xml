@@ -188,4 +188,10 @@
     <string name="day_fri">Fr</string>
     <string name="day_sat">Sa</string>
     <string name="day_sun">Su</string>
+    <string name="menu_discard">Discard plant</string>
+    <string name="discard_title">Discard %1$s?</string>
+    <string name="discard_text">The plant goes to the compost. This cannot be undone.</string>
+    <string name="discard_text_only">It is your only plant: a fresh sprout grows in its pot. This cannot be undone.</string>
+    <string name="discard_confirm">Discard</string>
+    <string name="discard_cancel">Cancel</string>
 </resources>

@@ -221,6 +221,14 @@ class PlantagotchiViewModel(
 
     fun compost() = updatePlayer { Shop.compost(it) }
 
+    /** Discards the active plant, also a living one (see [Shop.discard]). */
+    fun discardPlant() {
+        val single = _state.value.player.plants.size <= 1
+        updatePlayer { Shop.discard(it, clock.now().toEpochMilliseconds()) }
+        _events.tryEmit(if (single) GameEvent.Replanted else GameEvent.PlantSwitched)
+        sound(Sfx.WITHER)
+    }
+
     /** Shows the next ([delta] = 1) or previous (-1) plant. */
     fun switchPlant(delta: Int) {
         val player = _state.value.player

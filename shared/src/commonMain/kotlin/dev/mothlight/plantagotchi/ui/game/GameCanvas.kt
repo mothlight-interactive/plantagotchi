@@ -60,6 +60,9 @@ enum class SceneTarget {
     SHOP, MENU, CHEST, WEATHER, NEED_FERTILIZER, NEED_WATER, NEED_LIGHT, NEED_LOVE,
     PLANT, REPLANT, COMPOST,
 
+    /** Long press on a plant: offer to discard it. */
+    DISCARD,
+
     /** The grow lamp was pushed and starts swinging. */
     LAMP,
 }
@@ -121,7 +124,18 @@ fun GameCanvas(
         modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures { offset ->
+                detectTapGestures(
+                    onLongPress = { offset ->
+                        val l = scene.layout ?: return@detectTapGestures
+                        val other = scene.plantAt(offset, currentState)
+                        if (other != null) {
+                            currentOnSelect(other)
+                            currentOnTap(SceneTarget.DISCARD)
+                        } else if (l.slots[l.activeIndex].touch.contains(offset)) {
+                            currentOnTap(SceneTarget.DISCARD)
+                        }
+                    },
+                ) { offset ->
                     val l = scene.layout
                     if (currentState.lampActive && l != null && scene.lampHit(offset, l)) {
                         if (scene.pushLamp()) currentOnTap(SceneTarget.LAMP)

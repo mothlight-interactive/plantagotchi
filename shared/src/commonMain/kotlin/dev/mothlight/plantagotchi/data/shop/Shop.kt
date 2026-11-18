@@ -68,6 +68,21 @@ object Shop {
         return state.updateActive { PlantState(id = it.id, pot = it.pot, plantedAt = nowMillis, love = 20.0) }
     }
 
+    /**
+     * Discards the active plant, withered or not. The neighbour becomes active; the only plant is
+     * replaced by a fresh sprout in the same pot.
+     */
+    fun discard(state: PlayerState, nowMillis: Long): PlayerState {
+        val plant = state.activePlant
+        if (state.plants.size <= 1) {
+            return state.updateActive { PlantState(pot = it.pot, plantedAt = nowMillis, love = 20.0) }
+                .let { it.copy(activePlantId = it.plants.first().id) }
+        }
+        val index = state.activeIndex
+        val remaining = state.plants - plant
+        return state.copy(plants = remaining, activePlantId = remaining[(index - 1).coerceAtLeast(0)].id)
+    }
+
     /** Removes the withered active plant, if it is not the only one. */
     fun compost(state: PlayerState): PlayerState {
         val plant = state.activePlant
