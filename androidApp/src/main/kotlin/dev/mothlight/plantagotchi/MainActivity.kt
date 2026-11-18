@@ -22,7 +22,6 @@ class MainActivity : ComponentActivity() {
 
         val permissions = buildList {
             add(Manifest.permission.ACCESS_COARSE_LOCATION)
-            add(Manifest.permission.ACCESS_FINE_LOCATION)
             if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
         }
         locationPermission.launch(permissions.toTypedArray())
