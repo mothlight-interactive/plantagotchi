@@ -32,14 +32,22 @@ openssl pkcs12 -export -inkey dist.key -in dist.pem -out dist.p12 \
 nicht lesen kann.) Hast du für Mothlight schon ein Apple-Distribution-Zertifikat (z. B. aus
 mikrodb), kannst du dessen `.p12` wiederverwenden und direkt zu Schritt 2.
 
-### 2. App-ID und Provisioning-Profil (developer.apple.com)
+### 2. App Group, App-IDs und Provisioning-Profile (developer.apple.com)
 
-- [Identifiers](https://developer.apple.com/account/resources/identifiers/list) → **+** → App IDs → App →
-  Bundle ID explizit `dev.mothlight.plantagotchi`. Keine zusätzlichen Capabilities nötig
-  (Push-Benachrichtigungen sind lokal und brauchen keine Capability).
+Die App hat ein Widget (eigenes Extension-Target). App und Widget teilen sich die Daten über eine App Group.
+
+- [Identifiers](https://developer.apple.com/account/resources/identifiers/list) → **+** → **App Groups** →
+  `group.dev.mothlight.plantagotchi`.
+- Identifiers → **+** → App IDs → App → Bundle ID explizit `dev.mothlight.plantagotchi`, Capability
+  **App Groups** aktivieren und die Gruppe zuweisen (Push-Benachrichtigungen sind lokal und brauchen keine Capability).
+- Dasselbe für das Widget: Bundle ID `dev.mothlight.plantagotchi.widget`, **App Groups** mit derselben Gruppe.
 - [Profiles](https://developer.apple.com/account/resources/profiles/list) → **+** → **App Store Connect**
   (Distribution) → App ID `dev.mothlight.plantagotchi` → das Zertifikat aus Schritt 1 → Name z. B.
   `Plantagotchi AppStore` → `.mobileprovision` herunterladen.
+- Ein zweites Profil genauso für `dev.mothlight.plantagotchi.widget`, z. B. `Plantagotchi Widget AppStore`.
+
+Ändern sich die Capabilities einer App-ID, das Profil neu erzeugen (Edit → Save) und das Secret ersetzen.
+Der Workflow prüft Bundle-ID und App Group beider Profile und bricht mit einer klaren Meldung ab.
 
 ### 3. App in App Store Connect
 
@@ -62,6 +70,7 @@ Repo → Settings → Secrets and variables → Actions → **New repository sec
 | `IOS_DIST_CERT_P12_BASE64` | `base64 -w0 dist.p12` (macOS: `base64 -i dist.p12`) |
 | `IOS_DIST_CERT_PASSWORD` | das `.p12`-Passwort |
 | `IOS_PROVISIONING_PROFILE_BASE64` | `base64 -w0 Plantagotchi_AppStore.mobileprovision` |
+| `IOS_WIDGET_PROVISIONING_PROFILE_BASE64` | `base64 -w0 Plantagotchi_Widget_AppStore.mobileprovision` |
 | `ASC_KEY_ID` | Key ID aus Schritt 4 |
 | `ASC_ISSUER_ID` | Issuer ID aus Schritt 4 |
 | `ASC_PRIVATE_KEY` | kompletter Inhalt der `.p8`-Datei, inklusive BEGIN/END-Zeilen |
@@ -79,13 +88,9 @@ Repo → Settings → Secrets and variables → Actions → **New repository sec
 
 - **Einen TestFlight-Build nie von Hand in App Store Connect einer App-Store-Version zuordnen.**
   Store-Releases immer über `release.yml` ([release.md](release.md)).
-- Das Widget braucht ein eigenes Extension-Target und eine App Group
-  ([iosApp/PlantagotchiWidget/README.md](../iosApp/PlantagotchiWidget/README.md)). Solange es fehlt,
-  reicht das Profil für `dev.mothlight.plantagotchi` allein.
-
 - Privates Repo: macOS-Minuten zählen 10-fach gegen das Actions-Kontingent (Free: 2000 Min. ≈ 200
   macOS-Min. pro Monat).
-- Das Zertifikat läuft nach einem Jahr ab: Schritte 1 bis 2 wiederholen und die drei
+- Das Zertifikat läuft nach einem Jahr ab: Schritte 1 bis 2 wiederholen und die vier
   Signing-Secrets ersetzen.
 - Wird der Upload wegen eines veralteten SDKs abgelehnt, im Workflow einen neueren Runner festlegen
   (`runs-on: macos-26`).
