@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.serialization.json.Json
 import platform.AVFAudio.AVAudioPlayer
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryAmbient
@@ -139,7 +138,7 @@ class IosNotificationScheduler : NotificationScheduler {
 class IosWidgetBridge(private val suiteName: String = APP_GROUP) : WidgetBridge {
     override fun update(snapshot: WidgetSnapshot) {
         val defaults = NSUserDefaults(suiteName = suiteName)
-        defaults.setObject(Json.encodeToString(WidgetSnapshot.serializer(), snapshot), forKey = "widget_snapshot")
+        defaults.setObject(snapshot.toJson(), forKey = "widget_snapshot")
     }
 
     companion object {

@@ -2,7 +2,10 @@ package dev.mothlight.plantagotchi.platform
 
 import dev.mothlight.plantagotchi.data.GeoPosition
 import kotlinx.coroutines.flow.StateFlow
+import dev.mothlight.plantagotchi.data.state.PlayerState
+import dev.mothlight.plantagotchi.data.state.Species
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /** Ambient light sensor. [lux] is null if no usable sensor is active. */
 interface LightSensor {
@@ -54,9 +57,12 @@ interface SoundPlayer {
 
 fun SoundPlayer.play(sfx: Sfx, volume: Float = 1f) = play(sfx.asset, volume)
 
-/** What home screen widgets show. */
+/** One plant as home screen widgets show it. Needs are 0..100. */
 @Serializable
-data class WidgetSnapshot(
+data class WidgetPlant(
+    val id: String,
+    /** Localized species name, numbered when the species appears more than once ("Tulip 2"). */
+    val name: String,
     val species: String,
     val stage: Int,
     val dead: Boolean,
@@ -64,9 +70,58 @@ data class WidgetSnapshot(
     val water: Int,
     val love: Int,
     val fertilizer: Int,
+)
+
+/** What home screen widgets show: every plant, the one active in the app and the coins. */
+@Serializable
+data class WidgetSnapshot(
+    val plants: List<WidgetPlant>,
+    val activeId: String,
     val coins: Int,
     val updatedAt: Long,
-)
+) {
+    val active: WidgetPlant? get() = plants.firstOrNull { it.id == activeId } ?: plants.firstOrNull()
+
+    fun plant(id: String?): WidgetPlant? = plants.firstOrNull { it.id == id }
+
+    /** The plant [steps] positions after [id] (wraps around), for the widget arrows. */
+    fun step(id: String?, steps: Int): WidgetPlant? {
+        if (plants.isEmpty()) return null
+        val from = plants.indexOfFirst { it.id == id }.takeIf { it >= 0 } ?: plants.indexOf(active)
+        return plants[((from + steps) % plants.size + plants.size) % plants.size]
+    }
+
+    fun toJson(): String = json.encodeToString(serializer(), this)
+
+    companion object {
+        private val json = Json { ignoreUnknownKeys = true }
+
+        fun fromJson(text: String?): WidgetSnapshot? =
+            text?.let { runCatching { json.decodeFromString(serializer(), it) }.getOrNull() }
+
+        fun of(player: PlayerState, now: Long, speciesName: (Species) -> String): WidgetSnapshot {
+            val counts = player.plants.groupingBy { it.species }.eachCount()
+            val seen = mutableMapOf<Species, Int>()
+            val plants = player.plants.map { plant ->
+                val n = (seen[plant.species] ?: 0) + 1
+                seen[plant.species] = n
+                val base = speciesName(plant.species)
+                WidgetPlant(
+                    id = plant.id,
+                    name = if ((counts[plant.species] ?: 0) > 1) "$base $n" else base,
+                    species = plant.species.name,
+                    stage = plant.stage,
+                    dead = plant.dead,
+                    lux = plant.lux.toInt(),
+                    water = plant.water.toInt(),
+                    love = plant.love.toInt(),
+                    fertilizer = plant.fertilizer.toInt(),
+                )
+            }
+            return WidgetSnapshot(plants, player.activePlant.id, player.coins, now)
+        }
+    }
+}
 
 interface WidgetBridge {
     fun update(snapshot: WidgetSnapshot)

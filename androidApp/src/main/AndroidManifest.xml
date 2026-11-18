@@ -37,6 +37,26 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/plant_widget_info" />
         </receiver>
+
+        <receiver
+            android:name=".AllPlantsWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/all_plants_widget_info" />
+        </receiver>
+
+        <activity
+            android:name=".PlantWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Plantagotchi">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

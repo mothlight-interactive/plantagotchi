@@ -105,8 +105,8 @@ Tap the shop bag, the coin counter or the water/fertilizer bubble.
 == More
 
 * *Reminders*: local notifications when a need will drop below 20 % and when the daily chest is ready.
-* *Widgets*: home screen widget on Android (Glance) and iOS 17+ (WidgetKit extension in `iosApp/PlantagotchiWidget`,
-  shares the plant state through the app group `group.dev.mothlight.plantagotchi`).
+* *Widgets* (Android Glance, iOS 17+ WidgetKit in `iosApp/PlantagotchiWidget`): one plant with arrows to browse
+  and a plant picker in the widget settings, plus an "all plants" widget (medium and large).
 * *Sound*: 8-bit effects, synthesized and stored in `composeResources/files/sfx`.
 * *Languages*: English and German.
 * *Weather*: tap the weather chip for details.
