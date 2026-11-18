@@ -42,6 +42,8 @@ jobs:
     timeout-minutes: 60
     env:
       BUNDLE_ID: dev.mothlight.plantagotchi
+      WIDGET_BUNDLE_ID: dev.mothlight.plantagotchi.widget
+      APP_GROUP: group.dev.mothlight.plantagotchi
       TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       # Manual runs and ios-v* tags have no inputs: TestFlight builds are "test" (with test mode).
       APP_ENV: ${{ inputs.app_env || 'test' }}
@@ -92,13 +94,14 @@ jobs:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
 
-      - name: Install signing certificate and profile
+      - name: Install signing certificate and profiles
         env:
           CERT_P12: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
           CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
           PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          WIDGET_PROFILE: ${{ secrets.IOS_WIDGET_PROVISIONING_PROFILE_BASE64 }}
         run: |
-          if [ -z "$CERT_P12" ] || [ -z "$PROFILE" ]; then
+          if [ -z "$CERT_P12" ] || [ -z "$PROFILE" ] || [ -z "$WIDGET_PROFILE" ]; then
             echo "::error::Signing secrets are missing (see docs/testflight.md)"
             exit 1
           fi
@@ -111,17 +114,34 @@ jobs:
           security import "$RUNNER_TEMP/dist.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PW" "$KEYCHAIN" > /dev/null
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
-
-          PROFILE_FILE="$RUNNER_TEMP/profile.mobileprovision"
-          echo "$PROFILE" | base64 --decode > "$PROFILE_FILE"
-          security cms -D -i "$PROFILE_FILE" > "$RUNNER_TEMP/profile.plist"
-          UUID=$(plutil -extract UUID raw "$RUNNER_TEMP/profile.plist")
-          NAME=$(plutil -extract Name raw "$RUNNER_TEMP/profile.plist")
-          for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
-            mkdir -p "$dir"; cp "$PROFILE_FILE" "$dir/$UUID.mobileprovision"
-          done
-          echo "PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
           echo "KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+
+          # Installs a base64 profile, checks its bundle ID and app group, prints its name.
+          install_profile() {
+            local file="$RUNNER_TEMP/$1.mobileprovision" plist="$RUNNER_TEMP/$1.plist"
+            echo "$2" | base64 --decode > "$file"
+            security cms -D -i "$file" > "$plist"
+            local uuid appid groups
+            uuid=$(plutil -extract UUID raw "$plist")
+            appid=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$plist")
+            if [ "${appid#*.}" != "$3" ]; then
+              echo "::error::Profile $1 is for '${appid#*.}', expected '$3'" >&2
+              return 1
+            fi
+            groups=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:com.apple.security.application-groups" "$plist" 2>/dev/null || true)
+            case "$groups" in
+              *"$APP_GROUP"*) ;;
+              *) echo "::error::Profile $1 lacks the app group $APP_GROUP: enable App Groups on $3 and regenerate the profile" >&2; return 1 ;;
+            esac
+            for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+              mkdir -p "$dir"; cp "$file" "$dir/$uuid.mobileprovision"
+            done
+            plutil -extract Name raw "$plist"
+          }
+          PROFILE_NAME=$(install_profile app "$PROFILE" "$BUNDLE_ID")
+          WIDGET_PROFILE_NAME=$(install_profile widget "$WIDGET_PROFILE" "$WIDGET_BUNDLE_ID")
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "WIDGET_PROFILE_NAME=$WIDGET_PROFILE_NAME" >> "$GITHUB_ENV"
 
       - name: Write App Store Connect API key
         env:
@@ -142,16 +162,19 @@ jobs:
             PG_CODE_SIGN_STYLE=Manual \
             PG_CODE_SIGN_IDENTITY="Apple Distribution" \
             PG_PROVISIONING_PROFILE="$PROFILE_NAME" \
+            PG_WIDGET_PROVISIONING_PROFILE="$WIDGET_PROFILE_NAME" \
             OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
             MARKETING_VERSION="$MARKETING_VERSION" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
           # The environment must have made it into the app.
-          plist=$(ls "$ARCHIVE_PATH"/Products/Applications/*.app/Info.plist | head -n 1)
-          baked=$(plutil -extract AppEnv raw "$plist")
+          app=$(ls -d "$ARCHIVE_PATH"/Products/Applications/*.app | head -n 1)
+          baked=$(plutil -extract AppEnv raw "$app/Info.plist")
           if [ "$baked" != "$APP_ENV" ]; then
             echo "::error::Archive has AppEnv '$baked', expected '$APP_ENV'"
             exit 1
           fi
+          # The widget must be embedded.
+          [ -d "$app/PlugIns/PlantagotchiWidget.appex" ] || { echo "::error::Widget extension missing in the archive"; exit 1; }
 
       - name: Export and upload to TestFlight
         env:
@@ -169,7 +192,10 @@ jobs:
             <key>signingStyle</key><string>manual</string>
             <key>signingCertificate</key><string>Apple Distribution</string>
             <key>provisioningProfiles</key>
-            <dict><key>$BUNDLE_ID</key><string>$PROFILE_NAME</string></dict>
+            <dict>
+              <key>$BUNDLE_ID</key><string>$PROFILE_NAME</string>
+              <key>$WIDGET_BUNDLE_ID</key><string>$WIDGET_PROFILE_NAME</string>
+            </dict>
             <key>uploadSymbols</key><true/>
             <key>manageAppVersionAndBuildNumber</key><false/>
           </dict>

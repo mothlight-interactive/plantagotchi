@@ -1,13 +1,10 @@
 # iOS widget
 
-The widget code is ready but the Widget Extension target is not part of the Xcode project yet,
-because adding it requires your Apple team and an App Group.
+WidgetKit extension `PlantagotchiWidget` (iOS 17+, small and medium), embedded in the app.
 
-1. In Xcode: File > New > Target > Widget Extension, name it `PlantagotchiWidget`,
-   uncheck "Include Configuration App Intent". Delete the generated Swift files and add
-   `PlantagotchiWidget.swift` from this folder to the new target.
-2. Add the capability "App Groups" to both the `iosApp` target and the widget target and
-   enable `group.dev.mothlight.plantagotchi`.
-3. Run the app once: it writes the plant state into the app group, the widget reads it.
-
-The shared Kotlin code (`IosWidgetBridge`) already writes to that app group.
+- Bundle ID `dev.mothlight.plantagotchi.widget` (`PG_WIDGET_BUNDLE_IDENTIFIER` in `Config.xcconfig`)
+- App and widget share `group.dev.mothlight.plantagotchi` (`*.entitlements`). The shared Kotlin code
+  (`IosWidgetBridge`) writes the plant state there, the widget reads it. The app reloads the widget
+  when it goes to the background.
+- Signing: locally automatic; the TestFlight workflow uses `IOS_WIDGET_PROVISIONING_PROFILE_BASE64`
+  (see `docs/testflight.md`).

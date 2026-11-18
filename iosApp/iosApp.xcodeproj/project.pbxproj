@@ -10,7 +10,33 @@
 		A10000000000000000000001 /* iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* iOSApp.swift */; };
 		A10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* ContentView.swift */; };
 		A10000000000000000000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* Assets.xcassets */; };
+		A10000000000000000000011 /* PlantagotchiWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* PlantagotchiWidget.swift */; };
+		A10000000000000000000012 /* PlantagotchiWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A20000000000000000000012 /* PlantagotchiWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AB0000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A70000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000011;
+			remoteInfo = PlantagotchiWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A60000000000000000000013 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A10000000000000000000012 /* PlantagotchiWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A20000000000000000000001 /* iOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSApp.swift; sourceTree = "<group>"; };
@@ -19,10 +45,22 @@
 		A20000000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000000000000000000005 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		A20000000000000000000006 /* Plantagotchi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Plantagotchi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000007 /* iosApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iosApp.entitlements; sourceTree = "<group>"; };
+		A20000000000000000000011 /* PlantagotchiWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlantagotchiWidget.swift; sourceTree = "<group>"; };
+		A20000000000000000000012 /* PlantagotchiWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PlantagotchiWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A20000000000000000000014 /* PlantagotchiWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlantagotchiWidget.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A30000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A30000000000000000000011 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -37,6 +75,7 @@
 			children = (
 				A40000000000000000000002 /* Configuration */,
 				A40000000000000000000003 /* iosApp */,
+				A40000000000000000000011 /* PlantagotchiWidget */,
 				A40000000000000000000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -56,6 +95,7 @@
 				A20000000000000000000002 /* ContentView.swift */,
 				A20000000000000000000003 /* Assets.xcassets */,
 				A20000000000000000000004 /* Info.plist */,
+				A20000000000000000000007 /* iosApp.entitlements */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -64,8 +104,19 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000006 /* Plantagotchi.app */,
+				A20000000000000000000012 /* PlantagotchiWidget.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000011 /* PlantagotchiWidget */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000011 /* PlantagotchiWidget.swift */,
+				A20000000000000000000013 /* Info.plist */,
+				A20000000000000000000014 /* PlantagotchiWidget.entitlements */,
+			);
+			path = PlantagotchiWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -79,15 +130,33 @@
 				A60000000000000000000001 /* Sources */,
 				A30000000000000000000001 /* Frameworks */,
 				A60000000000000000000002 /* Resources */,
+				A60000000000000000000013 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AC0000000000000000000001 /* PBXTargetDependency */,
 			);
 			name = iosApp;
 			productName = iosApp;
 			productReference = A20000000000000000000006 /* Plantagotchi.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A50000000000000000000011 /* PlantagotchiWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80000000000000000000011 /* Build configuration list for PBXNativeTarget "PlantagotchiWidget" */;
+			buildPhases = (
+				A60000000000000000000011 /* Sources */,
+				A30000000000000000000011 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PlantagotchiWidget;
+			productName = PlantagotchiWidget;
+			productReference = A20000000000000000000012 /* PlantagotchiWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -100,6 +169,9 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					A50000000000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					A50000000000000000000011 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -118,6 +190,7 @@
 			projectRoot = "";
 			targets = (
 				A50000000000000000000001 /* iosApp */,
+				A50000000000000000000011 /* PlantagotchiWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -165,7 +238,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A60000000000000000000011 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000011 /* PlantagotchiWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AC0000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000011 /* PlantagotchiWidget */;
+			targetProxy = AB0000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A90000000000000000000001 /* Debug */ = {
@@ -230,6 +319,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "$(PG_CODE_SIGN_IDENTITY)";
 				CODE_SIGN_STYLE = "$(PG_CODE_SIGN_STYLE)";
 				DEVELOPMENT_TEAM = "${TEAM_ID}";
@@ -264,6 +354,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "$(PG_CODE_SIGN_IDENTITY)";
 				CODE_SIGN_STYLE = "$(PG_CODE_SIGN_STYLE)";
 				DEVELOPMENT_TEAM = "${TEAM_ID}";
@@ -293,6 +384,58 @@
 			};
 			name = Release;
 		};
+		A90000000000000000000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = PlantagotchiWidget/PlantagotchiWidget.entitlements;
+				CODE_SIGN_IDENTITY = "$(PG_CODE_SIGN_IDENTITY)";
+				CODE_SIGN_STYLE = "$(PG_CODE_SIGN_STYLE)";
+				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PlantagotchiWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PG_WIDGET_BUNDLE_IDENTIFIER)";
+				PRODUCT_NAME = PlantagotchiWidget;
+				PROVISIONING_PROFILE_SPECIFIER = "$(PG_WIDGET_PROVISIONING_PROFILE)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A90000000000000000000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = PlantagotchiWidget/PlantagotchiWidget.entitlements;
+				CODE_SIGN_IDENTITY = "$(PG_CODE_SIGN_IDENTITY)";
+				CODE_SIGN_STYLE = "$(PG_CODE_SIGN_STYLE)";
+				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PlantagotchiWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PG_WIDGET_BUNDLE_IDENTIFIER)";
+				PRODUCT_NAME = PlantagotchiWidget;
+				PROVISIONING_PROFILE_SPECIFIER = "$(PG_WIDGET_PROVISIONING_PROFILE)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -310,6 +453,15 @@
 			buildConfigurations = (
 				A90000000000000000000003 /* Debug */,
 				A90000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80000000000000000000011 /* Build configuration list for PBXNativeTarget "PlantagotchiWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A90000000000000000000011 /* Debug */,
+				A90000000000000000000012 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

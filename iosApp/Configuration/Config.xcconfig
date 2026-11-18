@@ -1,6 +1,9 @@
 TEAM_ID=
 PRODUCT_NAME=Plantagotchi
-PRODUCT_BUNDLE_IDENTIFIER=dev.mothlight.plantagotchi
+PG_BUNDLE_ID = dev.mothlight.plantagotchi
+PRODUCT_BUNDLE_IDENTIFIER = $(PG_BUNDLE_ID)
+// The widget extension (needs its own App ID and profile, same app group)
+PG_WIDGET_BUNDLE_IDENTIFIER = $(PG_BUNDLE_ID).widget
 
 // App version for iOS and Android. Bump for a new release; build numbers come from CI.
 MARKETING_VERSION=2.1.0
@@ -10,11 +13,12 @@ CURRENT_PROJECT_VERSION=1
 // The TestFlight workflow rewrites this line before archiving; the test mode is off in prod.
 PG_APP_ENV = dev
 
-// Signing of the app target only. Local builds sign automatically; the TestFlight workflow
-// overrides these three on the xcodebuild command line.
+// Signing of the app and widget targets. Local builds sign automatically; the TestFlight workflow
+// overrides these on the xcodebuild command line.
 PG_CODE_SIGN_STYLE = Automatic
 PG_CODE_SIGN_IDENTITY = Apple Development
 PG_PROVISIONING_PROFILE =
+PG_WIDGET_PROVISIONING_PROFILE =
 
 // Optional, not committed: set TEAM_ID etc. locally
 #include? "Secrets.xcconfig"
