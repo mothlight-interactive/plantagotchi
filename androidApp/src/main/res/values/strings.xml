@@ -7,4 +7,9 @@
     <string name="widget_fertilizer">Fertilizer</string>
     <string name="widget_withered">Withered, open the app</string>
     <string name="widget_empty">Open the app to start</string>
+    <string name="widget_withered_short">Withered</string>
+    <string name="widget_all_title">My plants</string>
+    <string name="widget_all_description">Shows all your plants at a glance</string>
+    <string name="widget_config_title">Which plant should the widget show?</string>
+    <string name="widget_follow_app">Always the one selected in the app</string>
 </resources>

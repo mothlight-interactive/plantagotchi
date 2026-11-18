@@ -112,7 +112,6 @@
     <string name="about_interactive">interactive</string>
     <string name="about_presents">präsentiert</string>
     <string name="about_version">Version %1$s</string>
-    <string name="about_original">Ursprünglich an der FHNW entwickelt von Joyce Hänggi und Florian Thiévent</string>
     <string name="about_weather">Wetterdaten von Open-Meteo (CC BY 4.0)</string>
     <string name="about_particles">Wetterpartikel basierend auf flux</string>
     <string name="about_tap">Tippen zum Schliessen</string>

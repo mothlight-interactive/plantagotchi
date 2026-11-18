@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.mothlight.plantagotchi.resources.Res
 import dev.mothlight.plantagotchi.resources.about_interactive
-import dev.mothlight.plantagotchi.resources.about_original
 import dev.mothlight.plantagotchi.resources.about_particles
 import dev.mothlight.plantagotchi.resources.about_presents
 import dev.mothlight.plantagotchi.resources.about_tap
@@ -148,7 +147,7 @@ fun MothlightAboutScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                 color = MothlightLogo.ink.copy(alpha = 0.6f),
             )
             Spacer(Modifier.height(32.dp))
-            listOf(Res.string.about_original, Res.string.about_weather, Res.string.about_particles).forEach {
+            listOf(Res.string.about_weather, Res.string.about_particles).forEach {
                 Text(
                     stringResource(it),
                     style = MaterialTheme.typography.bodySmall,

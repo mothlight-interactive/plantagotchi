@@ -462,21 +462,9 @@ class PlantagotchiViewModel(
         val s = _state.value
         if (s.loading) return
         runCatchingCancellable { repository.save(s.player) }
-        val plant = s.player.activePlant
         runCatchingCancellable {
-            platform.widget.update(
-                WidgetSnapshot(
-                    species = plant.species.name,
-                    stage = plant.stage,
-                    dead = plant.dead,
-                    lux = plant.lux.toInt(),
-                    water = plant.water.toInt(),
-                    love = plant.love.toInt(),
-                    fertilizer = plant.fertilizer.toInt(),
-                    coins = s.player.coins,
-                    updatedAt = s.now,
-                )
-            )
+            val names = Species.entries.associateWith { ReminderPlanner.speciesName(it) }
+            platform.widget.update(WidgetSnapshot.of(s.player, s.now) { names.getValue(it) })
         }
     }
 
