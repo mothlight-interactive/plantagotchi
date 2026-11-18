@@ -7,7 +7,6 @@ import androidx.compose.ui.graphics.painter.Painter
 import dev.mothlight.plantagotchi.data.shop.PotId
 import dev.mothlight.plantagotchi.resources.Res
 import dev.mothlight.plantagotchi.resources.chest
-import dev.mothlight.plantagotchi.resources.cloud1
 import dev.mothlight.plantagotchi.resources.coin
 import dev.mothlight.plantagotchi.resources.coint_counter
 import dev.mothlight.plantagotchi.resources.day
@@ -47,7 +46,6 @@ class SceneSprites(
     val skySunset: ImageBitmap,
     val sun: ImageBitmap,
     val moon: ImageBitmap,
-    val cloud: ImageBitmap,
     val mountains: ImageBitmap,
     val chest: ImageBitmap,
     val coin: ImageBitmap,
@@ -83,7 +81,6 @@ fun rememberSceneSprites(): SceneSprites = SceneSprites(
     skySunset = imageResource(Res.drawable.sunset),
     sun = imageResource(Res.drawable.sun),
     moon = imageResource(Res.drawable.moon),
-    cloud = imageResource(Res.drawable.cloud1),
     mountains = imageResource(Res.drawable.pixel_landscape),
     chest = imageResource(Res.drawable.chest),
     coin = imageResource(Res.drawable.coin),
