@@ -6,6 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Rect
@@ -19,7 +20,12 @@ import dev.mothlight.plantagotchi.data.state.Scenery
 @Composable
 fun ScenePreview(scenery: Scenery, ground: Ground, modifier: Modifier = Modifier) {
     val frame = remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) { while (true) withFrameNanos { frame.longValue = it } }
+    LaunchedEffect(Unit) {
+        while (true) {
+            withFrameNanos { frame.longValue = it }
+            delay(40) // ~20 fps is plenty for the shop previews
+        }
+    }
     val block = 2f * LocalDensity.current.density
     Canvas(modifier.clipToBounds()) {
         val time = (frame.longValue % 1_000_000_000_000L) / 1e9f

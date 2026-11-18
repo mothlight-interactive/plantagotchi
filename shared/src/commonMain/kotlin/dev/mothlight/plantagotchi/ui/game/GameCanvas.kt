@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -105,11 +106,19 @@ fun GameCanvas(
     val currentState by rememberUpdatedState(state)
 
     val frameNanos = remember { mutableLongStateOf(0L) }
+    // Last touch or game event, in frame time: drives the frame rate (battery).
+    val lastActivity = remember { mutableLongStateOf(0L) }
+    fun active() { lastActivity.longValue = frameNanos.longValue }
     LaunchedEffect(Unit) {
-        while (true) withFrameNanos { frameNanos.longValue = it }
+        while (true) {
+            withFrameNanos { frameNanos.longValue = it }
+            val idle = frameNanos.longValue - lastActivity.longValue > IDLE_AFTER_NANOS
+            delay(if (idle) IDLE_FRAME_DELAY_MS else ACTIVE_FRAME_DELAY_MS)
+        }
     }
     LaunchedEffect(events) {
         events.collect {
+            active()
             scene.post(it)
             when (it) {
                 GameEvent.Petted -> haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -125,6 +134,7 @@ fun GameCanvas(
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures(
+                    onPress = { active() },
                     onLongPress = { offset ->
                         val l = scene.layout ?: return@detectTapGestures
                         val other = scene.plantAt(offset, currentState)
@@ -148,6 +158,7 @@ fun GameCanvas(
             }
             .pointerInput(Unit) {
                 detectDragGestures { change, drag ->
+                    active()
                     change.consume()
                     currentOnPet(drag.y)
                 }
@@ -503,7 +514,7 @@ private fun DrawScope.drawHud(
         ws == WeatherState.CLEAR_SKY || ws == WeatherState.FEW_CLOUDS ->
             drawBitmap(if (state.weather.isDay) sprites.sun else sprites.moon, icon)
         else -> {
-            drawBitmap(sprites.cloud, Rect(icon.left - 2 * l.dp, icon.top + 4 * l.dp, icon.right + 2 * l.dp, icon.bottom - 4 * l.dp))
+            drawChipCloud(Rect(icon.left - 2 * l.dp, icon.top + 4 * l.dp, icon.right + 2 * l.dp, icon.bottom - 4 * l.dp))
             if (ws in setOf(WeatherState.RAIN, WeatherState.LIGHT_RAIN, WeatherState.HEAVY_RAIN, WeatherState.THUNDERSTORM, WeatherState.SNOW)) {
                 val color = if (ws == WeatherState.SNOW) Color.White else Color(0xFF5FCDE4)
                 repeat(3) { i ->
@@ -643,3 +654,8 @@ private fun DrawScope.drawNeeds(
 
 
 private const val LOW_NEED = 20f
+
+// Frame pacing: pixel art needs no 60/120 fps. ~30 fps while the player interacts, ~15 fps when idle.
+private const val ACTIVE_FRAME_DELAY_MS = 22L
+private const val IDLE_FRAME_DELAY_MS = 55L
+private const val IDLE_AFTER_NANOS = 20_000_000_000L
