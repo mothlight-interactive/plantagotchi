@@ -1,0 +1,14 @@
+<resources>
+    <string name="widget_description">Montre comment va ta plante</string>
+    <string name="widget_water">Eau</string>
+    <string name="widget_light">Lumière</string>
+    <string name="widget_love">Amour</string>
+    <string name="widget_fertilizer">Engrais</string>
+    <string name="widget_withered">Fanée, ouvre l’app</string>
+    <string name="widget_empty">Ouvre l’app pour commencer</string>
+    <string name="widget_withered_short">Fanée</string>
+    <string name="widget_all_title">Mes plantes</string>
+    <string name="widget_all_description">Toutes tes plantes en un coup d’œil</string>
+    <string name="widget_config_title">Quelle plante le widget doit-il montrer ?</string>
+    <string name="widget_follow_app">Toujours celle choisie dans l’app</string>
+</resources>

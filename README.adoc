@@ -13,6 +13,7 @@ and Florian Thiévent, now a Kotlin/Compose Multiplatform app for Android and iO
 |`shared/` |Kotlin Multiplatform module: game logic, data layer, the whole Compose UI and resources
 |`shared/src/androidMain` |Light sensor and fused location (Play Services)
 |`shared/src/iosMain` |CoreLocation, `MainViewController` entry point
+|`shared/src/desktopTest` |Compose UI smoke tests on a JVM desktop target (tests only, no desktop app)
 |`androidApp/` |Android application (`dev.mothlight.plantagotchi`)
 |`iosApp/` |Xcode project, SwiftUI host for the Compose UI
 |===
@@ -24,17 +25,26 @@ Android:
 [source,bash]
 ----
 ./gradlew :androidApp:assembleDebug
+./gradlew :androidApp:assembleRelease   # R8 (minify + resource shrinking), unsigned without the keystore env vars
 ----
+
+Release keep rules: `androidApp/proguard-rules.pro`. The iOS privacy manifests are
+`iosApp/iosApp/PrivacyInfo.xcprivacy` and `iosApp/PlantagotchiWidget/PrivacyInfo.xcprivacy`; the store
+privacy answers are in link:docs/release.md[docs/release.md].
 
 iOS: open `iosApp/iosApp.xcodeproj` in Xcode and run. Set your team in `iosApp/Configuration/Config.xcconfig`
 or in a non-committed `iosApp/Configuration/Secrets.xcconfig` (`TEAM_ID=...`).
 
-Tests:
+Tests (`commonTest` runs on both JVM targets, `desktopTest` adds the Compose UI tests, rendered offscreen
+with Skia, no display or emulator needed):
 
 [source,bash]
 ----
-./gradlew :shared:testAndroidHostTest
+./gradlew :shared:testAndroidHostTest :shared:desktopTest
 ----
+
+UI tests use `runComposeUiTest` with `GameContent` and a hand-made `GameUiState`. The scene animates every
+frame, so advance `mainClock` by hand (`autoAdvance = false`) instead of waiting for idle.
 
 == Test mode
 
@@ -53,7 +63,7 @@ view model ignores all overrides.
 
 Same setup as the other Mothlight apps (leapjump, mikrodb):
 
-* `ci.yml`: on every PR and push to `master`: Android build, iOS compile, unit tests
+* `ci.yml`: on every PR and push to `master`: Android debug and release (R8) build, iOS compile, unit and UI tests
 * `testflight.yml`: Actions → TestFlight, or a tag `ios-v*`: signed `test` build uploaded to TestFlight (macOS runner)
 * `play-store.yml`: Actions → Play Store, or a tag `android-v*`: signed `test` AAB to the internal test track
 * `release.yml`: a tag `v1.2.3` on `master` → tests → approval in the `production` environment →

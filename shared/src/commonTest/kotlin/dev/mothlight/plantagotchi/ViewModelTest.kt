@@ -32,6 +32,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -105,6 +106,31 @@ class ViewModelTest {
         assertTrue(GameEvent.RewardAlreadyClaimed in events)
         assertTrue(events.any { it is GameEvent.GrewUp && it.plantId == almostGrown.id })
         collector.cancel()
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun selectingShowsTheNeedsAndTappingNextToThePlantsHidesThem() = runTest {
+        val clock = FixedClock(86_400_000L * 10)
+        val a = PlantState(love = 10.0)
+        val b = PlantState(love = 10.0)
+        val vm = viewModel(PlayerState(plants = listOf(a, b), activePlantId = a.id, updatedAt = clock.millis), clock)
+        vm.start(loops = false)
+        assertFalse(vm.state.value.plantSelected, "no plant is selected at start")
+
+        vm.selectPlant(1)
+        assertTrue(vm.state.value.plantSelected)
+        assertEquals(b.id, vm.state.value.player.activePlant.id)
+
+        vm.deselect()
+        assertFalse(vm.state.value.plantSelected)
+        assertEquals(b.id, vm.state.value.player.activePlant.id, "the last plant stays the shop target")
+
+        vm.selectPlant(1)
+        vm.deselect()
+        vm.pet(-60f)
+        assertTrue(vm.state.value.plantSelected, "petting selects the plant")
+        assertTrue(vm.state.value.player.activePlant.love > 10.0)
         vm.viewModelScope.cancel()
     }
 }

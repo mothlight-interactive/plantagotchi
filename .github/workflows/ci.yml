@@ -27,9 +27,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      # The release APK (unsigned here) runs R8, so missing keep rules fail the PR, not the release.
       # The iOS klibs cross-compile on Linux (no linking), which type-checks the iOS code.
-      - name: Build Android debug APK and compile iOS code
-        run: ./gradlew :androidApp:assembleDebug :shared:compileKotlinIosSimulatorArm64 --no-configuration-cache
+      - name: Build Android APKs and compile iOS code
+        run: ./gradlew :androidApp:assembleDebug :androidApp:assembleRelease :shared:compileKotlinIosSimulatorArm64 --no-configuration-cache
 
   tests:
     runs-on: ubuntu-latest
@@ -43,9 +44,11 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      # commonTest runs on the JVM via the Android host test task.
-      - name: Run unit tests
-        run: ./gradlew :shared:testAndroidHostTest --no-configuration-cache
+      # commonTest runs on the JVM twice: as Android host tests and on the desktop JVM target.
+      # desktopTest also runs the Compose UI smoke tests (shared/src/desktopTest), rendered
+      # offscreen with Skia, so the runner needs no display.
+      - name: Run unit and UI tests
+        run: ./gradlew :shared:testAndroidHostTest :shared:desktopTest --no-configuration-cache
 
       - name: Upload test report
         if: failure()

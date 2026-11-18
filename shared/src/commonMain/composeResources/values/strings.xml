@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Plantagotchi</string>
     <string name="loading">Loading</string>
-    <string name="needs_label">What does your plant need?</string>
     <string name="need_love">Love</string>
     <string name="need_fertilizer">Fertilizer</string>
     <string name="need_water">Water</string>
@@ -48,7 +47,7 @@
     <string name="pot_color_1">Terracotta</string>
     <string name="pot_color_2">Lavender</string>
     <string name="pot_color_3">Rose</string>
-    <string name="pot_color_4">Mint</string>
+    <string name="pot_color_4">Charcoal</string>
     <string name="pot_shape_1">Bowl</string>
     <string name="pot_shape_2">Pot</string>
     <string name="pot_shape_3">Vase</string>
@@ -120,13 +119,14 @@
     <string name="species_monstera">Monstera</string>
     <string name="species_bonsai">Bonsai</string>
     <string name="species_flytrap">Flytrap</string>
+    <string name="species_pothos">Pothos</string>
     <string name="item_seed_desc_sunflower">Follows the sun, needs lots of light</string>
     <string name="item_seed_desc_tulip">Opens by day, does not mind the cold</string>
     <string name="item_seed_desc_monstera">Big holey leaves, likes shade, hates frost</string>
     <string name="item_seed_desc_bonsai">Slow and wise, wants a lot of love</string>
     <string name="item_seed_desc_flytrap">Thirsty, catches its own food. Tap it!</string>
-    <string name="shop_scenery">Scenery</string>
-    <string name="shop_ground">Ground</string>
+    <string name="item_seed_desc_pothos">Trailing vines, loves a hanging planter</string>
+    <string name="shop_scenes">Scenes</string>
     <string name="scenery_mountains">Mountains</string>
     <string name="scenery_desert">Desert</string>
     <string name="scenery_beach">Beach</string>
@@ -134,11 +134,8 @@
     <string name="scenery_city">City</string>
     <string name="scenery_zen">Zen garden</string>
     <string name="scenery_room">Cozy room</string>
-    <string name="ground_grass">Grass</string>
-    <string name="ground_sand">Sand</string>
-    <string name="ground_stone">Stone</string>
-    <string name="ground_wood">Wood deck</string>
-    <string name="ground_snow">Snow</string>
+    <string name="scenery_fireplace">Fireside</string>
+    <string name="scenery_plant_shop">Plant shop</string>
     <string name="hint_select_plant">Tap a plant to look after it.</string>
     <string name="settings_music">Music</string>
     <string name="settings_ambience">Ambient sounds</string>

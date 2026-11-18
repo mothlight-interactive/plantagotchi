@@ -4,7 +4,7 @@ import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.data.state.Species
 
-/** Pots are named after the bundled drawables `ic_pot<shape><color>`. */
+/** Pot ids are `pot<shape><color>`, drawn by `PotRenderer`. */
 object PotId {
     const val DEFAULT = "pot12"
 
@@ -58,6 +58,7 @@ sealed class ShopItem {
         override val price: Int,
     ) : ShopItem()
 
+    /** A scene (landscape and ground together), see [Scenery]. */
     data class Backdrop(
         override val id: String,
         override val name: String,
@@ -66,6 +67,7 @@ sealed class ShopItem {
         val scenery: Scenery,
     ) : ShopItem()
 
+    /** Grounds are no longer sold on their own (they belong to the scene); kept for old callers. */
     data class Floor(
         override val id: String,
         override val name: String,
@@ -126,13 +128,13 @@ object ShopCatalog {
         )
     }
 
-    val backdrops: List<ShopItem.Backdrop> = Scenery.entries.map {
-        ShopItem.Backdrop("scenery_${it.name.lowercase()}", it.name.lowercase(), "Scenery", it.price, it)
+    /** All scenes in shop order; the shop has one "Scenes" section, grounds come with the scene. */
+    val scenes: List<ShopItem.Backdrop> = Scenery.shopOrder.map {
+        ShopItem.Backdrop("scenery_${it.name.lowercase()}", it.name.lowercase(), "Scene", it.price, it)
     }
 
-    val floors: List<ShopItem.Floor> = Ground.entries.map {
-        ShopItem.Floor("ground_${it.name.lowercase()}", it.name.lowercase(), "Ground", it.price, it)
-    }
+    /** Same as [scenes]. */
+    val backdrops: List<ShopItem.Backdrop> get() = scenes
 
     private val colorNames = mapOf(1 to "Terracotta", 2 to "Lavender", 3 to "Rose", 4 to "Mint")
     private val shapeNames = mapOf(1 to "Bowl", 2 to "Pot", 3 to "Vase")
@@ -150,5 +152,5 @@ object ShopCatalog {
 
     val supplies: List<ShopItem> = listOf(wateringCan, fertilizerBag, growLamp)
 
-    fun byId(id: String): ShopItem? = (supplies + seeds + revive + pots + backdrops + floors).firstOrNull { it.id == id }
+    fun byId(id: String): ShopItem? = (supplies + seeds + revive + pots + scenes).firstOrNull { it.id == id }
 }

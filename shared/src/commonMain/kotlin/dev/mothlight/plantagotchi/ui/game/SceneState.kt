@@ -92,9 +92,8 @@ internal class SceneState {
     private var lastAmbientAt = 0f
     private var lastActiveIndex = -1
 
-    // Cozy room: the desk lamp can be switched, the cat flicks its tail when tapped.
-    var deskLampOn = true
-    var catFlickAt = -10f
+    /** Toys of the indoor scenes (desk lamp, cat, fire, string lights). */
+    val toys = IndoorToys()
 
     /** Plant being moved with a long press and drag, where the drag started and the finger is. */
     var dragIndex: Int? = null
@@ -128,24 +127,28 @@ internal class SceneState {
         val half = LAMP_PERIOD / 2
         val k = (t / half).toInt()
         val phase = sin((t - k * half) / half * PI.toFloat())
-        // Even half swings belong to the end that was pulled, odd ones to the other end.
+        // Even half swings belong to the end that was pulled, odd ones to the other end. The canvas
+        // rotates clockwise for positive degrees, which moves a hanging lamp to the left: the left
+        // end swings out with a positive angle, the right end with a negative one.
         val leftMoves = (k % 2 == 0) == cradleFromLeft
         return when (plantId) {
-            cradleLeft -> if (leftMoves) -amplitude * phase else 0f
-            cradleRight -> if (!leftMoves) amplitude * phase else 0f
+            cradleLeft -> if (leftMoves) amplitude * phase else 0f
+            cradleRight -> if (!leftMoves) -amplitude * phase else 0f
             else -> 0f
         }
     }
 
     /**
-     * Pushes the lamp above [plantId]; [lit] are the plants with a lamp, left to right. Taps while
-     * lamps swing add no energy. Returns true if pushed.
+     * Pushes the lamp above [plantId]; [lit] are the plants with a lamp, left to right. With
+     * [cradle] (outdoors, lamps in a row) the end lamps form a Newton's cradle; indoors the plants
+     * are spread around the room and every lamp swings alone. Taps while lamps swing add no
+     * energy. Returns true if pushed.
      */
-    fun pushLamp(plantId: String, lit: List<String>): Boolean {
+    fun pushLamp(plantId: String, lit: List<String>, cradle: Boolean = true): Boolean {
         if (lampSwinging) return false
         swingStart = time
         lastHalfSwing = 0
-        if (lit.size >= 2 && (plantId == lit.first() || plantId == lit.last())) {
+        if (cradle && lit.size >= 2 && (plantId == lit.first() || plantId == lit.last())) {
             soloLamp = null
             cradleLeft = lit.first()
             cradleRight = lit.last()
@@ -177,12 +180,19 @@ internal class SceneState {
     private val slotWeights = HashMap<String, Float>()
 
     /** Animated layout weights: the active plant grows, the others shrink. */
+    /** 0 = need bubbles hidden below the screen, 1 = shown; follows the plant selection. */
+    var needsShown = 0f
+        private set
+
     fun weights(state: GameUiState): List<Float> {
         val activeId = state.player.activePlant.id
         val dt = 1f / 60f
         activeAnimator = animator(activeId)
+        needsShown += ((if (state.plantSelected) 1f else 0f) - needsShown) * min(1f, dt * 9f)
+        if (kotlin.math.abs(needsShown - (if (state.plantSelected) 1f else 0f)) < 0.002f) needsShown = if (state.plantSelected) 1f else 0f
         return state.player.plants.map { plant ->
-            val target = if (plant.id == activeId) SceneLayout.ACTIVE_WEIGHT else 1f
+            // The selected plant is shown larger.
+            val target = if (plant.id == activeId && state.plantSelected) SceneLayout.ACTIVE_WEIGHT else 1f
             val current = slotWeights[plant.id] ?: target
             val next = current + (target - current) * min(1f, dt * 8f)
             slotWeights[plant.id] = next
