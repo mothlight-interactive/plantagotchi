@@ -2,24 +2,48 @@ package dev.mothlight.plantagotchi.data.state
 
 import kotlinx.serialization.Serializable
 
-/** Landscape behind the plants. */
+/**
+ * A scene: the landscape behind the plants together with what they stand on. Sold as one unit in
+ * the shop. Outdoor scenes have their natural [ground]; indoor scenes ([indoor]) draw their own
+ * floor and place the plants on [RoomSpot]s. The name stays `Scenery` for save compatibility.
+ */
 @Serializable
-enum class Scenery(val price: Int) {
-    MOUNTAINS(0),
-    DESERT(150),
-    BEACH(200),
-    FOREST(150),
-    CITY(250),
-    ZEN(300),
+enum class Scenery(val price: Int, val ground: Ground?) {
+    MOUNTAINS(100, Ground.GRASS),
+    DESERT(150, Ground.SAND),
+    BEACH(200, Ground.SAND),
+    FOREST(150, Ground.GRASS),
+    CITY(250, Ground.STONE),
+    ZEN(300, Ground.WOOD),
 
     /**
-     * A cozy room: window with the city outside (weather shows through the glass), windowsill,
-     * shelf, desk, hanging planter. Plants stand on [RoomSpot]s and can be moved between them.
+     * The default scene, free for everyone: window with the city outside (weather shows through
+     * the glass), windowsill, shelf, desk, hanging planter and a cat.
      */
-    ROOM(250),
+    ROOM(0, null),
+
+    /** Stone fireplace with a crackling fire, two rainy windows, armchairs and a reading lamp. */
+    FIREPLACE(300, null),
+
+    /** A little plant shop: string lights, counter, shelves with goods and a chalkboard. */
+    PLANT_SHOP(350, null);
+
+    /** Drawn as a room with its own floor; plants stand on [RoomSpot]s. */
+    val indoor: Boolean get() = ground == null
+
+    companion object {
+        /** Everyone starts here, see [PlayerState.withDefaultScene]. */
+        val DEFAULT = ROOM
+
+        /** Order in the shop: the indoor scenes first. */
+        val shopOrder: List<Scenery> = listOf(ROOM, FIREPLACE, PLANT_SHOP, MOUNTAINS, FOREST, DESERT, BEACH, CITY, ZEN)
+    }
 }
 
-/** Places for plants in the [Scenery.ROOM], in the order new plants fill them. */
+/**
+ * Places for plants in an indoor scene, in the order new plants fill them. The names come from the
+ * cozy room; other indoor scenes map them to their own places (see `IndoorScene.anchor`).
+ */
 @Serializable
 enum class RoomSpot {
     SILL_LEFT, SILL_RIGHT, FLOOR_LEFT, DESK, SHELF, HANGING, FLOOR_RIGHT;
@@ -45,12 +69,6 @@ enum class RoomSpot {
     }
 }
 
-/** What the pots stand on. */
+/** What the pots stand on outdoors; part of a [Scenery], no longer sold on its own. */
 @Serializable
-enum class Ground(val price: Int) {
-    GRASS(0),
-    SAND(80),
-    STONE(100),
-    WOOD(120),
-    SNOW(100),
-}
+enum class Ground { GRASS, SAND, STONE, WOOD, SNOW }

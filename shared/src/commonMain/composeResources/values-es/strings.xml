@@ -126,8 +126,6 @@
     <string name="item_seed_desc_bonsai">Lento y sabio, quiere mucho cariño</string>
     <string name="item_seed_desc_flytrap">Sedienta, caza su propia comida. ¡Tócala!</string>
     <string name="item_seed_desc_pothos">Largas guías, le encanta colgar</string>
-    <string name="shop_scenery">Paisaje</string>
-    <string name="shop_ground">Suelo</string>
     <string name="scenery_mountains">Montañas</string>
     <string name="scenery_desert">Desierto</string>
     <string name="scenery_beach">Playa</string>
@@ -135,11 +133,6 @@
     <string name="scenery_city">Ciudad</string>
     <string name="scenery_zen">Jardín zen</string>
     <string name="scenery_room">Rincón acogedor</string>
-    <string name="ground_grass">Césped</string>
-    <string name="ground_sand">Arena</string>
-    <string name="ground_stone">Piedra</string>
-    <string name="ground_wood">Tarima de madera</string>
-    <string name="ground_snow">Nieve</string>
     <string name="hint_select_plant">Toca una planta para cuidarla.</string>
     <string name="settings_music">Música</string>
     <string name="settings_ambience">Sonidos ambientales</string>
@@ -198,4 +191,7 @@
     <string name="discard_text_only">Es tu única planta: en su maceta crecerá un brote nuevo. No se puede deshacer.</string>
     <string name="discard_confirm">Desechar</string>
     <string name="discard_cancel">Cancelar</string>
+    <string name="shop_scenes">Escenas</string>
+    <string name="scenery_fireplace">Junto al fuego</string>
+    <string name="scenery_plant_shop">Tienda de plantas</string>
 </resources>

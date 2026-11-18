@@ -126,8 +126,7 @@
     <string name="item_seed_desc_bonsai">Langsam und weise, will viel Liebe</string>
     <string name="item_seed_desc_flytrap">Durstig, fängt sein Futter selbst. Tipp sie an!</string>
     <string name="item_seed_desc_pothos">Lange Ranken, liebt die Hängeampel</string>
-    <string name="shop_scenery">Landschaft</string>
-    <string name="shop_ground">Boden</string>
+    <string name="shop_scenes">Szenen</string>
     <string name="scenery_mountains">Berge</string>
     <string name="scenery_desert">Wüste</string>
     <string name="scenery_beach">Strand</string>
@@ -135,11 +134,8 @@
     <string name="scenery_city">Stadt</string>
     <string name="scenery_zen">Zen-Garten</string>
     <string name="scenery_room">Gemütliches Zimmer</string>
-    <string name="ground_grass">Gras</string>
-    <string name="ground_sand">Sand</string>
-    <string name="ground_stone">Stein</string>
-    <string name="ground_wood">Holzdeck</string>
-    <string name="ground_snow">Schnee</string>
+    <string name="scenery_fireplace">Am Kamin</string>
+    <string name="scenery_plant_shop">Pflanzenladen</string>
     <string name="hint_select_plant">Tippe eine Pflanze an, um sie zu pflegen.</string>
     <string name="settings_music">Musik</string>
     <string name="settings_ambience">Umgebungsgeräusche</string>

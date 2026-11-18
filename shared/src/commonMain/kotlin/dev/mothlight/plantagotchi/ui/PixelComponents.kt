@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.mothlight.plantagotchi.data.shop.PotId
-import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.Scenery
 import dev.mothlight.plantagotchi.data.state.Season
 import dev.mothlight.plantagotchi.data.state.Species
@@ -48,11 +47,8 @@ import dev.mothlight.plantagotchi.resources.scenery_forest
 import dev.mothlight.plantagotchi.resources.scenery_city
 import dev.mothlight.plantagotchi.resources.scenery_zen
 import dev.mothlight.plantagotchi.resources.scenery_room
-import dev.mothlight.plantagotchi.resources.ground_grass
-import dev.mothlight.plantagotchi.resources.ground_sand
-import dev.mothlight.plantagotchi.resources.ground_stone
-import dev.mothlight.plantagotchi.resources.ground_wood
-import dev.mothlight.plantagotchi.resources.ground_snow
+import dev.mothlight.plantagotchi.resources.scenery_fireplace
+import dev.mothlight.plantagotchi.resources.scenery_plant_shop
 import dev.mothlight.plantagotchi.resources.pot_color_1
 import dev.mothlight.plantagotchi.resources.pot_color_2
 import dev.mothlight.plantagotchi.resources.pot_color_3
@@ -182,17 +178,8 @@ fun sceneryName(scenery: Scenery): String = stringResource(
         Scenery.CITY -> Res.string.scenery_city
         Scenery.ZEN -> Res.string.scenery_zen
         Scenery.ROOM -> Res.string.scenery_room
-    }
-)
-
-@Composable
-fun groundName(ground: Ground): String = stringResource(
-    when (ground) {
-        Ground.GRASS -> Res.string.ground_grass
-        Ground.SAND -> Res.string.ground_sand
-        Ground.STONE -> Res.string.ground_stone
-        Ground.WOOD -> Res.string.ground_wood
-        Ground.SNOW -> Res.string.ground_snow
+        Scenery.FIREPLACE -> Res.string.scenery_fireplace
+        Scenery.PLANT_SHOP -> Res.string.scenery_plant_shop
     }
 )
 

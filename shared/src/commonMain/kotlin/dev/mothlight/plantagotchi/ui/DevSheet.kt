@@ -37,7 +37,6 @@ import dev.mothlight.plantagotchi.audio.AudioAssets
 import dev.mothlight.plantagotchi.data.shop.PotId
 import dev.mothlight.plantagotchi.data.shop.ShopCatalog
 import dev.mothlight.plantagotchi.data.state.GameRules
-import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.PlantState
 import dev.mothlight.plantagotchi.data.state.PlayerState
 import dev.mothlight.plantagotchi.data.state.Scenery
@@ -91,8 +90,7 @@ import dev.mothlight.plantagotchi.resources.need_love
 import dev.mothlight.plantagotchi.resources.need_water
 import dev.mothlight.plantagotchi.resources.notif_water
 import dev.mothlight.plantagotchi.resources.plant_withered
-import dev.mothlight.plantagotchi.resources.shop_ground
-import dev.mothlight.plantagotchi.resources.shop_scenery
+import dev.mothlight.plantagotchi.resources.shop_scenes
 import dev.mothlight.plantagotchi.resources.weather_season
 import dev.mothlight.plantagotchi.ui.theme.PlantagotchiColors
 import org.jetbrains.compose.resources.stringResource
@@ -312,22 +310,16 @@ fun DevSheet(state: GameUiState, actions: DevActions, onClose: () -> Unit = {}) 
             }
             PixelButton(stringResource(Res.string.dev_unlock_all), color = PlantagotchiColors.Sunshine) {
                 actions.updatePlayer {
-                    it.copy(ownedPots = PotId.all.toSet(), ownedScenery = Scenery.entries.toSet(), ownedGrounds = Ground.entries.toSet())
+                    it.copy(ownedPots = PotId.all.toSet(), ownedScenery = Scenery.entries.toSet())
                 }
             }
-            DevLabel(stringResource(Res.string.shop_scenery))
+            DevLabel(stringResource(Res.string.shop_scenes))
             Chips {
-                Scenery.entries.forEach { scenery ->
+                Scenery.shopOrder.forEach { scenery ->
                     DevChip(sceneryName(scenery), player.scenery == scenery) {
-                        actions.updatePlayer { it.copy(scenery = scenery, ownedScenery = it.ownedScenery + scenery) }
-                    }
-                }
-            }
-            DevLabel(stringResource(Res.string.shop_ground))
-            Chips {
-                Ground.entries.forEach { ground ->
-                    DevChip(groundName(ground), player.ground == ground) {
-                        actions.updatePlayer { it.copy(ground = ground, ownedGrounds = it.ownedGrounds + ground) }
+                        actions.updatePlayer {
+                            it.copy(scenery = scenery, ownedScenery = it.ownedScenery + scenery, ground = scenery.ground ?: it.ground)
+                        }
                     }
                 }
             }

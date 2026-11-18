@@ -3,6 +3,7 @@ package dev.mothlight.plantagotchi.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -59,14 +60,14 @@ import dev.mothlight.plantagotchi.resources.item_seed
 import dev.mothlight.plantagotchi.resources.item_watering_can
 import dev.mothlight.plantagotchi.resources.item_watering_can_desc
 import dev.mothlight.plantagotchi.resources.shop_plants
-import dev.mothlight.plantagotchi.resources.shop_ground
 import dev.mothlight.plantagotchi.resources.shop_pots
-import dev.mothlight.plantagotchi.resources.shop_scenery
+import dev.mothlight.plantagotchi.resources.shop_scenes
 import dev.mothlight.plantagotchi.resources.shop_supplies
 import dev.mothlight.plantagotchi.resources.shop_title
 import dev.mothlight.plantagotchi.ui.game.CodeSprites
 import dev.mothlight.plantagotchi.ui.game.PixelSprite
 import dev.mothlight.plantagotchi.ui.game.PlantPreview
+import dev.mothlight.plantagotchi.ui.game.SCENE_PREVIEW_ASPECT
 import dev.mothlight.plantagotchi.ui.game.ScenePreview
 import dev.mothlight.plantagotchi.data.state.Ground
 import dev.mothlight.plantagotchi.data.state.Scenery
@@ -102,7 +103,8 @@ fun ShopSheet(
     onSelectPot: (String) -> Unit,
     modifier: Modifier = Modifier,
     onSelectScenery: (Scenery) -> Unit = {},
-    onSelectGround: (Ground) -> Unit = {},
+    /** Unused: grounds belong to the scene now. Kept for callers. */
+    @Suppress("UNUSED_PARAMETER") onSelectGround: (Ground) -> Unit = {},
     onClose: (() -> Unit)? = null,
 ) {
     var message by remember { mutableStateOf<String?>(null) }
@@ -202,14 +204,14 @@ fun ShopSheet(
             }
 
             Spacer(Modifier.height(12.dp))
-            SectionTitle(stringResource(Res.string.shop_scenery))
-            ShopCatalog.backdrops.chunked(2).forEach { row ->
+            SectionTitle(stringResource(Res.string.shop_scenes))
+            ShopCatalog.scenes.chunked(3).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { item ->
                         DecorCard(
                             title = sceneryName(item.scenery),
-                            preview = { ScenePreview(item.scenery, player.ground, Modifier.fillMaxWidth().height(64.dp)) },
-                            owned = item.scenery in player.ownedScenery,
+                            preview = { ScenePreview(item.scenery, Modifier.fillMaxWidth().aspectRatio(SCENE_PREVIEW_ASPECT)) },
+                            owned = item.scenery in player.ownedScenery || item.price == 0,
                             selected = item.scenery == player.scenery,
                             price = item.price,
                             affordable = player.coins >= item.price,
@@ -218,28 +220,7 @@ fun ShopSheet(
                             modifier = Modifier.weight(1f),
                         )
                     }
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-
-            Spacer(Modifier.height(12.dp))
-            SectionTitle(stringResource(Res.string.shop_ground))
-            ShopCatalog.floors.chunked(2).forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { item ->
-                        DecorCard(
-                            title = groundName(item.ground),
-                            preview = { ScenePreview(player.scenery, item.ground, Modifier.fillMaxWidth().height(64.dp)) },
-                            owned = item.ground in player.ownedGrounds,
-                            selected = item.ground == player.ground,
-                            price = item.price,
-                            affordable = player.coins >= item.price,
-                            onBuy = { buy(item) },
-                            onSelect = { onSelectGround(item.ground) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
                 Spacer(Modifier.height(8.dp))
             }
