@@ -98,6 +98,8 @@
     <string name="settings_sound">Sound effects</string>
     <string name="settings_notifications">Reminders</string>
     <string name="settings_notifications_desc">Notify me when a plant needs something</string>
+    <string name="settings_nudges">Greetings from your plants</string>
+    <string name="settings_nudges_desc">A hint now and then: daily chest, a plant has grown, frost or heat. One a day at most</string>
     <string name="settings_camera">Camera as light sensor</string>
     <string name="settings_camera_desc">Measures light with the camera while you play</string>
 
@@ -107,6 +109,13 @@
     <string name="notif_love">Your %1$s misses you. Come and pet it!</string>
     <string name="notif_fertilizer">Your %1$s is hungry for fertilizer.</string>
     <string name="notif_reward">Your daily chest is waiting.</string>
+    <string name="notif_reward_streak">Your streak is at %1$d days. Today\'s chest is waiting.</string>
+    <string name="notif_visit_1">Your plants say hello. Drop by when you have a moment.</string>
+    <string name="notif_visit_2">It is quiet on the windowsill. Your plants would love a visit.</string>
+    <string name="notif_visit_3">A little hello from your plants. They are waiting for you.</string>
+    <string name="notif_grown">%1$s has been growing. Come and see how big your plant got!</string>
+    <string name="notif_frost">It is getting frosty. Your plants could use a little care.</string>
+    <string name="notif_heat">A hot day is coming. Your plants will be thirsty.</string>
 
     <string name="about_interactive">interactive</string>
     <string name="about_presents">presents</string>

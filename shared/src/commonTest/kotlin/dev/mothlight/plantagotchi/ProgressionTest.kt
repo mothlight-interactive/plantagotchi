@@ -62,10 +62,6 @@ class ProgressionTest {
         val water = planned.first { it.need == Need.WATER }
         assertTrue(water.delaySeconds in 3599L..3600L, "one hour until 20 % water")
         assertEquals(ReminderPlanner.MIN_DELAY_SECONDS, planned.first { it.need == Need.LOVE }.delaySeconds, "already low: soon")
-        assertTrue(planned.none { it.need == null }, "no chest reminder before claiming today")
-
-        val claimed = state.copy(lastRewardDay = 1)
-        val chest = ReminderPlanner { "" to "" }.planDelays(claimed, today = 1, nowMillis = 0, timeZone = TimeZone.UTC).first { it.need == null }
-        assertEquals((86_400L * 2) + 10 * 3600L, chest.delaySeconds, "next morning 10:00")
+        assertTrue(planned.none { it.need == null }, "the chest is a nudge, not a need reminder")
     }
 }

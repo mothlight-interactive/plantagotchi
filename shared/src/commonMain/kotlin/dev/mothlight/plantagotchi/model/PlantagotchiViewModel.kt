@@ -103,6 +103,7 @@ class PlantagotchiViewModel(
     private val env: AppEnv = AppEnv.PROD,
     private val devStore: DevStore? = null,
     private val reminders: ReminderPlanner = ReminderPlanner(),
+    private val nudges: NudgePlanner = NudgePlanner(),
     private val clock: Clock = Clock.System,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val gameTick: Duration = 1.seconds,
@@ -150,7 +151,7 @@ class PlantagotchiViewModel(
         }
         audio.update(_state.value)
         if (!loops) return
-        if (_state.value.settings.notifications) {
+        if (_state.value.settings.notifications || _state.value.settings.nudges) {
             viewModelScope.launch { runCatchingCancellable { platform.notifications.requestPermission() } }
         }
         viewModelScope.launch { dataLoop() }
@@ -332,7 +333,7 @@ class PlantagotchiViewModel(
         _state.update { it.copy(settings = next) }
         appSettings?.save(next)
         platform.lightSensor.setCameraEnabled(next.cameraLight)
-        if (next.notifications) viewModelScope.launch { platform.notifications.requestPermission() }
+        if (next.notifications || next.nudges) viewModelScope.launch { platform.notifications.requestPermission() }
     }
 
     // endregion
@@ -511,9 +512,14 @@ class PlantagotchiViewModel(
 
     private suspend fun scheduleReminders() {
         val s = _state.value
-        if (s.loading || !s.settings.notifications) return
+        if (s.loading || (!s.settings.notifications && !s.settings.nudges)) return
         runCatchingCancellable {
-            platform.notifications.schedule(reminders.plan(s.player, s.today, s.now, timeZone))
+            // Two independent groups: what a plant needs, and friendly hints to come back.
+            val needs = if (s.settings.notifications) reminders.plan(s.player, s.today, s.now, timeZone) else emptyList()
+            val hints = if (s.settings.nudges) {
+                nudges.plan(s.player, s.today, s.now, timeZone, s.weather.minTemperature, s.weather.maxTemperature)
+            } else emptyList()
+            platform.notifications.schedule(needs + hints)
         }
     }
 

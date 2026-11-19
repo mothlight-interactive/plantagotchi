@@ -98,6 +98,8 @@
     <string name="settings_sound">Effets sonores</string>
     <string name="settings_notifications">Rappels</string>
     <string name="settings_notifications_desc">Me prévenir quand une plante a besoin de quelque chose</string>
+    <string name="settings_nudges">Un bonjour de tes plantes</string>
+    <string name="settings_nudges_desc">Un petit rappel de temps en temps : coffre du jour, plante qui a grandi, gel ou chaleur. Un par jour au maximum</string>
     <string name="settings_camera">Caméra comme capteur de lumière</string>
     <string name="settings_camera_desc">Mesure la lumière avec la caméra pendant que tu joues</string>
 
@@ -107,6 +109,13 @@
     <string name="notif_love">%1$s s’ennuie de toi. Viens lui faire un câlin !</string>
     <string name="notif_fertilizer">%1$s a faim d’engrais.</string>
     <string name="notif_reward">Ton coffre quotidien t’attend.</string>
+    <string name="notif_reward_streak">Ta série est à %1$d jours. Le coffre du jour t’attend.</string>
+    <string name="notif_visit_1">Tes plantes te disent bonjour. Passe les voir quand tu as un moment.</string>
+    <string name="notif_visit_2">C’est calme sur le rebord de la fenêtre. Tes plantes aimeraient une visite.</string>
+    <string name="notif_visit_3">Un petit coucou de tes plantes. Elles t’attendent.</string>
+    <string name="notif_grown">%1$s a grandi. Viens voir comme ta plante a poussé !</string>
+    <string name="notif_frost">Il va geler. Tes plantes ont besoin d’un peu de soin.</string>
+    <string name="notif_heat">Une journée chaude arrive. Tes plantes auront soif.</string>
 
     <string name="about_interactive">interactive</string>
     <string name="about_presents">présente</string>

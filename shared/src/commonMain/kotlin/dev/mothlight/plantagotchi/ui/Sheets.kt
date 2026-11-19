@@ -50,6 +50,8 @@ import dev.mothlight.plantagotchi.resources.discard_title
 import dev.mothlight.plantagotchi.resources.menu_discard
 import dev.mothlight.plantagotchi.resources.menu_settings
 import dev.mothlight.plantagotchi.resources.settings_ambience
+import dev.mothlight.plantagotchi.resources.settings_nudges
+import dev.mothlight.plantagotchi.resources.settings_nudges_desc
 import dev.mothlight.plantagotchi.resources.settings_leaves
 import dev.mothlight.plantagotchi.resources.settings_leaves_desc
 import dev.mothlight.plantagotchi.resources.settings_ambience_desc
@@ -175,6 +177,11 @@ fun SettingsSheet(settings: AppSettingsState, cameraSupported: Boolean, onChange
             stringResource(Res.string.settings_notifications_desc),
             settings.notifications,
         ) { v -> onChange { it.copy(notifications = v) } }
+        SettingRow(
+            stringResource(Res.string.settings_nudges),
+            stringResource(Res.string.settings_nudges_desc),
+            settings.nudges,
+        ) { v -> onChange { it.copy(nudges = v) } }
         SettingRow(
             stringResource(Res.string.settings_leaves),
             stringResource(Res.string.settings_leaves_desc),
