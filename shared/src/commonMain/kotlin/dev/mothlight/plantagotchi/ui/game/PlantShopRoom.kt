@@ -414,17 +414,16 @@ internal class PlantShopRoom(size: Size, floorTop: Float, pixel: Float) : Indoor
         box(Leaf, px0 + px(3), ty - px(9), 4, 4)
     }
 
-    private fun DrawScope.hanger() {
+    override val hangRing: Offset get() {
         val potWidth = w * 0.13f
-        val potTop = hangY - potWidth * 0.62f
+        return Offset(snap(w * 0.5f), snap(hangY - potWidth * 0.62f - potWidth * 0.85f))
+    }
+
+    private fun DrawScope.hanger() {
         val x = snap(w * 0.5f)
         box(Beam, x - px(3), beam, 7, 3)
-        val ring = Offset(x, snap(potTop - potWidth * 0.85f))
+        val ring = hangRing
         fill(Rope, x, beam + px(3), x + p, ring.y)
-        for (i in 0..2) {
-            val end = Offset(x + potWidth * (i - 1) * 0.45f, potTop + px(3))
-            line(Rope, ring.x, ring.y, end.x, end.y)
-        }
         box(Rope, ring.x - px(2), ring.y - px(2), 5, 3)
     }
 

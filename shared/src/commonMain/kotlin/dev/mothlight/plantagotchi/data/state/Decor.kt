@@ -48,19 +48,24 @@ enum class Scenery(val price: Int, val ground: Ground?) {
 enum class RoomSpot {
     SILL_LEFT, SILL_RIGHT, FLOOR_LEFT, DESK, SHELF, HANGING, FLOOR_RIGHT;
 
+    /** Whether a plant of [species] may be on this spot: the planter is for trailing plants only. */
+    fun accepts(species: Species): Boolean = this != HANGING || species.hanging
+
     companion object {
-        /** Each plant's spot: its saved one if free and valid, otherwise the first free spot. */
+        /** Each plant's spot: its saved one if free and allowed, otherwise the first free spot. */
         fun assign(plants: List<PlantState>): List<RoomSpot> {
             val taken = mutableSetOf<RoomSpot>()
             val result = arrayOfNulls<RoomSpot>(plants.size)
             plants.forEachIndexed { i, plant ->
                 val wanted = plant.spot
-                if (wanted != null && taken.add(wanted)) result[i] = wanted
+                if (wanted != null && wanted.accepts(plant.species) && taken.add(wanted)) result[i] = wanted
             }
             plants.indices.forEach { i ->
                 if (result[i] == null) {
                     // Trailing plants go into the hanging planter when it is free.
-                    val preferred = if (plants[i].species == Species.POTHOS && HANGING !in taken) HANGING else entries.first { it !in taken }
+                    val species = plants[i].species
+                    val preferred = if (species.hanging && HANGING !in taken) HANGING
+                    else entries.first { it !in taken && it.accepts(species) }
                     result[i] = preferred.also { taken += it }
                 }
             }

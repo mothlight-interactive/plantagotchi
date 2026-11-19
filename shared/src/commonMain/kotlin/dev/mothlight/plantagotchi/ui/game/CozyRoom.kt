@@ -295,20 +295,16 @@ internal class CozyRoom(size: Size, floorTop: Float, pixel: Float) : IndoorBase(
         box(Color(0xFF3A2A20), x + px(5), s.top - px(5), 3, 1)
     }
 
-    private fun DrawScope.hanger() {
+    override val hangRing: Offset get() {
         val potWidth = w * 0.14f
-        val potTop = hangBottom - potWidth * 0.62f
+        return Offset(hangX, snap(hangBottom - potWidth * 0.62f - potWidth * 0.9f))
+    }
+
+    private fun DrawScope.hanger() {
         box(Rod, hangX - px(3), 0f, 7, 7)
-        // Three ropes from a ring to the rim of the planter, with knots
-        val ring = Offset(hangX, snap(potTop - potWidth * 0.9f))
+        // A rope down to the ring; the cords around a pot are drawn with the plant hanging here
+        val ring = hangRing
         fill(Rope, hangX, px(7), hangX + p, ring.y)
-        for (i in 0..2) {
-            val dx = (i - 1) * 0.45f
-            val end = Offset(hangX + potWidth * dx, potTop + px(3))
-            line(Rope, ring.x, ring.y, end.x, end.y)
-            val knotY = snap(ring.y + (end.y - ring.y) * 0.55f)
-            box(RopeDark, snap(ring.x + (end.x - ring.x) * 0.55f) - p, knotY, 3, 2)
-        }
         box(Rope, ring.x - px(2), ring.y - px(2), 5, 3)
         box(RopeDark, ring.x - px(2), ring.y + p, 5, 1)
     }

@@ -18,6 +18,8 @@ enum class Species(
     val seedPrice: Int,
     val loveDecay: Double = 1.0,
     val fertilizerDecay: Double = 1.0,
+    /** Trailing plants: the only ones that may hang in the planter ([RoomSpot.HANGING]). */
+    val hanging: Boolean = false,
 ) {
     SPROUT(waterDecay = 1.0, luxDecay = 1.0, frostSensitivity = 1.5, heatSensitivity = 2.0, seedPrice = 100),
     CACTUS(waterDecay = 0.3, luxDecay = 1.2, frostSensitivity = 2.5, heatSensitivity = 1.0, seedPrice = 150),
@@ -39,7 +41,7 @@ enum class Species(
     FLYTRAP(waterDecay = 1.6, luxDecay = 1.1, frostSensitivity = 1.5, heatSensitivity = 1.0, seedPrice = 250, fertilizerDecay = 0.3),
 
     /** Trailing vines, happiest up high in a hanging planter. */
-    POTHOS(waterDecay = 1.1, luxDecay = 0.7, frostSensitivity = 1.5, heatSensitivity = 1.5, seedPrice = 200),
+    POTHOS(waterDecay = 1.1, luxDecay = 0.7, frostSensitivity = 1.5, heatSensitivity = 1.5, seedPrice = 200, hanging = true),
 }
 
 /** All needs are percentages in the range 0..100. */

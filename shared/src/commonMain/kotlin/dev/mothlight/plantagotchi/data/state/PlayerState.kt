@@ -20,6 +20,8 @@ data class PlayerState(
     val ground: Ground = Ground.GRASS,
     /** Version of the scene defaults applied to this save, see [withDefaultScene]. */
     val sceneVersion: Int = SCENE_VERSION,
+    /** The string lights of the plant shop: a weak light for all plants there while switched on. */
+    val stringLights: Boolean = true,
     /** Before 2.2 the grow lamp lit all plants; now it is per plant ([PlantState.lampUntil]). */
     val lampUntil: Long = 0L,
     /** Local epoch day of the last claimed daily reward, -1 if never. */

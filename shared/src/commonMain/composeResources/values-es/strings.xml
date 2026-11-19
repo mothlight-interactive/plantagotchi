@@ -137,6 +137,8 @@
     <string name="settings_music">Música</string>
     <string name="settings_ambience">Sonidos ambientales</string>
     <string name="settings_ambience_desc">Lluvia, viento, olas, pájaros y grillos</string>
+    <string name="settings_leaves">Hojas que caen</string>
+    <string name="settings_leaves_desc">Las hojas y pétalos de la estación cruzan la escena</string>
     <string name="dev_title">Modo de prueba</string>
     <string name="dev_back_to_live">Volver a en vivo</string>
     <string name="dev_live">En vivo</string>

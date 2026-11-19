@@ -224,6 +224,7 @@ fun GameCanvas(
     ) {
         val plant = state.player.activePlant
         val indoor = SceneLayout.indoorScene(state.player.scenery, size, density.density)
+        val roomSpots = if (indoor != null) RoomSpot.assign(state.player.plants) else null
         val layout = SceneLayout.compute(
             size = size,
             dp = density.density,
@@ -232,12 +233,13 @@ fun GameCanvas(
             weights = scene.weights(state),
             potAspects = state.player.plants.map { PotRenderer.aspect(PotRenderer.potFor(it.species, it.pot)) },
             activeIndex = state.player.activeIndex,
-            roomSpots = if (indoor != null) RoomSpot.assign(state.player.plants) else null,
+            roomSpots = roomSpots,
             indoor = indoor,
         )
         scene.layout = layout
         scene.advance(frameNanos.longValue, state)
         if (scene.lampClicked()) currentOnTap(SceneTarget.LAMP_CLICK)
+        scene.toys.lightsOn = state.player.stringLights
 
         val targetMinutes = state.weather.localTime.minutesOfDay()
         scene.shownMinutes = if (scene.shownMinutes < 0) targetMinutes
@@ -374,6 +376,9 @@ private fun DrawScope.drawPlant(scene: SceneState, state: GameUiState, sprites: 
         val draw: DrawScope.() -> Unit = {
             PlantRenderer.draw(this, plant.species, maturity, seed, pose, slot.base, slot.pixel)
         }
+        // A plant in the planter hangs on cords from the ring under the ceiling hook.
+        val ring = l.room?.hangRing?.takeIf { l.roomSpots?.getOrNull(i) == RoomSpot.HANGING && i != scene.dragIndex }
+        if (ring != null) drawHangerCords(ring, slot.pot, PIXEL_DP * l.dp)
         if (filter == null) draw() else drawIntoLayer(filter) { draw() }
 
         val potBounce = if (active) bounce(t - scene.potBounceAt) else 0f
@@ -382,6 +387,7 @@ private fun DrawScope.drawPlant(scene: SceneState, state: GameUiState, sprites: 
         }) {
             PotRenderer.draw(this, PotRenderer.potFor(plant.species, plant.pot), slot.pot)
         }
+        if (ring != null) drawHangerNet(slot.pot, PIXEL_DP * l.dp)
         // Parts of the plant in front of the pot (hanging vines)
         val front: DrawScope.() -> Unit = {
             PlantRenderer.drawFront(this, plant.species, maturity, seed, pose, slot.base, slot.pixel)
@@ -398,6 +404,51 @@ private fun DrawScope.drawPlant(scene: SceneState, state: GameUiState, sprites: 
             drawRect(Color.White, center + Offset(-1.5f * l.dp, 2.5f * l.dp), Size(3 * l.dp, 2.5f * l.dp))
         }
     }
+}
+
+private val HangerRope = Color(0xFFE6D8B8)
+private val HangerRopeDark = Color(0xFFA8956E)
+
+/** A pixel line of whole art pixels. */
+private fun DrawScope.pixelLine(color: Color, from: Offset, to: Offset, p: Float) {
+    val n = maxOf(1, (maxOf(abs(to.x - from.x), abs(to.y - from.y)) / p).toInt())
+    for (k in 0..n) {
+        val x = from.x + (to.x - from.x) * k / n
+        val y = from.y + (to.y - from.y) * k / n
+        drawRect(color, Offset(kotlin.math.floor(x / p) * p, kotlin.math.floor(y / p) * p), Size(p, p))
+    }
+}
+
+/** Macrame cords from the [ring] down to the rim of a hanging [pot], drawn behind the plant. */
+private fun DrawScope.drawHangerCords(ring: Offset, pot: Rect, p: Float) {
+    val rim = pot.top + pot.height * 0.1f
+    for (dx in floatArrayOf(-0.42f, 0f, 0.42f)) {
+        val end = Offset(pot.center.x + pot.width * dx, rim)
+        pixelLine(HangerRope, ring, end, p)
+        // A knot halfway
+        val knot = Offset(ring.x + (end.x - ring.x) * 0.55f, ring.y + (end.y - ring.y) * 0.55f)
+        drawRect(HangerRopeDark, Offset(kotlin.math.floor(knot.x / p) * p - p, kotlin.math.floor(knot.y / p) * p), Size(3 * p, 2 * p))
+    }
+}
+
+/** The net of the hanger around the [pot], drawn over it: crossing cords gathered below. */
+private fun DrawScope.drawHangerNet(pot: Rect, p: Float) {
+    val top = pot.top + pot.height * 0.1f
+    val mid = pot.top + pot.height * 0.55f
+    val left = pot.left + pot.width * 0.1f
+    val right = pot.right - pot.width * 0.1f
+    val cx = pot.center.x
+    val knot = Offset(cx, pot.bottom + 2 * p)
+    pixelLine(HangerRope, Offset(left, top), Offset(cx, mid), p)
+    pixelLine(HangerRope, Offset(right, top), Offset(cx, mid), p)
+    pixelLine(HangerRope, Offset(cx, top), Offset(left + pot.width * 0.08f, mid), p)
+    pixelLine(HangerRope, Offset(cx, top), Offset(right - pot.width * 0.08f, mid), p)
+    pixelLine(HangerRope, Offset(left + pot.width * 0.08f, mid), knot, p)
+    pixelLine(HangerRope, Offset(right - pot.width * 0.08f, mid), knot, p)
+    pixelLine(HangerRope, Offset(cx, mid), knot, p)
+    drawRect(HangerRopeDark, Offset(kotlin.math.floor(knot.x / p) * p - p, kotlin.math.floor(knot.y / p) * p), Size(3 * p, 2 * p))
+    // Tassel
+    drawRect(HangerRope, Offset(kotlin.math.floor(knot.x / p) * p, kotlin.math.floor(knot.y / p) * p + 2 * p), Size(p, 4 * p))
 }
 
 private inline fun DrawScope.drawIntoLayer(filter: ColorFilter, crossinline block: DrawScope.() -> Unit) {
@@ -778,11 +829,21 @@ private fun handleTap(
     onSelect: (Int) -> Unit,
 ) {
     val l = scene.layout ?: return
+    // The HUD is in front of everything in the scene (lamps, string lights).
+    val hud = when {
+        l.menuButton.inflate(8 * l.dp).contains(offset) -> SceneTarget.MENU
+        l.chest.inflate(8 * l.dp).contains(offset) -> SceneTarget.CHEST
+        l.coinHud.inflate(4 * l.dp).contains(offset) -> SceneTarget.SHOP
+        l.weatherChip.inflate(4 * l.dp).contains(offset) -> SceneTarget.WEATHER
+        else -> null
+    }
+    if (hud != null) {
+        onTap(hud)
+        return
+    }
     val lamp = scene.lampAt(offset, l, state)
     if (lamp != null) {
-        val lit = state.litPlants.map { state.player.plants[it].id }
-        // Lamps in a row outdoors form a Newton's cradle; indoors they hang apart and swing alone.
-        if (scene.pushLamp(lamp, lit, cradle = l.room == null)) onTap(SceneTarget.LAMP)
+        if (scene.pushLamp(lamp)) onTap(SceneTarget.LAMP)
         return
     }
     val toy = l.room?.toyAt(offset)
@@ -811,6 +872,7 @@ private fun dropTarget(scene: SceneState, index: Int, delta: Offset, state: Game
     val room = l.room
     return if (room != null) {
         RoomSpot.entries
+            .filter { it.accepts(state.player.plants[index].species) }
             .map { it to (room.anchor(it).first - dropped).getDistance() }
             .filter { it.second < l.size.width * 0.22f }
             .minByOrNull { it.second }?.first
@@ -837,7 +899,8 @@ private fun drop(
 private fun DrawScope.drawDropSpots(scene: SceneState, state: GameUiState, l: SceneLayout, room: IndoorScene) {
     val index = scene.dragIndex ?: return
     val target = dropTarget(scene, index, scene.dragOffset, state)
-    RoomSpot.entries.forEach { spot ->
+    val species = state.player.plants.getOrNull(index)?.species ?: return
+    RoomSpot.entries.filter { it.accepts(species) }.forEach { spot ->
         val (anchor, width) = room.anchor(spot)
         val highlight = spot == target
         val color = if (highlight) Color(0xCCFFEB57) else Color(0x66FFFFFF)

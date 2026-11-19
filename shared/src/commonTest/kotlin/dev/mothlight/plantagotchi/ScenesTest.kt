@@ -168,7 +168,7 @@ class ScenesTest {
         toys.tap(IndoorToy.DESK_LAMP, 1f)
         assertFalse(toys.deskLampOn)
         toys.tap(IndoorToy.STRING_LIGHTS, 2f)
-        assertFalse(toys.lightsOn)
+        assertTrue(toys.lightsOn, "the game state owns the switch")
         assertEquals(2f, toys.lightsSwitchedAt)
         toys.tap(IndoorToy.FIRE, 3f)
         assertEquals(3f, toys.sparksAt)

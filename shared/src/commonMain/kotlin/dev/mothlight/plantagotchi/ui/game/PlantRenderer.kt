@@ -57,7 +57,7 @@ object PlantRenderer {
     /** Pose distances were tuned for the old 25 px grid. */
     private const val K = GRID / 25f
     private const val PIF = 3.1415927f
-    private const val MASK = 64
+    private const val MASK = 96
     private const val TAU = PIF * 2f
 
     private val r = PixelRaster(width = 240, height = 220, originX = 120, originY = 80)
@@ -1000,13 +1000,13 @@ object PlantRenderer {
             val growth = if (young) newest else 1f
             val side = if (slot > 0f || (slot == 0f && hash01(seed, 5) < 0.5f)) 1 else -1
             val lean = abs(slot) / 90f
-            val len = (8f + m * 28f) * (0.75f + hash01(seed, 500 + i) * 0.25f) * (0.6f + 0.4f * growth) * (1f - abs(slot) / 220f)
+            val len = (9f + m * 44f) * (0.75f + hash01(seed, 500 + i) * 0.25f) * (0.6f + 0.4f * growth) * (1f - abs(slot) / 220f)
             val h0 = PIF / 2 - slot * PIF / 180f * 0.85f
             val total = -side * (0.15f + lean * 0.5f) * (1f + pose.droop * 1.5f) + side * pose.flap * 0.12f
             val wind = ((pose.sway + pose.lean) * 0.6f + sin(pose.time * (1.8f + i * 0.4f) + i) * pose.flutter * 1.5f) * K
             var x = 0f; var y = 0f; var s = 0f; var h = h0
             var endX = 0f; var endY = 0f
-            point(x, y, 0.7f)
+            point(x, y, 1f)
             while (s < len) {
                 val t = s / len
                 h = h0 + total * t * t
@@ -1015,11 +1015,11 @@ object PlantRenderer {
                 s += 2f
                 endX = x + wind * t * t
                 endY = y
-                point(endX, endY, 0.7f)
+                point(endX, endY, 1f)
             }
             tube(stemPal)
             val sz = growth * (0.45f + 0.55f * m)
-            val leafLen = 5f + sz * 17f
+            val leafLen = 6f + sz * 27f
             val rolled = young && growth < 0.35f
             val angle = h - side * (0.5f + pose.droop * 0.7f - pose.flap * 0.12f)
             if (rolled) {

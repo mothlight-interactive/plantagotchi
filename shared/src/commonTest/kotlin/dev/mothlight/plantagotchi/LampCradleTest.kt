@@ -1,68 +1,79 @@
 package dev.mothlight.plantagotchi
 
-import dev.mothlight.plantagotchi.ui.game.SceneState
+import dev.mothlight.plantagotchi.ui.game.LampPhysics
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class LampCradleTest {
-    private val lit = listOf("a", "b", "c")
-    private val half = SceneState.LAMP_PERIOD / 2
+    private val ids = listOf("a", "b", "c")
 
-    @Test
-    fun theEndsTakeTurnsAndTheMiddleStaysStill() {
-        val s = SceneState()
-        s.time = 10f
-        assertTrue(s.pushLamp("a", lit))
-        assertFalse(s.pushLamp("c", lit), "taps while swinging add no energy")
+    /** Three lamps on 400 px cords, [spacing] px apart, with 48 px shades. */
+    private fun lamps(spacing: Float) = LampPhysics().apply {
+        sync(ids, { 100f + it * spacing }, { 400f }, 48f)
+    }
 
-        s.time = 10f + half / 2
-        // Positive degrees rotate clockwise: the hanging lamp moves to the left.
-        assertTrue(s.lampSwing("a") > 0f, "the pulled left lamp swings out to the left")
-        assertEquals(0f, s.lampSwing("b"))
-        assertEquals(0f, s.lampSwing("c"))
-
-        s.time = 10f + half * 1.5f
-        assertEquals(0f, s.lampSwing("a"))
-        assertTrue(s.lampSwing("c") < 0f, "then the right end flies out to the right")
-        assertEquals(0f, s.lampSwing("b"))
+    private fun LampPhysics.run(seconds: Float, each: () -> Unit = {}) {
+        repeat((seconds / 0.016f).toInt()) { step(0.016f); each() }
     }
 
     @Test
-    fun clicksOncePerCollisionAndComesToRest() {
-        val s = SceneState()
-        s.time = 0f
-        s.pushLamp("c", lit)
-        var clicks = 0
-        var t = 0f
-        while (t < half * 4) {
-            s.time = t
-            if (s.lampClicked()) clicks++
-            t += half / 8
+    fun aRowPassesThePushToTheOtherEnd() {
+        val l = lamps(spacing = 50f)
+        assertTrue(l.push("a"))
+        var maxA = 0f; var maxB = 0f; var minC = 0f; var clicks = 0
+        l.run(2.5f) {
+            maxA = maxOf(maxA, l.angle("a")); maxB = maxOf(maxB, abs(l.angle("b"))); minC = minOf(minC, l.angle("c"))
+            if (l.clicked()) clicks++
         }
-        assertEquals(3, clicks)
-        s.time = 30f
-        assertFalse(s.lampSwinging)
+        assertTrue(maxA > 10f, "the pushed left end swings out to the left (positive angle)")
+        assertTrue(minC < -8f, "the right end flies out to the right, was $minC")
+        assertTrue(maxB < 3f, "the middle hardly moves, was $maxB")
+        assertTrue(clicks >= 1, "bumps click")
     }
 
     @Test
-    fun aMiddleOrSingleLampSwingsAlone() {
-        val s = SceneState()
-        s.pushLamp("b", lit)
-        s.time = half / 2
-        assertTrue(s.lampSwing("b") != 0f)
-        assertEquals(0f, s.lampSwing("a"))
-        assertFalse(s.lampClicked())
+    fun lampsNeverPassThroughEachOther() {
+        val l = lamps(spacing = 50f)
+        l.push("a")
+        l.run(6f) {
+            // Shade x = pivot - sin(angle) * length; neighbours keep their order.
+            val xs = ids.indices.map { 100f + it * 50f - kotlin.math.sin(l.angle(ids[it]) * 0.017453f) * 400f }
+            assertTrue(xs[0] < xs[1] + 12f && xs[1] < xs[2] + 12f, "order kept: $xs")
+        }
     }
 
     @Test
-    fun indoorLampsSwingAlone() {
-        val s = SceneState()
-        s.pushLamp("a", lit, cradle = false)
-        s.time = half * 1.5f
-        assertTrue(s.lampSwing("a") != 0f)
-        assertEquals(0f, s.lampSwing("c"), "no cradle indoors")
-        assertFalse(s.lampClicked())
+    fun lampsFarApartSwingAlone() {
+        val l = lamps(spacing = 300f)
+        l.push("a")
+        var clicks = 0
+        l.run(3f) { if (l.clicked()) clicks++ }
+        assertEquals(0f, l.angle("b"))
+        assertEquals(0f, l.angle("c"))
+        assertEquals(0, clicks)
+    }
+
+    @Test
+    fun everyLampCanBePushedWhileOthersSwing() {
+        val l = lamps(spacing = 300f)
+        l.push("a")
+        l.run(0.3f)
+        assertTrue(l.push("c"), "a second lamp can be pushed any time")
+        l.run(0.3f)
+        assertTrue(l.angle("a") != 0f)
+        assertTrue(l.angle("c") != 0f)
+    }
+
+    @Test
+    fun theSwingDiesDown() {
+        val l = lamps(spacing = 50f)
+        l.push("b")
+        assertTrue(l.swinging)
+        l.run(60f)
+        assertFalse(l.swinging)
+        assertEquals(0f, l.angle("b"))
     }
 }

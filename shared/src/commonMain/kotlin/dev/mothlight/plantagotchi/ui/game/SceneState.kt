@@ -101,72 +101,20 @@ internal class SceneState {
     var dragPosition = Offset.Zero
     val dragOffset: Offset get() = dragPosition - dragStart
 
-    // Grow lamps hang above every lit plant and stay still until tapped. A single lamp swings out
-    // with damping. With two or more, the end lamps form a Newton's cradle: the tapped end swings
-    // out and back, "hits" the row, and the lamp at the other end flies out, back and forth.
-    private var swingStart = -100f
-    private var soloLamp: String? = null
-    private var cradleLeft: String? = null
-    private var cradleRight: String? = null
-    private var cradleFromLeft = true
-    private var lastHalfSwing = 0
-
-    private val swingAmplitude: Float get() = LAMP_AMPLITUDE * kotlin.math.exp(-LAMP_DAMPING * (time - swingStart))
+    /** Grow lamps: pendulums above every lit plant that can bump into each other. */
+    val lamps = LampPhysics()
 
     /** True while any lamp still visibly moves. */
-    val lampSwinging: Boolean get() = swingAmplitude > LAMP_REST
+    val lampSwinging: Boolean get() = lamps.swinging
 
     /** Current angle in degrees of the lamp above [plantId]. */
-    fun lampSwing(plantId: String): Float {
-        if (!lampSwinging) return 0f
-        val t = time - swingStart
-        val amplitude = swingAmplitude
-        if (soloLamp != null) {
-            return if (plantId == soloLamp) amplitude * sin(t * 2 * PI.toFloat() / LAMP_PERIOD) else 0f
-        }
-        val half = LAMP_PERIOD / 2
-        val k = (t / half).toInt()
-        val phase = sin((t - k * half) / half * PI.toFloat())
-        // Even half swings belong to the end that was pulled, odd ones to the other end. The canvas
-        // rotates clockwise for positive degrees, which moves a hanging lamp to the left: the left
-        // end swings out with a positive angle, the right end with a negative one.
-        val leftMoves = (k % 2 == 0) == cradleFromLeft
-        return when (plantId) {
-            cradleLeft -> if (leftMoves) amplitude * phase else 0f
-            cradleRight -> if (!leftMoves) -amplitude * phase else 0f
-            else -> 0f
-        }
-    }
+    fun lampSwing(plantId: String): Float = lamps.angle(plantId)
 
-    /**
-     * Pushes the lamp above [plantId]; [lit] are the plants with a lamp, left to right. With
-     * [cradle] (outdoors, lamps in a row) the end lamps form a Newton's cradle; indoors the plants
-     * are spread around the room and every lamp swings alone. Taps while lamps swing add no
-     * energy. Returns true if pushed.
-     */
-    fun pushLamp(plantId: String, lit: List<String>, cradle: Boolean = true): Boolean {
-        if (lampSwinging) return false
-        swingStart = time
-        lastHalfSwing = 0
-        if (cradle && lit.size >= 2 && (plantId == lit.first() || plantId == lit.last())) {
-            soloLamp = null
-            cradleLeft = lit.first()
-            cradleRight = lit.last()
-            cradleFromLeft = plantId == lit.first()
-        } else {
-            soloLamp = plantId
-        }
-        return true
-    }
+    /** Pushes the lamp above [plantId], see [LampPhysics.push]. */
+    fun pushLamp(plantId: String, towardsRight: Boolean? = null): Boolean = lamps.push(plantId, towardsRight)
 
-    /** True once per collision of the cradle (the moment the energy passes through the row). */
-    fun lampClicked(): Boolean {
-        if (soloLamp != null || !lampSwinging) return false
-        val k = ((time - swingStart) / (LAMP_PERIOD / 2)).toInt()
-        if (k <= lastHalfSwing) return false
-        lastHalfSwing = k
-        return true
-    }
+    /** True once per bump of two lamps. */
+    fun lampClicked(): Boolean = lamps.clicked()
 
     private val animators = HashMap<String, PlantAnimator>()
 
@@ -223,6 +171,9 @@ internal class SceneState {
             spawnLeaf(l, Color(0xFF7FA03A))
         }
         spawnSeasonal(state, l)
+        val lit = state.litPlants
+        lamps.sync(lit.map { state.player.plants[it].id }, { lampPosition(l, lit[it]).x }, { lampPosition(l, lit[it]).y }, LAMP_SHADE_DP * l.dp)
+        lamps.step(dt)
         updateTools(l)
         updateEffects(dt, l)
         return dt
@@ -374,6 +325,7 @@ internal class SceneState {
 
     /** Autumn leaves and spring petals drifting across the scene. */
     private fun spawnSeasonal(state: GameUiState, l: SceneLayout) {
+        if (!state.settings.seasonParticles) return
         val (interval, colors) = when {
             state.player.scenery == dev.mothlight.plantagotchi.data.state.Scenery.ZEN ->
                 0.9f to listOf(Color(0xFFFFC2DC), Color(0xFFF4A6C6), Color(0xFFFFFFFF))
@@ -498,11 +450,8 @@ internal class SceneState {
 
     companion object {
         const val MAX_EFFECTS = 500
-        const val LAMP_AMPLITUDE = 16f
-        const val LAMP_PERIOD = 1.7f
-        const val LAMP_DAMPING = 0.45f
-        /** Below this amplitude (degrees) the lamp counts as standing still. */
-        const val LAMP_REST = 0.4f
+        /** Width of a lamp shade in dp (12 sprite pixels of 4 dp). */
+        const val LAMP_SHADE_DP = 48f
 
         /** Lamp above the active plant. */
         fun lampPosition(l: SceneLayout) = lampPosition(l, l.activeIndex)

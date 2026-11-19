@@ -50,6 +50,8 @@ import dev.mothlight.plantagotchi.resources.discard_title
 import dev.mothlight.plantagotchi.resources.menu_discard
 import dev.mothlight.plantagotchi.resources.menu_settings
 import dev.mothlight.plantagotchi.resources.settings_ambience
+import dev.mothlight.plantagotchi.resources.settings_leaves
+import dev.mothlight.plantagotchi.resources.settings_leaves_desc
 import dev.mothlight.plantagotchi.resources.settings_ambience_desc
 import dev.mothlight.plantagotchi.resources.settings_camera
 import dev.mothlight.plantagotchi.resources.settings_music
@@ -173,6 +175,11 @@ fun SettingsSheet(settings: AppSettingsState, cameraSupported: Boolean, onChange
             stringResource(Res.string.settings_notifications_desc),
             settings.notifications,
         ) { v -> onChange { it.copy(notifications = v) } }
+        SettingRow(
+            stringResource(Res.string.settings_leaves),
+            stringResource(Res.string.settings_leaves_desc),
+            settings.seasonParticles,
+        ) { v -> onChange { it.copy(seasonParticles = v) } }
         if (cameraSupported) {
             SettingRow(
                 stringResource(Res.string.settings_camera),

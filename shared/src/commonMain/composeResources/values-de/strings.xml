@@ -140,6 +140,8 @@
     <string name="settings_music">Musik</string>
     <string name="settings_ambience">Umgebungsgeräusche</string>
     <string name="settings_ambience_desc">Regen, Wind, Wellen, Vögel und Grillen</string>
+    <string name="settings_leaves">Fallende Blätter</string>
+    <string name="settings_leaves_desc">Blätter und Blüten der Jahreszeit schweben durchs Bild</string>
     <string name="dev_title">Testmodus</string>
     <string name="dev_back_to_live">Zurück zu live</string>
     <string name="dev_live">Live</string>

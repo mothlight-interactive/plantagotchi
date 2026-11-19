@@ -17,7 +17,7 @@ class GameRulesTest {
     private fun env(lux: Float = 0f, weather: WeatherState = WeatherState.CLEAR_SKY, temp: Double = 15.0, now: Long = 1_000L) =
         Environment(lux, weather, temp, now)
 
-    private fun player(vararg plants: PlantState) = PlayerState(plants = plants.toList(), activePlantId = plants.first().id)
+    private fun player(vararg plants: PlantState) = PlayerState(plants = plants.toList(), activePlantId = plants.first().id, scenery = dev.mothlight.plantagotchi.data.state.Scenery.MOUNTAINS)
 
     @Test
     fun brightLightIncreasesLuxAndEarnsCoins() {

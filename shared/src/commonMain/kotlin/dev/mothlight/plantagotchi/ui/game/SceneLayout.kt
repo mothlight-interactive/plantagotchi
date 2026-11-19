@@ -24,6 +24,8 @@ internal class SceneLayout(
     val activeIndex: Int,
     /** Set in indoor scenes. */
     val room: IndoorScene?,
+    /** Spot of each plant in an indoor scene. */
+    val roomSpots: List<RoomSpot>?,
     val coinHud: Rect,
     val weatherChip: Rect,
     val menuButton: Rect,
@@ -116,7 +118,7 @@ internal class SceneLayout(
             }
 
             return SceneLayout(
-                size, dp, ground, slots, activeIndex, room, coinHud, weatherChip, menuButton, chest,
+                size, dp, ground, slots, activeIndex, room, if (room != null) roomSpots else null, coinHud, weatherChip, menuButton, chest,
                 replantButton = replant, compostButton = compost,
                 needsLabelBaseline = bubbleTop - 4 * dp, bubbles = bubbles,
             )

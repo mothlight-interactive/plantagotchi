@@ -25,6 +25,8 @@ object GameRules {
     /** Light a grow lamp provides. */
     const val LAMP_LUX = 5_000f
     const val LUX_GAIN = 0.1
+    /** String lights fill the light need at this fraction of a grow lamp's rate. */
+    const val WEAK_LIGHT_FACTOR = 0.2
     const val LOVE_GAIN = 1.0
 
     /**
@@ -61,22 +63,27 @@ object GameRules {
     /** One game loop step of [seconds] (normally 1) for all plants. */
     fun tick(state: PlayerState, env: Environment, seconds: Double = 1.0): PlayerState {
         var coins = state.coins
+        // Indoors the rain stays outside: plants have to be watered by hand.
+        val here = if (state.scenery.indoor) env.copy(weather = WeatherState.CLEAR_SKY) else env
+        val weakLight = state.scenery == Scenery.PLANT_SHOP && state.stringLights
         val plants = state.plants.map { plant ->
             if (plant.dead) return@map plant
             val lux = effectiveLux(plant, env.ambientLux, env.nowMillis)
             if (lux > LUX_THRESHOLD && plant.lux < MAX) coins++
-            tickPlant(plant, env.copy(ambientLux = lux), seconds)
+            tickPlant(plant, here.copy(ambientLux = lux), seconds, weakLight)
         }
         return state.copy(plants = plants, coins = coins)
     }
 
-    internal fun tickPlant(plant: PlantState, env: Environment, seconds: Double): PlantState {
+    /** [weakLight]: a faint light source (string lights) that helps a little when it is dark. */
+    internal fun tickPlant(plant: PlantState, env: Environment, seconds: Double, weakLight: Boolean = false): PlantState {
         if (plant.dead) return plant
         val s = plant.species
         val frost = if (env.temperature < FROST_TEMPERATURE) s.frostSensitivity else 1.0
         val heat = if (env.temperature > HEAT_TEMPERATURE) s.heatSensitivity else 1.0
 
         val lux = if (env.ambientLux > LUX_THRESHOLD) plant.lux + LUX_GAIN * seconds
+        else if (weakLight) plant.lux + LUX_GAIN * WEAK_LIGHT_FACTOR * seconds
         else plant.lux - LUX_DECAY * s.luxDecay * frost * seconds
 
         val rain = waterGain(env.weather)
