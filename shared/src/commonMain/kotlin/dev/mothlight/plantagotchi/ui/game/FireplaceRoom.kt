@@ -393,21 +393,20 @@ internal class FireplaceRoom(size: Size, floorTop: Float, pixel: Float) : Indoor
         box(Color(0xFF8E4A35), m.right - px(10), m.top - px(10), 7, 2)
     }
 
-    private fun DrawScope.hanger() {
+    override val hangRing: Offset get() {
         val potWidth = w * 0.13f
-        val potTop = hangY - potWidth * 0.62f
+        return Offset(snap(w * 0.5f), snap(hangY - potWidth * 0.62f - potWidth * 0.8f))
+    }
+
+    private fun DrawScope.hanger() {
         val x = snap(w * 0.5f)
         box(Iron, x - px(4), beam, 9, 3)
-        val ring = Offset(x, snap(potTop - potWidth * 0.8f))
+        val ring = hangRing
         fill(Chain, x, beam + px(3), x + p, ring.y)
         var cy = beam + px(5)
         while (cy < ring.y) {
             box(ChainDark, x - p, cy, 3, 1)
             cy += px(5)
-        }
-        for (i in 0..2) {
-            val end = Offset(x + potWidth * (i - 1) * 0.45f, potTop + px(3))
-            line(Chain, ring.x, ring.y, end.x, end.y)
         }
         box(Chain, ring.x - px(2), ring.y - px(2), 5, 3)
     }

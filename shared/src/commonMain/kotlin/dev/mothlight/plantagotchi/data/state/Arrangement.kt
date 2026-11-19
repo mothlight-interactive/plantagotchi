@@ -2,15 +2,28 @@ package dev.mothlight.plantagotchi.data.state
 
 /** Moving plants around: spots in the room, order side by side outdoors. */
 object Arrangement {
-    /** Puts plant [index] on [spot] in the room; a plant already there takes its old spot. */
+    /** Whether plant [index] may be put on [spot] (see [RoomSpot.accepts]). */
+    fun canMove(state: PlayerState, index: Int, spot: RoomSpot): Boolean =
+        index in state.plants.indices && spot.accepts(state.plants[index].species)
+
+    /**
+     * Puts plant [index] on [spot] in the room; a plant already there takes its old spot, or the
+     * first free one if it may not be there (a standing plant never ends up in the planter).
+     */
     fun move(state: PlayerState, index: Int, spot: RoomSpot): PlayerState {
-        if (index !in state.plants.indices) return state
+        if (!canMove(state, index, spot)) return state
         val current = RoomSpot.assign(state.plants)
         val other = current.indexOf(spot)
+        val old = current[index]
+        val otherSpot = when {
+            other < 0 -> null
+            old.accepts(state.plants[other].species) -> old
+            else -> RoomSpot.entries.first { it != spot && it !in current && it.accepts(state.plants[other].species) }
+        }
         val plants = state.plants.mapIndexed { i, plant ->
             when (i) {
                 index -> plant.copy(spot = spot)
-                other -> plant.copy(spot = current[index])
+                other -> plant.copy(spot = otherSpot)
                 else -> plant.copy(spot = current[i])
             }
         }

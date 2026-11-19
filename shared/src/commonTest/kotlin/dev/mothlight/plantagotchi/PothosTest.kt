@@ -20,8 +20,8 @@ class PothosTest {
     fun pothosPrefersTheHangingPlanter() {
         val spots = RoomSpot.assign(listOf(PlantState(id = "a"), PlantState(id = "b", species = Species.POTHOS)))
         assertEquals(listOf(RoomSpot.SILL_LEFT, RoomSpot.HANGING), spots)
-        // Not when another plant already hangs there
-        val taken = RoomSpot.assign(listOf(PlantState(id = "a", spot = RoomSpot.HANGING), PlantState(id = "b", species = Species.POTHOS)))
+        // Not when another hanging plant is already there
+        val taken = RoomSpot.assign(listOf(PlantState(id = "a", species = Species.POTHOS, spot = RoomSpot.HANGING), PlantState(id = "b", species = Species.POTHOS)))
         assertEquals(RoomSpot.SILL_LEFT, taken[1])
     }
 }

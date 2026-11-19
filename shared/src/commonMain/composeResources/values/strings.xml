@@ -140,6 +140,8 @@
     <string name="settings_music">Music</string>
     <string name="settings_ambience">Ambient sounds</string>
     <string name="settings_ambience_desc">Rain, wind, waves, birds and crickets</string>
+    <string name="settings_leaves">Falling leaves</string>
+    <string name="settings_leaves_desc">Leaves and petals of the season drift through the scene</string>
     <string name="dev_title">Test mode</string>
     <string name="dev_back_to_live">Back to live</string>
     <string name="dev_live">Live</string>

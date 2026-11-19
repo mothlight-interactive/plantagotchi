@@ -277,6 +277,9 @@ class PlantagotchiViewModel(
     /** Tapping next to the plants: the selection ends and the need bubbles slide away. */
     fun deselect() = _state.update { it.copy(plantSelected = false) }
 
+    /** Switches the string lights of the plant shop (a weak light for the plants there). */
+    fun toggleStringLights() = updatePlayer { it.copy(stringLights = !it.stringLights) }
+
     fun tapPlant() {
         _state.update { it.copy(plantSelected = true) }
         val plant = _state.value.player.activePlant

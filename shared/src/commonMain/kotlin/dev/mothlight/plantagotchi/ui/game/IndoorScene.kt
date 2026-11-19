@@ -32,6 +32,9 @@ internal interface IndoorScene {
     /** Window glass: the sky and weather show through these, clip rain and clouds to them. */
     val windows: List<Rect>
 
+    /** The ring under the ceiling hook; the cords of a pot on [RoomSpot.HANGING] start here. */
+    val hangRing: Offset
+
     /** Bottom center of a pot standing on [spot] and the pot width, in px. */
     fun anchor(spot: RoomSpot): Pair<Offset, Float>
 
@@ -72,7 +75,7 @@ internal class IndoorToys {
             IndoorToy.CAT -> catFlickAt = time
             IndoorToy.FIRE -> sparksAt = time
             IndoorToy.STRING_LIGHTS -> {
-                lightsOn = !lightsOn
+                // The game keeps the state in PlayerState.stringLights and sets lightsOn from it
                 lightsSwitchedAt = time
             }
         }

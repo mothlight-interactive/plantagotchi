@@ -137,6 +137,8 @@
     <string name="settings_music">Musique</string>
     <string name="settings_ambience">Sons d’ambiance</string>
     <string name="settings_ambience_desc">Pluie, vent, vagues, oiseaux et grillons</string>
+    <string name="settings_leaves">Feuilles qui tombent</string>
+    <string name="settings_leaves_desc">Les feuilles et pétales de saison traversent la scène</string>
     <string name="dev_title">Mode test</string>
     <string name="dev_back_to_live">Retour au direct</string>
     <string name="dev_live">Direct</string>

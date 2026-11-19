@@ -80,6 +80,7 @@ class GameActions(
     val claimReward: () -> Unit = {},
     val discardPlant: () -> Unit = {},
     val deselect: () -> Unit = {},
+    val toggleStringLights: () -> Unit = {},
     val movePlant: (Int, RoomSpot) -> Unit = { _, _ -> },
     val swapPlants: (Int, Int) -> Unit = { _, _ -> },
     val updateSettings: ((AppSettingsState) -> AppSettingsState) -> Unit = {},
@@ -104,6 +105,7 @@ fun GameScreen(viewModel: PlantagotchiViewModel) {
             claimReward = viewModel::claimReward,
             discardPlant = viewModel::discardPlant,
             deselect = viewModel::deselect,
+            toggleStringLights = viewModel::toggleStringLights,
             movePlant = viewModel::movePlant,
             swapPlants = viewModel::swapPlants,
             updateSettings = viewModel::updateSettings,
@@ -238,7 +240,7 @@ fun GameContent(
                         SceneTarget.DESK_LAMP -> actions.playUi(Sfx.TAP)
                         SceneTarget.CAT -> actions.playUi(Sfx.PET)
                         SceneTarget.FIRE -> actions.playUi(Sfx.SNAP)
-                        SceneTarget.STRING_LIGHTS -> actions.playUi(Sfx.SWITCH)
+                        SceneTarget.STRING_LIGHTS -> { actions.toggleStringLights(); actions.playUi(Sfx.SWITCH) }
                         SceneTarget.EMPTY -> actions.deselect()
                     }
                 },

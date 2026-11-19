@@ -9,6 +9,8 @@ data class AppSettingsState(
     val ambience: Boolean = true,
     val notifications: Boolean = true,
     val cameraLight: Boolean = false,
+    /** Falling leaves and petals of the season. */
+    val seasonParticles: Boolean = true,
 )
 
 class AppSettings(private val settings: Settings = Settings()) {
@@ -18,6 +20,7 @@ class AppSettings(private val settings: Settings = Settings()) {
         ambience = settings.getBoolean(AMBIENCE, true),
         notifications = settings.getBoolean(NOTIFICATIONS, true),
         cameraLight = settings.getBoolean(CAMERA_LIGHT, false),
+        seasonParticles = settings.getBoolean(SEASON_PARTICLES, true),
     )
 
     fun save(state: AppSettingsState) {
@@ -26,6 +29,7 @@ class AppSettings(private val settings: Settings = Settings()) {
         settings.putBoolean(AMBIENCE, state.ambience)
         settings.putBoolean(NOTIFICATIONS, state.notifications)
         settings.putBoolean(CAMERA_LIGHT, state.cameraLight)
+        settings.putBoolean(SEASON_PARTICLES, state.seasonParticles)
     }
 
     private companion object {
@@ -34,5 +38,6 @@ class AppSettings(private val settings: Settings = Settings()) {
         const val AMBIENCE = "settings_ambience"
         const val NOTIFICATIONS = "settings_notifications"
         const val CAMERA_LIGHT = "settings_camera_light"
+        const val SEASON_PARTICLES = "settings_season_particles"
     }
 }
