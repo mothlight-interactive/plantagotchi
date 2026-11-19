@@ -152,7 +152,10 @@ object PlantRenderer {
     private const val SPINE_DARK = 0xFFB8A050.toInt()
     private const val TRAP_RED = 0xFFC8243C.toInt()
     private const val TRAP_DEEP = 0xFF7A1424.toInt()
-    private const val TRAP_TOOTH = 0xFFE4F2A6.toInt()
+    private const val TRAP_RED_LIGHT = 0xFFDC4A58.toInt()
+    private const val TRAP_RIM = 0xFFB8C858.toInt()
+    private const val TRAP_HAIR = 0xFFA83440.toInt()
+    private const val TRAP_OUTLINE = 0xFF4A1018.toInt()
     private const val FLY = 0xFF222034.toInt()
     private const val WING = 0x99FFFFFF.toInt()
     private const val STAMEN = 0xFF2E1A24.toInt()
@@ -1203,27 +1206,48 @@ object PlantRenderer {
     // region Flytrap
 
     private fun drawFlytrap(m: Float, seed: Int, pose: PlantPose) {
-        val count = 1 + floor(m * 4).toInt()
-        val big = 0.5f + m * 0.6f
-        val openness = (0.55f + pose.daylight * 0.45f) * (1f - pose.snap) * (1f - pose.droop)
+        val count = 2 + floor(m * 3.2f).toInt().coerceAtMost(3)
+        val big = 0.45f + m * 0.6f
+        val openness = (0.45f + pose.daylight * 0.55f) * (1f - pose.snap) * (1f - pose.droop)
+        // The trap closest to the middle faces the viewer once the plant is grown
+        var front = -1
+        if (count >= 3 && m > 0.45f) {
+            var best = Float.MAX_VALUE
+            for (i in 0 until count) if (abs(fSlot(i, count, seed)) < best) { best = abs(fSlot(i, count, seed)); front = i }
+        }
         var flyX = 0f
         var flyY = 10f
-        var bestSlot = Float.MAX_VALUE
+        // Outer petioles first, the middle ones in front
         for (rank in 0 until count) {
-            val i = byRank(rank, count) { abs(fSlot(it, count, seed)) }
+            var i = -1
+            var key = -1f
+            for (j in 0 until count) {
+                val a = abs(fSlot(j, count, seed)) + j * 0.001f
+                var greater = 0
+                for (k in 0 until count) if (abs(fSlot(k, count, seed)) + k * 0.001f > a) greater++
+                if (greater == rank) { i = j; key = a }
+            }
+            if (i < 0) continue
             val slot = fSlot(i, count, seed)
             val side = if (slot >= 0f) 1 else -1
-            val len = (6f + m * 12f) * (0.8f + hash01(seed, 800 + i) * 0.2f) * (1f - abs(slot) / 200f)
+            val len = (6f + m * 13f) * (0.85f + hash01(seed, 800 + i) * 0.2f) * (1f - key / 200f)
             val sway = ((pose.sway + pose.lean) * 0.5f + sin(pose.time * 2f + i) * pose.flutter) * 0.05f
             val ang = PIF / 2 - slot * PIF / 180f + sway * K - pose.droop * side * 0.9f
-            // Winged petiole
-            leaf(0f, 0f, ang, len, 2.2f + m * 1.6f, -side * 0.15f, trapPal, WING_SHAPE, MIDRIB)
-            val hx = cos(ang) * len
-            val hy = sin(ang) * len
-            trap(hx, hy, ang - side * 0.25f, big, openness)
-            if (abs(slot) < bestSlot) {
-                bestSlot = abs(slot)
-                flyX = hx; flyY = hy + 6f * big
+            // Long winged petiole, then a short neck
+            leaf(0f, 0f, ang, len, 1.1f + m * 1.1f, -side * 0.12f, trapPal, WING_SHAPE, MIDRIB)
+            val tipAng = ang - side * 0.12f
+            val nx = cos(tipAng) * len
+            val ny = sin(tipAng) * len
+            val neck = 1.2f + m
+            line(nx, ny, nx + cos(tipAng) * neck, ny + sin(tipAng) * neck, trapPal.dark)
+            val hx = nx + cos(tipAng) * neck
+            val hy = ny + sin(tipAng) * neck
+            if (i == front && openness > 0.2f) {
+                trapFront(hx, hy, big, openness)
+                flyX = hx; flyY = hy + 7f * big
+            } else {
+                trapSide(hx, hy, tipAng, big, openness, side)
+                if (front < 0 && abs(slot) < 30f) { flyX = hx; flyY = hy + 6f * big }
             }
         }
         if (pose.fly) {
@@ -1237,16 +1261,42 @@ object PlantRenderer {
 
     private fun fSlot(i: Int, count: Int, seed: Int): Float {
         val spread = if (count == 1) 0f else i / (count - 1f) * 2f - 1f
-        return spread * 58f + (hash01(seed, 820 + i) - 0.5f) * 10f
+        return spread * 56f + (hash01(seed, 820 + i) - 0.5f) * 10f
     }
 
-    /** Two lobes hinged at ([hx], [hy]) along [axis], opened by [open] (0 = shut). */
-    private fun trap(hx: Float, hy: Float, axis: Float, size: Float, open: Float) {
-        val len = 7f * size + 2f
-        val wid = 3.6f * size + 1.5f
-        val spread = 0.03f + open * 0.24f
-        val ext = len + wid + 3f
-        val tanS = tan(spread)
+    /** Lobe outline: a D shape, flat along the hinge, round towards the rim. */
+    private fun lobeDepth(t: Float) = if (t <= 0f || t >= 1f) 0f else sin(PIF * t).pow(0.55f)
+
+    /**
+     * A trap seen from the side: two D-shaped lobes hinged along [axis] from ([hx], [hy]), opened
+     * by [open] (0 = shut). The upper lobe shows its red inside, long cilia line both rims.
+     */
+    private fun trapSide(hx: Float, hy: Float, axis: Float, size: Float, open: Float, side: Int) {
+        val len = 7f * size + 3f
+        val wid = 3f * size + 1.5f
+        val spread = 0.04f + open * 0.58f
+        val hair = 1.2f + size * 1.6f
+        // Cilia first, the lobes cover their roots
+        for (lobe in -1..1 step 2) {
+            val a = axis + lobe * spread
+            val ca = cos(a); val sa = sin(a)
+            val nx = -sa * lobe; val ny = ca * lobe
+            var p = len * 0.12f
+            while (p < len * 0.97f) {
+                val t = p / len
+                val d = wid * lobeDepth(t)
+                val rx = hx + ca * p + nx * d
+                val ry = hy + sa * p + ny * d
+                // Point away from the middle of the lobe
+                val ox = rx - (hx + ca * len * 0.45f)
+                val oy = ry - (hy + sa * len * 0.45f)
+                val ol = max(0.01f, sqrt(ox * ox + oy * oy))
+                val h = hair * (0.7f + 0.3f * lobeDepth(t))
+                line(rx, ry, rx + ox / ol * h, ry + oy / ol * h, TRAP_HAIR)
+                p += 2f
+            }
+        }
+        val ext = len + wid + 2f
         for (y in floor(hy - ext).toInt()..floor(hy + ext).toInt()) {
             for (x in floor(hx - ext).toInt()..floor(hx + ext).toInt()) {
                 val dx = x + 0.5f - hx; val dy = y + 0.5f - hy
@@ -1256,31 +1306,72 @@ object PlantRenderer {
                     val a = axis + lobe * spread
                     val ca = cos(a); val sa = sin(a)
                     val p = dx * ca + dy * sa
-                    val q = (-dx * sa + dy * ca) * lobe // q > 0 = outer side
-                    val pu = (p - len / 2) / (len / 2)
-                    val qv = q / wid
-                    if (q >= -0.3f && pu * pu + qv * qv <= 1f) {
-                        col = when {
-                            q < 0.8f && open > 0.15f -> TRAP_RED
-                            qv > 0.6f -> trapPal.dark
-                            pu < -0.4f -> trapPal.light
+                    val q = (-dx * sa + dy * ca) * lobe // > 0: towards the rim
+                    val t = p / len
+                    val d = wid * lobeDepth(t)
+                    // The lobe on the upper side shows its inside
+                    val inside = open > 0.15f && ca * lobe > 0f
+                    if (q >= -0.2f && q <= d && d > 0.3f) {
+                        val rim = q > d - 1f
+                        col = if (inside) when {
+                            rim -> TRAP_RIM
+                            q < 1f -> TRAP_DEEP
+                            else -> TRAP_RED
+                        } else when {
+                            rim -> trapPal.light
+                            q < 1f -> trapPal.dark
+                            t < 0.45f -> trapPal.light
                             else -> trapPal.mid
                         }
-                    } else {
-                        val pu2 = (p - len / 2) / (len / 2 + 1f)
-                        val qv2 = q / (wid + 1f)
-                        if (q >= -1.2f && pu2 * pu2 + qv2 * qv2 <= 1f) outline = true
-                        // Cilia along the rim
-                        if (col == 0 && q < -0.3f && q > -2.4f && p > len * 0.3f && p < len - 0.5f && frac(p / 2f) < 0.35f) col = TRAP_TOOTH
+                    } else if (q >= -1.1f && q <= d + 1f && t > -0.08f && t < 1.08f && wid * lobeDepth(t.coerceIn(0.02f, 0.98f)) > 0f) {
+                        outline = true
                     }
                 }
-                if (col == 0 && open > 0.15f) {
-                    // dark red inside between the lobes
-                    val p = dx * cos(axis) + dy * sin(axis)
-                    val q = -dx * sin(axis) + dy * cos(axis)
-                    if (p > 0.5f && p < len * 0.95f && abs(q) < p * tanS * 0.9f) col = TRAP_DEEP
-                }
                 if (col != 0) r.set(x, y, col) else if (outline) r.set(x, y, trapPal.outline)
+            }
+        }
+    }
+
+    /** A trap facing the viewer: two red lobes side by side, cilia all around, opened by [open]. */
+    private fun trapFront(hx: Float, hy: Float, size: Float, open: Float) {
+        val ry = 3.4f * size + 1.8f
+        val rx = 1.9f * size + 1f
+        val gap = 0.2f + open * 1.4f
+        val cy = hy + ry * 0.92f
+        val hair = 1.2f + size * 1.6f
+        for (lobe in -1..1 step 2) {
+            val cx = hx + lobe * (rx + gap / 2f)
+            // Cilia around the outer half and over the top
+            var a = -PIF * 0.35f
+            while (a < PIF * 1.05f) {
+                val ex = cos(a) * lobe; val ey = sin(a)
+                val sx = cx + ex * rx; val sy = cy + ey * ry
+                line(sx, sy, sx + ex * hair, sy + ey * hair, TRAP_HAIR)
+                a += 0.4f
+            }
+        }
+        for (lobe in -1..1 step 2) {
+            val cx = hx + lobe * (rx + gap / 2f)
+            for (y in floor(cy - ry - 2f).toInt()..floor(cy + ry + 2f).toInt()) {
+                for (x in floor(cx - rx - 2f).toInt()..floor(cx + rx + 2f).toInt()) {
+                    val u = (x + 0.5f - cx) / rx
+                    val v = (y + 0.5f - cy) / ry
+                    val d = u * u + v * v
+                    val uo = (x + 0.5f - cx) / (rx + 1f)
+                    val vo = (y + 0.5f - cy) / (ry + 1f)
+                    if (d <= 1f) {
+                        val outer = u * lobe
+                        val col = when {
+                            d > 0.62f && outer > -0.2f -> TRAP_RIM
+                            outer < -0.45f -> TRAP_DEEP
+                            outer > 0.1f && v > 0.1f -> TRAP_RED_LIGHT
+                            else -> TRAP_RED
+                        }
+                        r.set(x, y, col)
+                    } else if (uo * uo + vo * vo <= 1f && r.get(x, y).let { it == 0 || it == TRAP_HAIR }) {
+                        r.set(x, y, TRAP_OUTLINE)
+                    }
+                }
             }
         }
     }
