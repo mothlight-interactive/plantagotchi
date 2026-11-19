@@ -10,7 +10,6 @@ import dev.mothlight.plantagotchi.resources.app_name
 import dev.mothlight.plantagotchi.resources.notif_fertilizer
 import dev.mothlight.plantagotchi.resources.notif_light
 import dev.mothlight.plantagotchi.resources.notif_love
-import dev.mothlight.plantagotchi.resources.notif_reward
 import dev.mothlight.plantagotchi.resources.notif_title
 import dev.mothlight.plantagotchi.resources.notif_water
 import dev.mothlight.plantagotchi.resources.species_cactus
@@ -23,11 +22,7 @@ import dev.mothlight.plantagotchi.resources.species_monstera
 import dev.mothlight.plantagotchi.resources.species_sunflower
 import dev.mothlight.plantagotchi.resources.species_tulip
 import dev.mothlight.plantagotchi.resources.species_sprout
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atTime
-import kotlinx.datetime.toInstant
 import org.jetbrains.compose.resources.getString
 
 /** A reminder before its texts are resolved. */
@@ -43,7 +38,7 @@ class ReminderPlanner(
             Reminder(id = (planned.need?.ordinal ?: 9) + 1, delaySeconds = planned.delaySeconds, title = title, body = body)
         }
 
-    /** Pure part: earliest time per need across all living plants, plus the daily chest. */
+    /** Pure part: earliest time per need across all living plants. The daily chest is a nudge ([NudgePlanner]). */
     fun planDelays(state: PlayerState, today: Long, nowMillis: Long, timeZone: TimeZone): List<PlannedReminder> {
         val result = mutableListOf<PlannedReminder>()
         Need.entries.forEach { need ->
@@ -59,11 +54,6 @@ class ReminderPlanner(
             }.minByOrNull { it.second }?.let { (species, seconds) ->
                 result += PlannedReminder(need, species, seconds)
             }
-        }
-        if (state.lastRewardDay == today) {
-            val tomorrowMorning = LocalDate.fromEpochDays(today + 1).atTime(LocalTime(10, 0)).toInstant(timeZone)
-            val seconds = (tomorrowMorning.toEpochMilliseconds() - nowMillis) / 1000
-            if (seconds > 0) result += PlannedReminder(null, null, seconds)
         }
         return result
     }
@@ -89,9 +79,7 @@ class ReminderPlanner(
         )
 
         private suspend fun defaultTexts(r: PlannedReminder): Pair<String, String> {
-            if (r.need == null || r.species == null) {
-                return getString(Res.string.app_name) to getString(Res.string.notif_reward)
-            }
+            if (r.need == null || r.species == null) return getString(Res.string.app_name) to ""
             val name = speciesName(r.species)
             val body = getString(
                 when (r.need) {

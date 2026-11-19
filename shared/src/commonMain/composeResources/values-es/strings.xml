@@ -98,6 +98,8 @@
     <string name="settings_sound">Efectos de sonido</string>
     <string name="settings_notifications">Recordatorios</string>
     <string name="settings_notifications_desc">Avísame cuando una planta necesite algo</string>
+    <string name="settings_nudges">Saludos de tus plantas</string>
+    <string name="settings_nudges_desc">Un aviso de vez en cuando: cofre diario, una planta ha crecido, helada o calor. Uno al día como máximo</string>
     <string name="settings_camera">Cámara como sensor de luz</string>
     <string name="settings_camera_desc">Mide la luz con la cámara mientras juegas</string>
 
@@ -107,6 +109,13 @@
     <string name="notif_love">Tu %1$s te echa de menos. ¡Ven a darle mimos!</string>
     <string name="notif_fertilizer">Tu %1$s tiene hambre de abono.</string>
     <string name="notif_reward">Tu cofre diario te espera.</string>
+    <string name="notif_reward_streak">Tu racha va por %1$d días. El cofre de hoy te espera.</string>
+    <string name="notif_visit_1">Tus plantas te saludan. Pásate cuando tengas un momento.</string>
+    <string name="notif_visit_2">Hay calma en el alféizar. A tus plantas les encantaría una visita.</string>
+    <string name="notif_visit_3">Un saludito de tus plantas. Te están esperando.</string>
+    <string name="notif_grown">%1$s ha crecido. ¡Ven a ver lo grande que está tu planta!</string>
+    <string name="notif_frost">Viene una helada. Tus plantas necesitan un poco de cuidado.</string>
+    <string name="notif_heat">Se acerca un día caluroso. Tus plantas tendrán sed.</string>
 
     <string name="about_interactive">interactive</string>
     <string name="about_presents">presenta</string>

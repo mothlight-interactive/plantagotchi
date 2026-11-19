@@ -98,6 +98,8 @@
     <string name="settings_sound">Soundeffekte</string>
     <string name="settings_notifications">Erinnerungen</string>
     <string name="settings_notifications_desc">Benachrichtige mich, wenn eine Pflanze etwas braucht</string>
+    <string name="settings_nudges">Grüsse von deinen Pflanzen</string>
+    <string name="settings_nudges_desc">Ab und zu ein Hinweis: tägliche Truhe, eine Pflanze ist gewachsen, Frost oder Hitze. Höchstens einer pro Tag</string>
     <string name="settings_camera">Kamera als Lichtsensor</string>
     <string name="settings_camera_desc">Misst das Licht mit der Kamera, während du spielst</string>
 
@@ -107,6 +109,13 @@
     <string name="notif_love">Dein %1$s vermisst dich. Komm streicheln!</string>
     <string name="notif_fertilizer">Dein %1$s hat Hunger auf Dünger.</string>
     <string name="notif_reward">Deine tägliche Truhe wartet.</string>
+    <string name="notif_reward_streak">Deine Serie steht bei %1$d Tagen. Die Truhe von heute wartet.</string>
+    <string name="notif_visit_1">Deine Pflanzen sagen Hallo. Schau vorbei, wenn du einen Moment hast.</string>
+    <string name="notif_visit_2">Es ist ruhig auf der Fensterbank. Deine Pflanzen freuen sich über Besuch.</string>
+    <string name="notif_visit_3">Ein kleiner Gruss von deinen Pflanzen. Sie warten auf dich.</string>
+    <string name="notif_grown">%1$s ist gewachsen. Schau, wie gross deine Pflanze geworden ist!</string>
+    <string name="notif_frost">Es wird frostig. Deine Pflanzen brauchen etwas Pflege.</string>
+    <string name="notif_heat">Ein heisser Tag kommt. Deine Pflanzen werden durstig sein.</string>
 
     <string name="about_interactive">interactive</string>
     <string name="about_presents">präsentiert</string>
