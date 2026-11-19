@@ -120,12 +120,14 @@
     <string name="species_bonsai">Bonsai</string>
     <string name="species_flytrap">Venus atrapamoscas</string>
     <string name="species_pothos">Pothos</string>
+    <string name="species_hearts">Collar de corazones</string>
     <string name="item_seed_desc_sunflower">Sigue al sol, necesita mucha luz</string>
     <string name="item_seed_desc_tulip">Se abre de día, no le importa el frío</string>
     <string name="item_seed_desc_monstera">Grandes hojas con agujeros, le gusta la sombra, odia la helada</string>
     <string name="item_seed_desc_bonsai">Lento y sabio, quiere mucho cariño</string>
     <string name="item_seed_desc_flytrap">Sedienta, caza su propia comida. ¡Tócala!</string>
     <string name="item_seed_desc_pothos">Largas guías, le encanta colgar</string>
+    <string name="item_seed_desc_hearts">Finas guías llenas de corazoncitos, bebe poco</string>
     <string name="scenery_mountains">Montañas</string>
     <string name="scenery_desert">Desierto</string>
     <string name="scenery_beach">Playa</string>

@@ -120,12 +120,14 @@
     <string name="species_bonsai">Bonsai</string>
     <string name="species_flytrap">Venusfliegenfalle</string>
     <string name="species_pothos">Efeutute</string>
+    <string name="species_hearts">Herzkette</string>
     <string name="item_seed_desc_sunflower">Folgt der Sonne, braucht viel Licht</string>
     <string name="item_seed_desc_tulip">Öffnet sich am Tag, mag Kälte</string>
     <string name="item_seed_desc_monstera">Grosse gelochte Blätter, mag Schatten, hasst Frost</string>
     <string name="item_seed_desc_bonsai">Langsam und weise, will viel Liebe</string>
     <string name="item_seed_desc_flytrap">Durstig, fängt sein Futter selbst. Tipp sie an!</string>
     <string name="item_seed_desc_pothos">Lange Ranken, liebt die Hängeampel</string>
+    <string name="item_seed_desc_hearts">Dünne Ranken voller Herzchen, trinkt wenig</string>
     <string name="shop_scenes">Szenen</string>
     <string name="scenery_mountains">Berge</string>
     <string name="scenery_desert">Wüste</string>

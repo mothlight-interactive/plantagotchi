@@ -42,7 +42,7 @@ class StoreShots {
                 loading = false, plantSelected = true, now = now, today = now / 86_400_000L, env = AppEnv.PROD, season = Season.WINTER,
                 weather = weather(WeatherState.SNOW, -3.0, 17),
                 player = PlayerState(scenery = Scenery.FIREPLACE, coins = 520, lastRewardDay = now / 86_400_000L, activePlantId = "t", plants = listOf(
-                    p("t", Species.TULIP, "pot23", love = 30.0), p("f", Species.FERN, "pot21"), p("b2", Species.BONSAI, "pot11"))))),
+                    p("t", Species.TULIP, "pot23", love = 30.0), p("f", Species.FERN, "pot21"), p("b2", Species.BONSAI, "pot11"), p("h", Species.HEARTS, "pot12"))))),
             Triple("03", Sheet.NONE, GameUiState(
                 loading = false, plantSelected = true, now = now, today = now / 86_400_000L, env = AppEnv.PROD,
                 weather = weather(WeatherState.LIGHT_RAIN, 14.0),

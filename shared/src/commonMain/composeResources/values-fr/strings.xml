@@ -120,12 +120,14 @@
     <string name="species_bonsai">Bonsai</string>
     <string name="species_flytrap">Dionée</string>
     <string name="species_pothos">Pothos</string>
+    <string name="species_hearts">Chaîne des cœurs</string>
     <string name="item_seed_desc_sunflower">Suit le soleil, a besoin de beaucoup de lumière</string>
     <string name="item_seed_desc_tulip">S’ouvre le jour, ne craint pas le froid</string>
     <string name="item_seed_desc_monstera">Grandes feuilles trouées, aime l’ombre, déteste le gel</string>
     <string name="item_seed_desc_bonsai">Lent et sage, veut beaucoup d’amour</string>
     <string name="item_seed_desc_flytrap">Assoiffée, attrape sa propre nourriture. Touche-la !</string>
     <string name="item_seed_desc_pothos">Longues lianes, adore la suspension</string>
+    <string name="item_seed_desc_hearts">Fines lianes pleines de petits cœurs, boit peu</string>
     <string name="scenery_mountains">Montagnes</string>
     <string name="scenery_desert">Désert</string>
     <string name="scenery_beach">Plage</string>

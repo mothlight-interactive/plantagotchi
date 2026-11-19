@@ -14,10 +14,10 @@ YELLOW = (0xFF, 0xEB, 0x57)
 WHITE = (0xED, 0xED, 0xED)
 
 CAPTIONS = {
-    'en': ['Grow your own\npixel plants', 'Water, feed\nand cuddle them', 'Nine species,\neach one unique', 'Real weather\nwhere you live', 'Cozy scenes\nand pretty pots'],
-    'de': ['Zieh deine eigenen\nPixelpflanzen gross', 'Giessen, düngen\nund streicheln', 'Neun Arten,\njede einzigartig', 'Echtes Wetter\nbei dir', 'Gemütliche Szenen\nund schöne Töpfe'],
-    'fr': ['Fais pousser tes\nplantes en pixels', 'Arrose, nourris\net câline-les', 'Neuf espèces,\ntoutes uniques', 'La vraie météo\nde chez toi', 'Scènes douillettes\net jolis pots'],
-    'es': ['Cultiva tus propias\nplantas pixeladas', 'Riégalas, abónalas\ny mímalas', 'Nueve especies,\ncada una única', 'El tiempo real\nde tu zona', 'Escenas acogedoras\ny macetas bonitas'],
+    'en': ['Grow your own\npixel plants', 'Water, feed\nand cuddle them', 'Ten species,\neach one unique', 'Real weather\nwhere you live', 'Cozy scenes\nand pretty pots'],
+    'de': ['Zieh deine eigenen\nPixelpflanzen gross', 'Giessen, düngen\nund streicheln', 'Zehn Arten,\njede einzigartig', 'Echtes Wetter\nbei dir', 'Gemütliche Szenen\nund schöne Töpfe'],
+    'fr': ['Fais pousser tes\nplantes en pixels', 'Arrose, nourris\net câline-les', 'Dix espèces,\ntoutes uniques', 'La vraie météo\nde chez toi', 'Scènes douillettes\net jolis pots'],
+    'es': ['Cultiva tus propias\nplantas pixeladas', 'Riégalas, abónalas\ny mímalas', 'Diez especies,\ncada una única', 'El tiempo real\nde tu zona', 'Escenas acogedoras\ny macetas bonitas'],
 }
 TAGLINE = {
     'en': 'A cozy pixel plant to care for',
