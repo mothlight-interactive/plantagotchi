@@ -86,6 +86,7 @@ object PlantRenderer {
             Species.BONSAI -> drawBonsai(m, seed, pose)
             Species.FLYTRAP -> drawFlytrap(m, seed, pose)
             Species.POTHOS -> drawPothosCrown(m, seed, pose)
+            Species.HEARTS -> drawHeartsCrown(m, seed, pose)
         }
         r.flush(scope, base, pixel)
     }
@@ -103,8 +104,11 @@ object PlantRenderer {
         base: Offset,
         pixel: Float,
     ) {
-        if (species != Species.POTHOS) return
-        drawPothosVines(maturity.coerceIn(0f, 1f), seed, pose)
+        when (species) {
+            Species.POTHOS -> drawPothosVines(maturity.coerceIn(0f, 1f), seed, pose)
+            Species.HEARTS -> drawHeartsVines(maturity.coerceIn(0f, 1f), seed, pose)
+            else -> return
+        }
         r.flush(scope, base, pixel)
     }
 
@@ -130,6 +134,8 @@ object PlantRenderer {
     private val discPal = pal(0xFF2A160A, 0xFF4A2A14, 0xFF6A3D1E, 0xFF8C5A2C, 0xFFAE7838)
     private val whitePal = pal(0xFF7C6E86, 0xFFCFC6DA, 0xFFE8E2EE, 0xFFFFFFFF, 0xFFFFFFFF)
     private val trapPal = pal(0xFF1E4520, 0xFF3D7A2C, 0xFF5B9A36, 0xFF80BA48, 0xFFAAD668)
+    private val heartsPal = pal(0xFF2A3F38, 0xFF4A7868, 0xFF6A9C88, 0xFF94C0AC, 0xFFD2E6DA, 0xFFE4F0E6)
+    private val heartsBackPal = pal(0xFF4A2440, 0xFF8A4470, 0xFFB0628E, 0xFFCC86A8, 0xFFE6B4CC)
     private val pothosPal = pal(0xFF1C3D22, 0xFF2D6834, 0xFF448F3E, 0xFF66AE48, 0xFF9CCF62, 0xFFD8DE8A)
 
     private val bloomPals = arrayOf(
@@ -156,6 +162,9 @@ object PlantRenderer {
     private const val TRAP_RIM = 0xFFB8C858.toInt()
     private const val TRAP_HAIR = 0xFFA83440.toInt()
     private const val TRAP_OUTLINE = 0xFF4A1018.toInt()
+    private const val VINE_PURPLE = 0xFF6E3F62.toInt()
+    private const val HEART_FLOWER = 0xFFE8A0C0.toInt()
+    private const val HEART_FLOWER_DARK = 0xFF9A4A78.toInt()
     private const val FLY = 0xFF222034.toInt()
     private const val WING = 0x99FFFFFF.toInt()
     private const val STAMEN = 0xFF2E1A24.toInt()
@@ -1398,6 +1407,80 @@ object PlantRenderer {
             val young = i == count / 2 && m < 1f
             leaf(sx, sy, ang - side * (0.4f - pose.flap * 0.1f) + fl - pose.droop * side * 0.6f, len, len * 0.78f, -side * 0.3f,
                 if (young) youngPal else pothosPal, HEART, VEINS)
+        }
+    }
+
+    // String of hearts: a small crown and many thin purple vines with pairs of marbled heart leaves
+
+    private fun drawHeartsCrown(m: Float, seed: Int, pose: PlantPose) {
+        val count = 3 + (m * 5f).toInt()
+        val wind = (pose.sway + pose.lean) * 0.04f
+        for (rank in 0 until count) {
+            val i = if (rank % 2 == 0) rank / 2 else count - 1 - rank / 2
+            val spread = if (count == 1) 0f else i / (count - 1f) * 2f - 1f
+            val side = if (spread >= 0f) 1 else -1
+            val ang = PIF / 2 - spread * 1.3f + wind + (hash01(seed, 1100 + i) - 0.5f) * 0.4f - pose.droop * side * 0.5f
+            val stalk = (1.5f + m * 4.5f) * (0.5f + hash01(seed, 1110 + i) * 0.5f)
+            val sx = cos(ang) * stalk
+            val sy = sin(ang) * stalk
+            line(0f, 0.5f, sx, sy, VINE_PURPLE)
+            val fl = sin(pose.time * (2.2f + i * 0.3f) + i) * pose.flutter * 0.3f
+            val len = 3f + m * 1.6f
+            leaf(sx, sy, ang - side * 0.3f + fl, len, len * 0.95f, 0f, if (hash01(seed, 1120 + i) < 0.25f) heartsBackPal else heartsPal, HEART, PLAIN)
+        }
+    }
+
+    private fun drawHeartsVines(m: Float, seed: Int, pose: PlantPose) {
+        val vines = 4 + (hash01(seed, 1150) * 3f).toInt() // 4..6
+        for (v in 0 until vines) {
+            val side = if (v % 2 == 0) -1 else 1
+            val start = v * 0.08f
+            if (m <= start) continue
+            val g = ((m - start) / (1f - start)).coerceIn(0f, 1f)
+            val length = 3f + g * (40f + hash01(seed, 1160 + v) * 42f)
+            // Strings hang side by side over the whole rim, also in front of the pot
+            val lane = (v / 2 + 0.5f) / ((vines + 1) / 2)
+            val x0 = side * (2f + lane * 8f)
+            val edge = side * (4f + lane * 21f + (hash01(seed, 1180 + v) - 0.5f) * 3f)
+            val swayAmp = ((pose.sway + pose.lean) * 1.1f + sin(pose.time * (1.3f + v * 0.19f) + v * 1.7f) * (0.7f + pose.flutter)) * K * 0.5f
+            var x = x0; var y = 1.5f
+            var s = 0f
+            var nextPair = 3f
+            var pairNo = 0
+            pn = 0
+            val arc = abs(edge - x0)
+            while (s < length) {
+                s += 0.5f
+                if (s < arc) {
+                    val t = s / arc
+                    x = x0 + (edge - x0) * t
+                    y = 1.5f + sin(t * PIF) * 2f - t * 2f
+                } else {
+                    val d = s - arc
+                    val t = d / max(length - arc, 1f)
+                    y = -0.5f - d
+                    x = edge + side * d * 0.03f + swayAmp * t.pow(1.5f) + sin(d * 0.22f + v * 2f) * 0.7f
+                }
+                if (pn < px.size) { px[pn] = x; py[pn] = y; pn++ }
+                if (s >= nextPair && s > arc * 0.6f) {
+                    nextPair = s + 7.5f + hash01(seed, 1200 + v, pairNo) * 3f
+                    pairNo++
+                    // A pair of hearts, one on each side, hanging tip down; some show their pink back
+                    val ll = if (length - s < 6f) 2.6f else 3.4f + m * 1.2f
+                    for (ls in -1..1 step 2) {
+                        val back = hash01(seed, 1300 + v * 31 + pairNo, ls) < 0.22f
+                        val a = -PIF / 2 + ls * (0.95f + pose.flap * 0.1f - pose.droop * 0.4f)
+                        leaf(x + ls * 0.6f, y, a, ll, ll * 1.05f, 0f, if (back) heartsBackPal else heartsPal, HEART, PLAIN)
+                    }
+                }
+            }
+            for (i in 0 until pn) dot(px[i], py[i], VINE_PURPLE)
+            pn = 0
+            // A tiny pink lantern flower near the tip of some grown vines
+            if (g >= 1f && hash01(seed, 1400 + v) < 0.45f) {
+                dot(x, y - 1f, HEART_FLOWER); dot(x, y - 2f, HEART_FLOWER); dot(x, y - 3f, HEART_FLOWER_DARK)
+                dot(x - 1f, y - 2f, HEART_FLOWER_DARK); dot(x + 1f, y - 2f, HEART_FLOWER_DARK)
+            }
         }
     }
 

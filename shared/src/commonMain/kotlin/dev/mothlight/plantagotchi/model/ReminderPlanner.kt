@@ -18,6 +18,7 @@ import dev.mothlight.plantagotchi.resources.species_bonsai
 import dev.mothlight.plantagotchi.resources.species_fern
 import dev.mothlight.plantagotchi.resources.species_flytrap
 import dev.mothlight.plantagotchi.resources.species_pothos
+import dev.mothlight.plantagotchi.resources.species_hearts
 import dev.mothlight.plantagotchi.resources.species_monstera
 import dev.mothlight.plantagotchi.resources.species_sunflower
 import dev.mothlight.plantagotchi.resources.species_tulip
@@ -83,6 +84,7 @@ class ReminderPlanner(
                 Species.BONSAI -> Res.string.species_bonsai
                 Species.FLYTRAP -> Res.string.species_flytrap
                 Species.POTHOS -> Res.string.species_pothos
+                Species.HEARTS -> Res.string.species_hearts
             }
         )
 

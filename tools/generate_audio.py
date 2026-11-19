@@ -229,6 +229,9 @@ def voices():
     # Pothos: a soft swinging glide, like a vine swaying
     v["pothos_happy"] = seq(tone(vib(sweep(520, 760, 0.16), 0.16, 0.02, 6), 0.16, "sine", 0.45), tone(vib(sweep(640, 900, 0.18), 0.18, 0.02, 6), 0.18, "sine", 0.4), gap=0.02)
     v["pothos_sad"] = tone(vib(sweep(620, 360, 0.5), 0.5, 0.03, 4), 0.5, "sine", 0.4, release=0.2)
+    # String of hearts: two light bell notes, like beads on a string
+    v["hearts_happy"] = seq(tone(note(84), 0.12, "sine", 0.4, 0.002, 0.1), tone(note(88), 0.12, "sine", 0.4, 0.002, 0.1), tone(note(91), 0.2, "sine", 0.4, 0.002, 0.16), gap=0.03)
+    v["hearts_sad"] = seq(tone(note(79), 0.16, "sine", 0.35, 0.002, 0.12), tone(vib(sweep(note(76), note(72), 0.4), 0.4, 0.02, 4), 0.4, "sine", 0.35, release=0.2), gap=0.04)
     for name, x in v.items():
         write("voice", name, x, 0.7)
 

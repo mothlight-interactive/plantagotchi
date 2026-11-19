@@ -42,6 +42,9 @@ enum class Species(
 
     /** Trailing vines, happiest up high in a hanging planter. */
     POTHOS(waterDecay = 1.1, luxDecay = 0.7, frostSensitivity = 1.5, heatSensitivity = 1.5, seedPrice = 200, hanging = true),
+
+    /** String of hearts: thin vines with small heart leaves. A succulent, drinks little, likes it bright. */
+    HEARTS(waterDecay = 0.5, luxDecay = 1.1, frostSensitivity = 2.0, heatSensitivity = 1.0, seedPrice = 240, hanging = true),
 }
 
 /** All needs are percentages in the range 0..100. */

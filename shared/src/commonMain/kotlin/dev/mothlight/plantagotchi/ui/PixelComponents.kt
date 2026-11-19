@@ -31,6 +31,8 @@ import dev.mothlight.plantagotchi.resources.species_monstera
 import dev.mothlight.plantagotchi.resources.species_bonsai
 import dev.mothlight.plantagotchi.resources.species_flytrap
 import dev.mothlight.plantagotchi.resources.species_pothos
+import dev.mothlight.plantagotchi.resources.species_hearts
+import dev.mothlight.plantagotchi.resources.item_seed_desc_hearts
 import dev.mothlight.plantagotchi.resources.item_seed_desc_pothos
 import dev.mothlight.plantagotchi.resources.item_seed_desc_sprout
 import dev.mothlight.plantagotchi.resources.item_seed_desc_cactus
@@ -154,6 +156,7 @@ fun Species.nameRes(): StringResource = when (this) {
     Species.BONSAI -> Res.string.species_bonsai
     Species.FLYTRAP -> Res.string.species_flytrap
     Species.POTHOS -> Res.string.species_pothos
+    Species.HEARTS -> Res.string.species_hearts
 }
 
 fun Species.descriptionRes(): StringResource = when (this) {
@@ -166,6 +169,7 @@ fun Species.descriptionRes(): StringResource = when (this) {
     Species.BONSAI -> Res.string.item_seed_desc_bonsai
     Species.FLYTRAP -> Res.string.item_seed_desc_flytrap
     Species.POTHOS -> Res.string.item_seed_desc_pothos
+    Species.HEARTS -> Res.string.item_seed_desc_hearts
 }
 
 @Composable
