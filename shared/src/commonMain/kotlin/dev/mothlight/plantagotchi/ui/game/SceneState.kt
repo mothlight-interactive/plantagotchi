@@ -41,8 +41,30 @@ internal class Fx(
 }
 
 /** A shop item flying in, being used on the plant and flying out again. */
-internal class ToolAnimation(val sprite: PixelSprite, val kind: FxKind, val start: Float) {
+internal class ToolAnimation(
+    val sprite: PixelSprite,
+    val kind: FxKind,
+    val start: Float,
+    /** Bubble this tool fills ([SceneState.NEED_FERTILIZER] or [SceneState.NEED_WATER]) and for which plant. */
+    val need: Int = -1,
+    val plantId: String = "",
+) {
     val duration = 2.4f
+
+    /** How much the need rose with this purchase; negative until the new value was seen. */
+    var gain = -1f
+
+    /** 0 before the tool pours, 1 once it has emptied; the bubble fills along with it. */
+    fun poured(time: Float): Float {
+        val p = (time - start) / duration
+        return ((p - POUR_START) / (POUR_END - POUR_START)).coerceIn(0f, 1f)
+    }
+
+    companion object {
+        /** The part of the animation in which water or fertilizer falls. */
+        const val POUR_START = 0.3f
+        const val POUR_END = 0.75f
+    }
 }
 
 internal class ThunderPath(var id: Long = -1, var points: List<Offset> = emptyList())
@@ -150,6 +172,51 @@ internal class SceneState {
 
     val effects = mutableListOf<Fx>()
     val tools = mutableListOf<ToolAnimation>()
+
+    // A refill is in the save game at once, but its bubble fills while the tool pours. The rise
+    // of a need is noticed here and held back until its tool has poured it out.
+    private val lastNeeds = FloatArray(4) { -1f }
+    private var lastNeedsPlant = ""
+    private val unclaimed = FloatArray(4)
+    private val unclaimedAt = FloatArray(4)
+
+    /**
+     * What the bubble [need] shows for the real value [real] of plant [plantId]: the real value
+     * minus what tools on their way have not poured yet. Never more than [real], and exactly
+     * [real] once the tools are done.
+     */
+    fun displayedNeed(need: Int, real: Float, plantId: String): Float {
+        var held = if (plantId == lastNeedsPlant) unclaimed[need] else 0f
+        for (i in tools.indices) {
+            val tool = tools[i]
+            if (tool.need == need && tool.plantId == plantId && tool.gain > 0f) held += tool.gain * (1f - tool.poured(time))
+        }
+        return (real - held).coerceIn(0f, real)
+    }
+
+    private fun trackNeeds(state: GameUiState) {
+        val plant = state.player.activePlant
+        val values = floatArrayOf(plant.love.toFloat(), plant.fertilizer.toFloat(), plant.water.toFloat(), plant.lux.toFloat())
+        if (plant.id != lastNeedsPlant) {
+            lastNeedsPlant = plant.id
+            unclaimed.fill(0f)
+        } else {
+            for (need in values.indices) {
+                val rise = values[need] - lastNeeds[need]
+                if (lastNeeds[need] >= 0f && rise > REFILL_JUMP) {
+                    // The tool may already be flying (event first) or still to come (state first)
+                    val waiting = tools.firstOrNull { it.need == need && it.plantId == plant.id && it.gain < 0f }
+                    if (waiting != null) waiting.gain = rise else {
+                        unclaimed[need] += rise
+                        unclaimedAt[need] = time
+                    }
+                }
+                // A rise nobody claims (not a purchase) is shown after a moment
+                if (unclaimed[need] > 0f && time - unclaimedAt[need] > UNCLAIMED_SECONDS) unclaimed[need] = 0f
+            }
+        }
+        for (need in values.indices) lastNeeds[need] = values[need]
+    }
     private val pendingEvents = ArrayDeque<GameEvent>()
 
     fun post(event: GameEvent) = pendingEvents.addLast(event)
@@ -164,7 +231,8 @@ internal class SceneState {
         trackWeather(state.weather.facts.state)
         trackCoins(state.player.coins, l)
         trackActivePlant(state.player.activeIndex)
-        while (pendingEvents.isNotEmpty()) handle(pendingEvents.removeFirst(), l)
+        trackNeeds(state)
+        while (pendingEvents.isNotEmpty()) handle(pendingEvents.removeFirst(), l, state.player.activePlant.id)
         val plant = state.player.activePlant
         if (!plant.dead && plant.health < 35 && time - lastLeafAt > 2.5f) {
             lastLeafAt = time
@@ -224,7 +292,7 @@ internal class SceneState {
         )
     }
 
-    private fun handle(event: GameEvent, l: SceneLayout) {
+    private fun handle(event: GameEvent, l: SceneLayout, plantId: String) {
         when (event) {
             GameEvent.Petted -> {
                 if (time - petBounceAt > 0.8f) activeAnimator.trigger(PlantAction.WIGGLE, time)
@@ -248,7 +316,16 @@ internal class SceneState {
                     sprite = if (item.need == Need.WATER) CodeSprites.wateringCan else CodeSprites.fertilizerBag,
                     kind = if (item.need == Need.WATER) FxKind.WATER else FxKind.DIRT,
                     start = time,
-                ).also { activeAnimator.trigger(PlantAction.STRETCH, time, delay = 1.9f) }
+                    need = if (item.need == Need.WATER) NEED_WATER else NEED_FERTILIZER,
+                    plantId = plantId,
+                ).also { tool ->
+                    // Take over a rise that was seen before this event arrived
+                    if (plantId == lastNeedsPlant && unclaimed[tool.need] > 0f) {
+                        tool.gain = unclaimed[tool.need]
+                        unclaimed[tool.need] = 0f
+                    }
+                    activeAnimator.trigger(PlantAction.STRETCH, time, delay = 1.9f)
+                }
                 is ShopItem.GrowLamp -> {
                     sparkleBurst(lampPosition(l), 14, l.dp)
                     activeAnimator.trigger(PlantAction.LOOK, time)
@@ -362,8 +439,8 @@ internal class SceneState {
         val pixel = 4 * l.dp
         return when {
             p < 0.2f -> ToolPose(lerpOffset(offscreen, target, easeOut(p / 0.2f)), 0f, 1f, false, pixel)
-            p < 0.3f -> ToolPose(target, tilt * easeOut((p - 0.2f) / 0.1f), 1f, false, pixel)
-            p < 0.75f -> ToolPose(target, tilt + sin(time * 6f) * 3f, 1f, true, pixel)
+            p < ToolAnimation.POUR_START -> ToolPose(target, tilt * easeOut((p - 0.2f) / 0.1f), 1f, false, pixel)
+            p < ToolAnimation.POUR_END -> ToolPose(target, tilt + sin(time * 6f) * 3f, 1f, true, pixel)
             p < 0.85f -> ToolPose(target, tilt * (1 - (p - 0.75f) / 0.1f), 1f, false, pixel)
             else -> {
                 val t = (p - 0.85f) / 0.15f
@@ -450,6 +527,12 @@ internal class SceneState {
 
     companion object {
         const val MAX_EFFECTS = 500
+        /** Bubble indices: love, fertilizer, water, light. */
+        const val NEED_FERTILIZER = 1
+        const val NEED_WATER = 2
+        /** A need rising by more than this within a frame is a refill, not rain or daylight. */
+        const val REFILL_JUMP = 5f
+        const val UNCLAIMED_SECONDS = 0.5f
         /** Width of a lamp shade in dp (12 sprite pixels of 4 dp). */
         const val LAMP_SHADE_DP = 48f
 

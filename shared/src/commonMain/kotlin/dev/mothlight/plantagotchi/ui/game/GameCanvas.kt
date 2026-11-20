@@ -764,7 +764,8 @@ private fun DrawScope.drawNeedsBand(
         Triple(plant.lux, PlantagotchiColors.Sunshine, sprites.sunshine),
     )
     needs.forEachIndexed { i, (value, color, icon) ->
-        val target = value.toFloat()
+        // A refill fills its bubble while the tool pours, not at the moment of the purchase
+        val target = scene.displayedNeed(i, value.toFloat(), plant.id)
         val shown = if (scene.shownNeeds[i] < 0) target else lerp(scene.shownNeeds[i], target, 0.08f)
         scene.shownNeeds[i] = shown
 
