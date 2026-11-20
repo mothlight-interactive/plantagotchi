@@ -10,6 +10,8 @@
     <string name="hint_love">Desliza el dedo sobre tu planta para acariciarla.</string>
     <string name="hint_light_sensor">Pon tu móvil bajo una luz intensa o compra una lámpara de cultivo.</string>
     <string name="hint_light_estimated">Tu planta recibe luz durante el día. Con una lámpara de cultivo, más.</string>
+    <string name="hint_light_outdoors">Al aire libre, la luz del día la llena el doble de rápido que en una habitación.</string>
+    <string name="hint_lamp_left">Lámpara de cultivo encendida: quedan %1$d min.</string>
     <string name="hint_reward">¡+%1$d monedas! Día %2$d de tu racha.</string>
     <string name="hint_reward_tomorrow">Vuelve mañana por el próximo cofre.</string>
     <string name="hint_grew">¡Tu %1$s ha crecido!</string>

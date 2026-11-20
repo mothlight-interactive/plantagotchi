@@ -43,6 +43,11 @@ class ReminderPlanner(
         val result = mutableListOf<PlannedReminder>()
         Need.entries.forEach { need ->
             state.plants.filterNot { it.dead }.mapNotNull { plant ->
+                if (need == Need.LIGHT) {
+                    // Light comes back every day and with a lamp: simulate instead of a straight decay
+                    val seconds = GameRules.secondsUntilDark(plant, state, nowMillis, LOW, MAX_DELAY_SECONDS) ?: return@mapNotNull null
+                    return@mapNotNull plant.species to seconds.coerceIn(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
+                }
                 val (value, decay) = when (need) {
                     Need.WATER -> plant.water to GameRules.WATER_DECAY * plant.species.waterDecay
                     Need.LIGHT -> plant.lux to GameRules.LUX_DECAY * plant.species.luxDecay

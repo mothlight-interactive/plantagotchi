@@ -10,6 +10,8 @@
     <string name="hint_love">Wische über deine Pflanze, um sie zu streicheln.</string>
     <string name="hint_light_sensor">Halte dein Handy ins helle Licht oder kaufe eine Pflanzenlampe.</string>
     <string name="hint_light_estimated">Deine Pflanze bekommt tagsüber Licht. Mit einer Pflanzenlampe mehr.</string>
+    <string name="hint_light_outdoors">Draussen füllt Tageslicht doppelt so schnell wie im Zimmer.</string>
+    <string name="hint_lamp_left">Pflanzenlampe an: noch %1$d Min.</string>
     <string name="hint_reward">+%1$d Münzen! Tag %2$d deiner Serie.</string>
     <string name="hint_reward_tomorrow">Komm morgen für die nächste Truhe wieder.</string>
     <string name="hint_grew">Dein %1$s ist gewachsen!</string>
