@@ -10,6 +10,8 @@
     <string name="hint_love">Swipe over your plant to pet it.</string>
     <string name="hint_light_sensor">Bring your phone into bright light, or buy a grow lamp.</string>
     <string name="hint_light_estimated">Your plant gets light during the day. Buy a grow lamp for more.</string>
+    <string name="hint_light_outdoors">Outdoors the daylight fills it twice as fast as in a room.</string>
+    <string name="hint_lamp_left">Grow lamp on: %1$d min left.</string>
     <string name="hint_reward">+%1$d coins! Day %2$d of your streak.</string>
     <string name="hint_reward_tomorrow">Come back tomorrow for the next chest.</string>
     <string name="hint_grew">Your %1$s grew!</string>

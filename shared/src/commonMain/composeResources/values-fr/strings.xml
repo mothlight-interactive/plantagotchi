@@ -10,6 +10,8 @@
     <string name="hint_love">Glisse le doigt sur ta plante pour la caresser.</string>
     <string name="hint_light_sensor">Mets ton téléphone en pleine lumière, ou achète une lampe horticole.</string>
     <string name="hint_light_estimated">Ta plante reçoit de la lumière le jour. Une lampe horticole en donne plus.</string>
+    <string name="hint_light_outdoors">Dehors, la lumière du jour la remplit deux fois plus vite que dans une pièce.</string>
+    <string name="hint_lamp_left">Lampe horticole allumée : encore %1$d min.</string>
     <string name="hint_reward">+%1$d pièces ! Jour %2$d de ta série.</string>
     <string name="hint_reward_tomorrow">Reviens demain pour le prochain coffre.</string>
     <string name="hint_grew">%1$s a grandi !</string>

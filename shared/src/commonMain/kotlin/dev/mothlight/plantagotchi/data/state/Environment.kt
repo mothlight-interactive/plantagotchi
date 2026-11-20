@@ -9,6 +9,8 @@ data class Environment(
     /** °C */
     val temperature: Double,
     val nowMillis: Long,
+    /** In a room: daylight through the window fills the light need more slowly than outdoors. */
+    val indoor: Boolean = false,
 ) {
     companion object {
         /** Used while the app is closed: dark, dry, mild. */

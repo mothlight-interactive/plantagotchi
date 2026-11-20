@@ -44,6 +44,8 @@ import dev.mothlight.plantagotchi.resources.Res
 import dev.mothlight.plantagotchi.resources.compost
 import dev.mothlight.plantagotchi.resources.hint_grew
 import dev.mothlight.plantagotchi.resources.hint_light_estimated
+import dev.mothlight.plantagotchi.resources.hint_light_outdoors
+import dev.mothlight.plantagotchi.resources.hint_lamp_left
 import dev.mothlight.plantagotchi.resources.hint_light_sensor
 import dev.mothlight.plantagotchi.resources.hint_love
 import dev.mothlight.plantagotchi.resources.hint_reward
@@ -231,7 +233,16 @@ fun GameContent(
                         SceneTarget.REPLANT -> actions.replant()
                         SceneTarget.COMPOST -> actions.compost()
                         SceneTarget.NEED_LIGHT -> scope.launch {
-                            hint = getString(if (state.luxFromSensor) Res.string.hint_light_sensor else Res.string.hint_light_estimated)
+                            val plant = state.player.activePlant
+                            val parts = mutableListOf(
+                                getString(if (state.luxFromSensor) Res.string.hint_light_sensor else Res.string.hint_light_estimated),
+                                getString(Res.string.hint_light_outdoors),
+                            )
+                            if (plant.lampOn(state.now)) {
+                                val minutes = ((plant.lampUntil - state.now + 59_999) / 60_000).toInt()
+                                parts += getString(Res.string.hint_lamp_left, minutes)
+                            }
+                            hint = parts.joinToString(" ")
                         }
                         SceneTarget.NEED_LOVE -> scope.launch { hint = getString(Res.string.hint_love) }
                         SceneTarget.PLANT -> actions.tapPlant()

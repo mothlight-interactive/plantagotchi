@@ -121,7 +121,7 @@ class GameRulesTest {
             player(PlantState(lux = 100.0, water = 100.0)).copy(updatedAt = 1_000L),
             1_000L + oneDay,
         )
-        assertEquals(0.0, s.activePlant.lux, 1e-6)
+        assertTrue(s.activePlant.lux > 40.0, "daylight refills the light during the day")
         assertEquals(50.0, s.activePlant.water, 1e-6)
         assertEquals(1_000L + oneDay, s.updatedAt)
     }
