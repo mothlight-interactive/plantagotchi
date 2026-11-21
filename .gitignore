@@ -20,3 +20,6 @@ xcuserdata/
 iosApp/Configuration/Secrets.xcconfig
 /appstore/
 /.idea
+# Built by tools/store/store_metadata.py: copies of screenshots and texts per store and language
+assets/store/upload/
+assets/store/*.zip

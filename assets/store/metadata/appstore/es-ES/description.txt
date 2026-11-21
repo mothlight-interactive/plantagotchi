@@ -1,0 +1,11 @@
+Plantagotchi es una pequeña y acogedora planta en pixel art que tú cuidas.
+
+Riégala, abónala y dale cariño, y crecerá de un brote diminuto a una planta preciosa. Cada especie tiene sus necesidades: los cactus odian las heladas, los helechos prefieren la sombra y los girasoles siguen al sol. Ninguna planta crece igual: cada bonsái es único y los tulipanes florecen en colores al azar.
+
+- Diez especies: brote, cactus, helecho, girasol, tulipanes, monstera, bonsái, atrapamoscas, pothos y collar de corazones
+- El tiempo real de tu zona: la lluvia, la nieve, el calor y las heladas afectan a tus plantas
+- Escenas acogedoras: habitación con gato, junto al fuego, tienda de plantas, playa, montañas y más
+- Mueve tus plantas por la habitación, dales una lámpara de cultivo y macetas bonitas
+- Cofre diario con monedas y avisos cuando una planta tiene sed
+- Widgets para la pantalla de inicio
+- Sin anuncios, sin compras integradas, sin cuenta

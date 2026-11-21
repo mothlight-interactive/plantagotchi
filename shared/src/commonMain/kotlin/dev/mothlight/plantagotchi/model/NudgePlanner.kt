@@ -76,7 +76,7 @@ class NudgePlanner(
                 plant.growth < GameRules.STAGE_3_GROWTH -> GameRules.STAGE_3_GROWTH
                 else -> return@mapNotNull null
             }
-            val seconds = ((target - plant.growth) / (0.5 + plant.fertilizer / GameRules.MAX)).toLong()
+            val seconds = ((target - plant.growth) / GameRules.growthPerSecond(plant)).toLong()
             if (seconds > GROWTH_HORIZON_SECONDS) null else plant.species to seconds
         }.minByOrNull { it.second }?.let { (species, seconds) ->
             val at = Instant.fromEpochMilliseconds(nowMillis + seconds * 1000).toLocalDateTime(timeZone)
