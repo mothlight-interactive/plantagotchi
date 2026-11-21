@@ -64,6 +64,15 @@ object GameRules {
     fun effectiveLux(plant: PlantState, ambientLux: Float, nowMillis: Long): Float =
         if (plant.lampOn(nowMillis)) maxOf(ambientLux, LAMP_LUX) else ambientLux
 
+    /**
+     * Growth of a healthy [plant] per second: fertilizer triples it (0.5 without, 1.5 when full),
+     * and each species has its own pace ([Species.growDays]).
+     */
+    fun growthPerSecond(plant: PlantState): Double = (0.5 + plant.fertilizer / MAX) * plant.species.growthFactor
+
+    /** Days to [STAGE_3_GROWTH] at the full fertilizer rate for a species with factor 1. */
+    const val FASTEST_GROW_DAYS = STAGE_3_GROWTH / 1.5 / 86_400.0
+
     /** One game loop step of [seconds] (normally 1) for all plants. */
     fun tick(state: PlayerState, env: Environment, seconds: Double = 1.0): PlayerState {
         var coins = state.coins
@@ -103,7 +112,7 @@ object GameRules {
             fertilizer = (plant.fertilizer - FERTILIZER_DECAY * s.fertilizerDecay * frost * seconds).clampNeed(),
         )
         val growth = if (next.health >= GROW_HEALTH) {
-            next.growth + seconds * (0.5 + next.fertilizer / MAX)
+            next.growth + seconds * growthPerSecond(next)
         } else {
             next.growth
         }

@@ -8,6 +8,8 @@ Assets:
   - `iphone-6.9`: 1320×2868
   - `android-phone`: 1080×1920
 - **Play feature graphic:** `assets/store/feature/feature-graphic-1024x500-<lang>.png`
+- **Texts as files:** `assets/store/metadata/appstore/<locale>/` and `assets/store/metadata/play/<locale>/`, one `.txt` per field, generated from the texts below
+- **Upload folders:** `assets/store/upload/appstore/<locale>/` and `assets/store/upload/play/<locale>/` hold everything for one store and language: texts, screenshots, and for Play the feature graphic and icon
 
 ## Regenerate
 
@@ -23,7 +25,13 @@ STORE_SHOTS=/tmp/raw LANGS=en,de,fr,es ./gradlew :shared:desktopTest --tests '*S
 python3 tools/store/store_assets.py /tmp/raw assets/store assets/brand/icon-plant-art.png
 ```
 
-3. App icon (iOS and Android). The input is a plant rendered at 1 px per art pixel.
+3. Text files and upload folders. The script checks the store length limits and fails if a text is too long.
+
+```bash
+python3 tools/store/store_metadata.py
+```
+
+4. App icon (iOS and Android). The input is a plant rendered at 1 px per art pixel.
 
 ```bash
 python3 tools/generate_icon.py assets/brand/icon-plant-art.png /tmp/icons
@@ -37,7 +45,8 @@ Copy `AppIcon.png` and `res/` from `/tmp/icons` into the app.
 - **Name:** Plantagotchi
 - **Subtitle (App Store, 30):** Your cozy pixel plant pal
 - **Short description (Play, 80):** Grow, water and cuddle pixel plants that react to the real weather.
-- **Promotional text (App Store):** New: fireside and plant shop scenes, pothos, bonsai trays and finer pixel art.
+- **Promotional text (App Store):** New: string of hearts, a redrawn flytrap, grow lamps that swing, and every species now grows at its own pace.
+- **What's new:** A second hanging plant, the string of hearts. Every species grows at its own pace, from a sprout in a day to a bonsai in a week. Light now also fills while the app is closed. Friendly greetings from your plants, at most one a day.
 - **Keywords (App Store):** plant,tamagotchi,pixel,cozy,garden,virtual pet,houseplant,idle,cute,weather
 - **Description:**
 
@@ -57,7 +66,8 @@ Water it, feed it and give it some love, and it grows from a tiny sprout into a 
 - **Name:** Plantagotchi
 - **Untertitel (30):** Deine gemütliche Pixelpflanze
 - **Kurzbeschreibung (80):** Zieh Pixelpflanzen gross, giess und streichle sie. Sie spüren das echte Wetter.
-- **Werbetext:** Neu: Kamin- und Pflanzenladen-Szene, Efeutute, Bonsai-Schalen und feinere Pixel.
+- **Werbetext:** Neu: Herzkette, neu gezeichnete Fliegenfalle, schwingende Pflanzenlampen, und jede Art wächst jetzt in ihrem eigenen Tempo.
+- **Neuigkeiten:** Eine zweite Hängepflanze, die Herzkette. Jede Art wächst in ihrem eigenen Tempo, vom Spross in einem Tag bis zum Bonsai in einer Woche. Licht füllt sich jetzt auch bei geschlossener App. Freundliche Grüsse von deinen Pflanzen, höchstens einer pro Tag.
 - **Keywords:** pflanze,tamagotchi,pixel,gemütlich,garten,haustier,zimmerpflanze,süss,wetter
 - **Beschreibung:**
 
@@ -77,7 +87,8 @@ Giess sie, dünge sie und schenk ihr etwas Liebe. So wächst sie vom winzigen Sp
 - **Nom :** Plantagotchi
 - **Sous-titre (30) :** Ta plante en pixels douillette
 - **Description courte (80) :** Fais pousser, arrose et câline des plantes en pixels qui vivent la vraie météo.
-- **Texte promotionnel :** Nouveau : coin du feu, boutique de plantes, pothos, coupes à bonsaï et pixels plus fins.
+- **Texte promotionnel :** Nouveau : chaîne des cœurs, dionée redessinée, lampes horticoles qui se balancent, et chaque espèce pousse à son rythme.
+- **Nouveautés :** Une deuxième plante suspendue, la chaîne des cœurs. Chaque espèce pousse à son rythme, d’une pousse en un jour à un bonsaï en une semaine. La lumière se remplit aussi quand l’app est fermée. De petits bonjours de tes plantes, un par jour au maximum.
 - **Mots-clés :** plante,tamagotchi,pixel,cosy,jardin,animal virtuel,plante verte,mignon,météo
 - **Description :**
 
@@ -97,7 +108,8 @@ Arrose-la, nourris-la, donne-lui de l'amour, et elle passe d'une minuscule pouss
 - **Nombre:** Plantagotchi
 - **Subtítulo (30):** Tu acogedora planta pixelada
 - **Descripción breve (80):** Cultiva, riega y mima plantas pixeladas que sienten el tiempo real.
-- **Texto promocional:** Novedad: junto al fuego, tienda de plantas, pothos, bandejas de bonsái y píxeles más finos.
+- **Texto promocional:** Novedad: collar de corazones, atrapamoscas redibujada, lámparas de cultivo que se balancean, y cada especie crece a su ritmo.
+- **Novedades:** Una segunda planta colgante, el collar de corazones. Cada especie crece a su ritmo, de un brote en un día a un bonsái en una semana. La luz también se llena con la app cerrada. Saludos de tus plantas, uno al día como máximo.
 - **Palabras clave:** planta,tamagotchi,pixel,acogedor,jardín,mascota virtual,planta de interior,tierno,tiempo
 - **Descripción:**
 

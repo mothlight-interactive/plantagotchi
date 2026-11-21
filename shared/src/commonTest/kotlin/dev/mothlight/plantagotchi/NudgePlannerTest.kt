@@ -64,8 +64,9 @@ class NudgePlannerTest {
 
     @Test
     fun aPlantAboutToGrowIsAnnouncedOnThatDay() {
-        // Healthy, 3 hours of growth at full fertilizer (rate 1.5/s) before stage 2
-        val plant = PlantState(id = "a", growth = GameRules.STAGE_2_GROWTH - 3 * 3600 * 1.5, love = 100.0)
+        // Healthy, 3 hours of growth at full fertilizer before stage 2
+        val base = PlantState(id = "a", love = 100.0)
+        val plant = base.copy(growth = GameRules.STAGE_2_GROWTH - 3 * 3600 * GameRules.growthPerSecond(base))
         val grown = plan(player(plant = plant)).first { it.kind == NudgeKind.GROWN }
         assertEquals(0, grown.day)
         assertEquals(3 * 3600L, grown.delaySeconds)

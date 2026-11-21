@@ -1,0 +1,11 @@
+Plantagotchi est une petite plante douillette en pixel art dont tu prends soin.
+
+Arrose-la, nourris-la, donne-lui de l'amour, et elle passe d'une minuscule pousse à une belle plante. Chaque espèce a ses besoins : les cactus détestent le gel, les fougères aiment l'ombre, les tournesols suivent le soleil. Aucune plante ne pousse pareil : chaque bonsaï est unique, les tulipes fleurissent en couleurs aléatoires.
+
+- Dix espèces : pousse, cactus, fougère, tournesol, tulipes, monstera, bonsaï, dionée, pothos et chaîne des cœurs
+- La vraie météo de chez toi : pluie, neige, chaleur et gel agissent sur tes plantes
+- Scènes douillettes : chambre avec un chat, coin du feu, boutique de plantes, plage, montagnes et plus
+- Déplace tes plantes dans la pièce, offre-leur une lampe horticole et de jolis pots
+- Coffre quotidien avec des pièces, rappels quand une plante a soif
+- Widgets pour l'écran d'accueil
+- Sans pub, sans achats intégrés, sans compte

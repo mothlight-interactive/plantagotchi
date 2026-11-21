@@ -1,0 +1,11 @@
+Plantagotchi is a small, cozy plant to look after, drawn in pixel art.
+
+Water it, feed it and give it some love, and it grows from a tiny sprout into a full plant. Each species has its own needs. Cacti hate frost, ferns like shade, and sunflowers follow the sun. Every plant grows a little differently: no two bonsai are alike, and tulips bloom in random colors.
+
+- Ten species: sprout, cactus, fern, sunflower, tulips, monstera, bonsai, flytrap, pothos and string of hearts
+- Real weather where you live: rain, snow, heat and frost affect your plants
+- Cozy scenes: a room with a cat, a fireside, a plant shop, beach, mountains and more
+- Move your plants around the room, treat them to a grow lamp, and pick pretty pots
+- A daily chest with coins, and reminders when a plant gets thirsty
+- Home screen widgets
+- No ads, no in-app purchases, no account
